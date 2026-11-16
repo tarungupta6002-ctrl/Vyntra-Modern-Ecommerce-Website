@@ -640,8 +640,20 @@ export default function CheckoutPage() {
     );
   }
 
+  // 1.5 Pre-mount state (guards all client Zustand states from SSR hydration mismatches)
+  if (!mounted) {
+    return (
+      <div className="w-full bg-surface min-h-[calc(100vh-280px)] flex items-center justify-center py-16 px-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-on-surface-variant font-medium">Preparing secure checkout...</p>
+        </div>
+      </div>
+    );
+  }
+
   // 2. Empty Cart View: ONLY if the user visits /checkout with zero items and NOT submitting an order
-  if (mounted && items.length === 0 && !isProcessing && !isOrderPlaced) {
+  if (items.length === 0 && !isProcessing && !isOrderPlaced) {
     return (
       <div className="w-full bg-surface min-h-[calc(100vh-280px)] flex items-center justify-center py-16 px-4">
         <div className="max-w-md w-full bg-surface-container-lowest p-8 rounded-2xl shadow-sm text-center flex flex-col items-center gap-4 border border-surface-container">

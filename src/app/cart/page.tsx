@@ -115,9 +115,9 @@ export default function CartPage() {
   // State
   const { getSelectedAddress, getDefaultAddress } = useAddressStore();
   const addToWishlist = useWishlistStore((state) => state.addItem);
-  const activeAddress = getSelectedAddress() || getDefaultAddress();
+  const activeAddress = mounted ? (getSelectedAddress() || getDefaultAddress()) : undefined;
   const [couponInput, setCouponInput] = useState('');
-  const [pincode, setPincode] = useState(activeAddress?.pincode || '210427');
+  const [pincode, setPincode] = useState('210427');
   const [changingPincode, setChangingPincode] = useState(false);
   const [wishlistSaved, setWishlistSaved] = useState<Record<string, boolean>>({});
   const [couponsModalOpen, setCouponsModalOpen] = useState(false);
@@ -151,6 +151,10 @@ export default function CartPage() {
   useEffect(() => {
     setMounted(true);
     setCouponInput(couponCode || 'VYNTRAFIRST');
+    const addr = getSelectedAddress() || getDefaultAddress();
+    if (addr?.pincode) {
+      setPincode(addr.pincode);
+    }
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -185,9 +189,9 @@ export default function CartPage() {
   }, [isCouponApplied, removeCoupon]);
 
   // Financial Calculations
-  const totalItems = mounted ? getTotalItems() : 2;
-  const subtotal = mounted ? getSubtotal() : 3899;
-  const rawSavings = mounted ? getTotalSavings() : 3233;
+  const totalItems = mounted ? getTotalItems() : 0;
+  const subtotal = mounted ? getSubtotal() : 0;
+  const rawSavings = mounted ? getTotalSavings() : 0;
   const totalMRP = subtotal + rawSavings;
 
   // Multi-Vendor Grouping
@@ -345,6 +349,17 @@ export default function CartPage() {
     showToast(`Added ${rec.title} to Bag!`, 'bag');
   };
 
+  if (!mounted) {
+    return (
+      <div className="w-full bg-surface min-h-[calc(100vh-280px)] flex items-center justify-center py-16 px-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-on-surface-variant font-medium">Loading your shopping bag...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full bg-surface min-h-[calc(100vh-280px)] text-on-surface antialiased py-6">
       {/* Festive Alert Ribbon Banner */}
@@ -471,11 +486,14 @@ export default function CartPage() {
                     </div>
                   ) : (
                     <span
+                      suppressHydrationWarning
                       onClick={() => setChangingPincode(true)}
                       className="text-on-surface font-semibold cursor-pointer hover:text-primary transition-colors flex items-center gap-1"
                       title="Click to change pincode"
                     >
-                      <strong>{activeAddress ? `${activeAddress.city} ${activeAddress.pincode}` : `India ${pincode}`}</strong>
+                      <strong suppressHydrationWarning>
+                        {activeAddress ? `${activeAddress.city} ${activeAddress.pincode}` : `India ${pincode}`}
+                      </strong>
                       <span className="text-[10px] text-primary underline">Change</span>
                     </span>
                   )}
