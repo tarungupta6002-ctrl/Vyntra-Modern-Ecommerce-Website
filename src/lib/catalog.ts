@@ -263,17 +263,6 @@ export function formatDetailedProduct(product: any): DetailedProduct {
       ? cleanDescription
       : '';
 
-  if (!aplusData) {
-    aplusData = createDefaultAPlusContent({
-      title: product.title,
-      brand: product.brand,
-      category: product.category?.name,
-      heroImage: images[0]?.src,
-      secondaryImage: images[1]?.src || images[0]?.src,
-      storeName: product.vendor?.storeName,
-    });
-  }
-
   const reviewsList = (product.reviews || []).map((r: any) => ({
     id: r.id,
     author: r.user?.name || 'Verified Patron',

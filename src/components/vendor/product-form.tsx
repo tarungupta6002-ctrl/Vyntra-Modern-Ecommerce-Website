@@ -183,16 +183,17 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     { size: 'XL', chest: '44 in', waist: '38 in', length: '43 in' },
   ]);
 
-  // Amazon A+ Rich Product Description Modules
+  // Amazon A+ Rich Product Description Modules (Optional - defaults to empty)
   const [aplusData, setAplusData] = useState<APlusData>(() => {
-    if (initialData?.aplus && initialData.aplus.modules && initialData.aplus.modules.length > 0) {
+    if (initialData?.aplus && Array.isArray(initialData.aplus.modules) && initialData.aplus.modules.length > 0) {
       return initialData.aplus;
     }
-    return createDefaultAPlusContent({
-      title: initialData?.title || 'Handcrafted Heritage Collection',
-      brand: initialData?.brand || 'Vyntra Atelier',
-      category: 'fashion',
-    });
+    return {
+      headerTitle: '',
+      headerSubtitle: '',
+      headerStyle: 'clean_minimal',
+      modules: [],
+    };
   });
 
   // Meta & Categories
@@ -696,7 +697,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         description: description.trim() || undefined,
         specs: specs.filter((s) => s.label.trim() && s.value.trim()),
         highlights: highlights.filter((h) => h.trim()),
-        aplus: aplusData,
+        aplus: aplusData.modules && aplusData.modules.length > 0 ? aplusData : undefined,
         images: images.map((img) => img.url),
         stock: hasVariants ? undefined : parseInt(standardStock, 10) || 10,
         variants: hasVariants

@@ -1121,14 +1121,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
       {/* FULL-WIDTH SCROLLABLE DESCRIPTION & RICH CONTENT (NO POPUPS/MODALS)  */}
       {/* ===================================================================== */}
       <section className="max-w-[1500px] mx-auto px-4 sm:px-6 py-12 space-y-14 border-t border-[#D5D9D9]">
-        {/* Amazon A+ Content Display (Rich Editorial Modules) */}
+        {/* Amazon A+ Content Display (Rich Editorial Modules - Optional) */}
         {product.aplusContent && product.aplusContent.modules && product.aplusContent.modules.length > 0 ? (
           <APlusContentDisplay
             aplus={product.aplusContent}
             brandName={product.brand}
           />
-        ) : (
-          /* Fallback Atelier Narrative */
+        ) : product.category === 'ethnic' ? (
+          /* Fallback Atelier Narrative for Ethnic products */
           <div className="space-y-6">
             <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
               <Store className="h-5 w-5 text-[#800020]" />
@@ -1173,7 +1173,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* 2. Technical Product Specifications Table */}
         <div className="space-y-4">

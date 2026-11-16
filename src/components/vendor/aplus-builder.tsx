@@ -20,7 +20,7 @@ import {
   BookOpen,
   FolderOpen,
 } from 'lucide-react';
-import { APlusData, APlusModule, APlusModuleType, APlusHeaderStyle } from '@/types/aplus';
+import { APlusData, APlusModule, APlusModuleType, APlusHeaderStyle, createDefaultAPlusContent } from '@/types/aplus';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
 
 interface APlusBuilderProps {
@@ -286,17 +286,28 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier
         {(!aplusData.modules || aplusData.modules.length === 0) ? (
           <div className="py-10 border-2 border-dashed border-[#D5D9D9] rounded-xl text-center space-y-2 bg-[#F7F8F8]">
             <Layout className="h-8 w-8 text-[#565959]/40 mx-auto" />
-            <p className="text-xs font-bold text-[#0F1111]">No A+ Content modules added yet</p>
+            <p className="text-xs font-bold text-[#0F1111]">No A+ Content modules added yet (Optional)</p>
             <p className="text-[11px] text-[#565959]">
               Add hero banners, craft spotlights, and lifestyle galleries to transform your product page into an Amazon-style flagship showcase.
             </p>
-            <button
-              type="button"
-              onClick={() => setShowAddMenu(true)}
-              className="mt-2 px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold rounded-lg shadow-sm"
-            >
-              Add First Module
-            </button>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddMenu(true)}
+                className="px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Module</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(createDefaultAPlusContent({ title: brandName || 'Artisan Atelier', brand: brandName || 'Vyntra' }))}
+                className="px-4 py-2 bg-white hover:bg-stone-50 text-[#565959] text-xs font-bold rounded-lg border border-[#D5D9D9] shadow-xs flex items-center gap-1.5"
+              >
+                <BookOpen className="h-3.5 w-3.5 text-[#800020]" />
+                <span>Load Artisan Template</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
