@@ -134,7 +134,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     initialData?.variants && initialData.variants.length > 0
       ? initialData.variants.map((v: any) => ({
           id: v.id,
-          size: v.size || 'M',
+          size: v.size || (v.sku?.includes('FREE') ? 'Free Size' : 'Standard'),
           color: v.color || 'Classic',
           sku: v.sku || '',
           price: v.price ? String(v.price) : '',
@@ -145,7 +145,6 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   );
 
   // Amazon-Style Variations Builder State
-  const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
   const [builderColor, setBuilderColor] = useState('');
   const [selectedSizes, setSelectedSizes] = useState<string[]>(['S', 'M', 'L', 'XL', '2XL']);
 
@@ -380,6 +379,39 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       activeCategory?.name
     );
   }, [activeCategory]);
+
+  const isFreeSizeCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const fullPath = (activeCategory?.fullPath || '').toLowerCase();
+    return (
+      slug.includes('saree') ||
+      name.includes('saree') ||
+      fullPath.includes('saree') ||
+      slug.includes('shawl') ||
+      name.includes('shawl') ||
+      slug.includes('dupatta') ||
+      name.includes('dupatta') ||
+      slug.includes('jewel') ||
+      name.includes('jewel') ||
+      slug.includes('bag') ||
+      name.includes('bag') ||
+      slug.includes('wallet') ||
+      name.includes('wallet')
+    );
+  }, [activeCategory]);
+
+  const AVAILABLE_SIZES = React.useMemo(() => {
+    return isFreeSizeCategory
+      ? ['Free Size']
+      : ['S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
+  }, [isFreeSizeCategory]);
+
+  useEffect(() => {
+    if (isFreeSizeCategory) {
+      setSelectedSizes(['Free Size']);
+    }
+  }, [isFreeSizeCategory]);
 
   // Reset manual override whenever category changes so category defaults apply immediately
   useEffect(() => {

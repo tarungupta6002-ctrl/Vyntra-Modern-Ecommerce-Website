@@ -228,7 +228,14 @@ function OrderConfirmationContent() {
                         </span>
                         <h4 className="text-xs font-bold text-on-surface truncate">{item.title}</h4>
                         <div className="flex items-center gap-2 text-[11px] text-on-surface-variant mt-0.5">
-                          {item.selectedSize && <span>Size: {item.selectedSize}</span>}
+                          {(() => {
+                            const isUnstitched =
+                              item.title?.toLowerCase().includes('saree') ||
+                              item.title?.toLowerCase().includes('shawl') ||
+                              item.title?.toLowerCase().includes('dupatta');
+                            const displaySize = isUnstitched ? 'Free Size' : item.selectedSize;
+                            return displaySize ? <span>Size: {displaySize}</span> : null;
+                          })()}
                           {item.selectedColor && <span>Color: {item.selectedColor}</span>}
                           <span>Qty: {item.quantity}</span>
                         </div>

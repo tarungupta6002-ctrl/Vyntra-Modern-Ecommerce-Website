@@ -268,6 +268,12 @@ export async function POST(request: Request) {
                 quantity: finalQty,
                 sellerOfferId: cItem.sellerOfferId || null,
                 offerVariantId: cItem.offerVariantId || null,
+                selectedSize:
+                  validated.product.title?.toLowerCase().includes('saree') ||
+                  validated.product.title?.toLowerCase().includes('shawl') ||
+                  validated.product.title?.toLowerCase().includes('dupatta')
+                    ? 'Free Size'
+                    : cItem.size || validated.variant.size,
               },
               create: {
                 cartId: userCart.id,
@@ -276,7 +282,12 @@ export async function POST(request: Request) {
                 sellerOfferId: cItem.sellerOfferId || null,
                 offerVariantId: cItem.offerVariantId || null,
                 quantity: finalQty,
-                selectedSize: cItem.size || validated.variant.size,
+                selectedSize:
+                  validated.product.title?.toLowerCase().includes('saree') ||
+                  validated.product.title?.toLowerCase().includes('shawl') ||
+                  validated.product.title?.toLowerCase().includes('dupatta')
+                    ? 'Free Size'
+                    : cItem.size || validated.variant.size,
                 selectedColor: cItem.color || validated.variant.color,
               },
             });
@@ -462,7 +473,12 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         unitPrice,
         totalPrice: itemTotal,
-        selectedSize: item.selectedSize || variant.size,
+        selectedSize:
+          product.title?.toLowerCase().includes('saree') ||
+          product.title?.toLowerCase().includes('shawl') ||
+          product.title?.toLowerCase().includes('dupatta')
+            ? 'Free Size'
+            : item.selectedSize || variant.size,
         selectedColor: item.selectedColor || variant.color,
         inventoryId,
         inventoryType,

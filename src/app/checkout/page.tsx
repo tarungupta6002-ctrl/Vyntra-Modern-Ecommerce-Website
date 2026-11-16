@@ -375,15 +375,21 @@ export default function CheckoutPage() {
         addressType: (activeAddress.type === 'Work' ? 'WORK' : 'HOME') as 'HOME' | 'WORK' | 'OTHER',
       };
 
-      const clientItems = items.map((i) => ({
-        productId: i.productId,
-        variantId: i.variantId?.startsWith('var-') ? undefined : i.variantId,
-        sellerOfferId: i.sellerOfferId,
-        offerVariantId: i.offerVariantId,
-        quantity: i.quantity,
-        size: i.size || undefined,
-        color: i.color || undefined,
-      }));
+      const clientItems = items.map((i) => {
+        const isUnstitched =
+          i.title?.toLowerCase().includes('saree') ||
+          i.title?.toLowerCase().includes('shawl') ||
+          i.title?.toLowerCase().includes('dupatta');
+        return {
+          productId: i.productId,
+          variantId: i.variantId?.startsWith('var-') ? undefined : i.variantId,
+          sellerOfferId: i.sellerOfferId,
+          offerVariantId: i.offerVariantId,
+          quantity: i.quantity,
+          size: isUnstitched ? 'Free Size' : (i.size || undefined),
+          color: i.color || undefined,
+        };
+      });
 
       const idempotencyKey = `idemp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
@@ -472,15 +478,21 @@ export default function CheckoutPage() {
       const chosenMethod: 'UPI' | 'CARD' | 'NETBANKING' =
         paymentMethod === 'upi' ? 'UPI' : paymentMethod === 'card' ? 'CARD' : 'NETBANKING';
 
-      const clientItems = items.map((i) => ({
-        productId: i.productId,
-        variantId: i.variantId?.startsWith('var-') ? undefined : i.variantId,
-        sellerOfferId: i.sellerOfferId,
-        offerVariantId: i.offerVariantId,
-        quantity: i.quantity,
-        size: i.size || undefined,
-        color: i.color || undefined,
-      }));
+      const clientItems = items.map((i) => {
+        const isUnstitched =
+          i.title?.toLowerCase().includes('saree') ||
+          i.title?.toLowerCase().includes('shawl') ||
+          i.title?.toLowerCase().includes('dupatta');
+        return {
+          productId: i.productId,
+          variantId: i.variantId?.startsWith('var-') ? undefined : i.variantId,
+          sellerOfferId: i.sellerOfferId,
+          offerVariantId: i.offerVariantId,
+          quantity: i.quantity,
+          size: isUnstitched ? 'Free Size' : (i.size || undefined),
+          color: i.color || undefined,
+        };
+      });
 
       const orderRes = await fetch('/api/create-order', {
         method: 'POST',
@@ -1635,7 +1647,14 @@ export default function CheckoutPage() {
                                 {item.title}
                               </h3>
                               <p className="text-[11px] text-on-surface-variant mt-0.5">
-                                {item.size ? `Size: ${item.size} • ` : ''}
+                                {(() => {
+                                  const isUnstitched =
+                                    item.title?.toLowerCase().includes('saree') ||
+                                    item.title?.toLowerCase().includes('shawl') ||
+                                    item.title?.toLowerCase().includes('dupatta');
+                                  const displaySize = isUnstitched ? 'Free Size' : item.size;
+                                  return displaySize ? `Size: ${displaySize} • ` : '';
+                                })()}
                                 {item.color ? `Color: ${item.color} • ` : ''}
                                 Qty: {item.quantity}
                               </p>

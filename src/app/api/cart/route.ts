@@ -123,6 +123,12 @@ export async function POST(request: Request) {
               },
             });
           } else {
+            const isUnstitched =
+              validated.product.title?.toLowerCase().includes('saree') ||
+              validated.product.title?.toLowerCase().includes('shawl') ||
+              validated.product.title?.toLowerCase().includes('dupatta');
+            const resolvedItemSize = isUnstitched ? 'Free Size' : (rawItem.size || validated.variant.size);
+
             await prisma.cartItem.create({
               data: {
                 cartId: cart.id,
@@ -131,7 +137,7 @@ export async function POST(request: Request) {
                 sellerOfferId: activeSellerOffer?.id || null,
                 offerVariantId: activeOfferVariant?.id || null,
                 quantity: finalQty,
-                selectedSize: rawItem.size || validated.variant.size,
+                selectedSize: resolvedItemSize,
                 selectedColor: rawItem.color || validated.variant.color,
               },
             });
@@ -219,6 +225,12 @@ export async function POST(request: Request) {
       },
     });
 
+    const isUnstitched =
+      validated.product.title?.toLowerCase().includes('saree') ||
+      validated.product.title?.toLowerCase().includes('shawl') ||
+      validated.product.title?.toLowerCase().includes('dupatta');
+    const resolvedItemSize = isUnstitched ? 'Free Size' : (selectedSize || validated.variant.size);
+
     if (existing) {
       const nextQty = existing.quantity + requestedQty;
       if (nextQty > availableStock) {
@@ -236,7 +248,7 @@ export async function POST(request: Request) {
           quantity: nextQty,
           sellerOfferId: activeSellerOffer?.id || null,
           offerVariantId: activeOfferVariant?.id || null,
-          selectedSize: selectedSize || validated.variant.size || existing.selectedSize,
+          selectedSize: resolvedItemSize || existing.selectedSize,
           selectedColor: selectedColor || validated.variant.color || existing.selectedColor,
         },
       });
@@ -258,7 +270,7 @@ export async function POST(request: Request) {
           sellerOfferId: activeSellerOffer?.id || null,
           offerVariantId: activeOfferVariant?.id || null,
           quantity: requestedQty,
-          selectedSize: selectedSize || validated.variant.size,
+          selectedSize: resolvedItemSize,
           selectedColor: selectedColor || validated.variant.color,
         },
       });

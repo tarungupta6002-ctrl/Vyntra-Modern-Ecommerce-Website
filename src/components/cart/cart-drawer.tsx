@@ -246,7 +246,16 @@ export function CartDrawer() {
             </div>
           ) : (
             <>
-              {items.map((item) => (
+              {items.map((item) => {
+                const isSareeOrUnstitched =
+                  item.title?.toLowerCase().includes('saree') ||
+                  item.title?.toLowerCase().includes('shawl') ||
+                  item.title?.toLowerCase().includes('dupatta');
+                const effectiveSize = isSareeOrUnstitched
+                  ? 'Free Size'
+                  : item.size || 'Standard';
+
+                return (
                 <div
                   key={item.id}
                   className="p-3.5 bg-surface-container-low rounded-xl flex gap-3.5 transition-all duration-200 hover:bg-surface-container border border-surface-container/60 shadow-xs"
@@ -261,7 +270,7 @@ export function CartDrawer() {
                       className="object-cover object-top"
                     />
                     <span className="absolute bottom-1 left-1 bg-surface-container-lowest/90 backdrop-blur-xs text-[9px] font-bold text-primary px-1 rounded shadow-xs">
-                      {item.size || 'Standard'}
+                      {effectiveSize}
                     </span>
                   </div>
 
@@ -276,7 +285,7 @@ export function CartDrawer() {
                           {item.title}
                         </h3>
                         <p className="text-[11px] text-on-surface-variant mt-0.5 truncate">
-                          Size: {item.size || 'M'} • {item.color || 'Handcrafted'}
+                          Size: {effectiveSize} • {item.color || 'Handcrafted'}
                         </p>
                         {item.vendorName && (
                           <p className="text-[10px] text-secondary font-medium truncate mt-0.5">
@@ -334,7 +343,8 @@ export function CartDrawer() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
 
               {/* Mini Cross-Sell Strip (From Stitch Screen ba2bd68e7f96406c866dcd5d3a7a1e1f) */}
               <div

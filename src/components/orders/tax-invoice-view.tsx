@@ -89,22 +89,29 @@ export function TaxInvoiceView({ order: propOrder, orderId, embedded = false }: 
                   phone: apiOrder.shippingAddress.phone || '9876543210',
                 }
               : undefined,
-            items: apiOrder.items?.map((it: any, idx: number) => ({
-              id: it.id || `item-${idx}`,
-              productId: it.productId || '',
-              title: it.title || it.product?.title || 'Artisanal Garment',
-              brand: it.brand || it.product?.brand || 'Vyntra Atelier',
-              categoryTag: it.categoryTag || it.product?.category?.name || 'Luxury Apparel',
-              size: it.selectedSize || it.size || 'M',
-              color: it.selectedColor || it.color || 'Standard',
-              quantity: it.quantity || 1,
-              price: it.price || it.totalPrice || 495,
-              originalPrice: it.originalPrice || (it.price ? it.price * 2 : 2499),
-              discount: 'Special Price',
-              image: it.image || it.product?.images?.[0]?.url || '',
-              sellerName: it.vendor?.storeName || it.vendorName || 'Varun Store',
-              shippingMethod: 'Express Courier Dispatch',
-            })) || [],
+            items: apiOrder.items?.map((it: any, idx: number) => {
+              const isSaree =
+                (it.title || it.product?.title || '').toLowerCase().includes('saree') ||
+                (it.title || it.product?.title || '').toLowerCase().includes('shawl') ||
+                (it.title || it.product?.title || '').toLowerCase().includes('dupatta');
+
+              return {
+                id: it.id || `item-${idx}`,
+                productId: it.productId || '',
+                title: it.title || it.product?.title || 'Artisanal Garment',
+                brand: it.brand || it.product?.brand || 'Vyntra Atelier',
+                categoryTag: it.categoryTag || it.product?.category?.name || 'Luxury Apparel',
+                size: isSaree ? 'Free Size' : it.selectedSize || it.size || 'Standard',
+                color: it.selectedColor || it.color || 'Standard',
+                quantity: it.quantity || 1,
+                price: it.price || it.totalPrice || 495,
+                originalPrice: it.originalPrice || (it.price ? it.price * 2 : 2499),
+                discount: 'Special Price',
+                image: it.image || it.product?.images?.[0]?.url || '',
+                sellerName: it.vendor?.storeName || it.vendorName || 'Varun Store',
+                shippingMethod: 'Express Courier Dispatch',
+              };
+            }) || [],
           };
           setRemoteOrder(mapped);
         } else {
@@ -288,12 +295,17 @@ export function TaxInvoiceView({ order: propOrder, orderId, embedded = false }: 
       hsnCode = '64032000';
     }
 
+    const isSareeItem =
+      (item.title || '').toLowerCase().includes('saree') ||
+      (item.title || '').toLowerCase().includes('shawl') ||
+      (item.title || '').toLowerCase().includes('dupatta');
+
     return {
       id: item.id || `item-${idx}`,
       category: item.categoryTag || 'Men Casual Apparel',
       title: item.title,
       hsnCode,
-      size: item.size || 'M',
+      size: isSareeItem ? 'Free Size' : item.size || 'Standard',
       color: item.color || 'Green',
       qty,
       grossAmount: grossMrp,

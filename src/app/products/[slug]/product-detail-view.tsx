@@ -98,9 +98,21 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
   const [selectedColor, setSelectedColor] = useState<ProductColor | undefined>(
     product.colors?.[0]
   );
-  const [selectedSize, setSelectedSize] = useState<string>(
-    product.sizes?.[0] ? product.sizes[0].size : 'M'
-  );
+
+  const isUnstitchedOrFreeSize =
+    product.category === 'ethnic' ||
+    product.subCategory?.toLowerCase().includes('saree') ||
+    product.title?.toLowerCase().includes('saree') ||
+    product.subCategory?.toLowerCase().includes('shawl') ||
+    product.subCategory?.toLowerCase().includes('dupatta');
+
+  const defaultSize = isUnstitchedOrFreeSize
+    ? 'Free Size'
+    : product.sizes?.[0]
+    ? product.sizes[0].size
+    : 'Free Size';
+
+  const [selectedSize, setSelectedSize] = useState<string>(defaultSize);
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [pincode, setPincode] = useState(activeAddress?.pincode || '210427');
@@ -232,7 +244,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
       title: product.title,
       brand: product.brand,
       variantId: targetVariantId,
-      size: selectedSize || undefined,
+      size: isUnstitchedOrFreeSize ? 'Free Size' : (selectedSize || undefined),
       color: selectedColor?.name || undefined,
       price: currentPrice,
       originalPrice: currentMrp,
@@ -266,7 +278,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
       title: product.title,
       brand: product.brand,
       variantId: targetVariantId,
-      size: selectedSize || undefined,
+      size: isUnstitchedOrFreeSize ? 'Free Size' : (selectedSize || undefined),
       color: selectedColor?.name || undefined,
       price: matchedOV?.sellingPrice ?? offer.sellingPrice,
       originalPrice: matchedOV?.mrpPrice ?? offer.originalPrice,
@@ -645,33 +657,41 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                     Size:{' '}
                     <strong className="text-[#0F1111]">{selectedSize}</strong>
                   </span>
-                  <a
-                    href="#size-chart"
-                    className="text-[#007185] hover:underline flex items-center gap-1 font-semibold text-xs"
-                  >
-                    <Ruler className="h-3 w-3" />
-                    <span>Size Chart</span>
-                  </a>
+                  {!isUnstitchedOrFreeSize && product.sizeGuide && (
+                    <a
+                      href="#size-chart"
+                      className="text-[#007185] hover:underline flex items-center gap-1 font-semibold text-xs"
+                    >
+                      <Ruler className="h-3 w-3" />
+                      <span>Size Chart</span>
+                    </a>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((s) => {
-                    const isSelected = selectedSize === s.size;
-                    return (
-                      <button
-                        key={s.size}
-                        type="button"
-                        onClick={() => setSelectedSize(s.size)}
-                        className={`min-w-12 px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
-                          isSelected
-                            ? 'border-[#007185] bg-[#007185]/10 text-[#007185] shadow-sm ring-1 ring-[#007185]'
-                            : 'border-[#D5D9D9] bg-white text-[#0F1111] hover:border-[#565959]'
-                        }`}
-                      >
-                        {s.size}
-                      </button>
-                    );
-                  })}
+                  {isUnstitchedOrFreeSize || (product.sizes.length === 1 && product.sizes[0].size.toLowerCase().includes('free')) ? (
+                    <span className="inline-block px-3 py-1 bg-[#F7F8F8] border border-[#D5D9D9] rounded-md text-xs font-bold text-[#0F1111]">
+                      Free Size {isUnstitchedOrFreeSize ? '(Standard 5.5m + 0.8m Blouse Piece)' : ''}
+                    </span>
+                  ) : (
+                    product.sizes.map((s) => {
+                      const isSelected = selectedSize === s.size;
+                      return (
+                        <button
+                          key={s.size}
+                          type="button"
+                          onClick={() => setSelectedSize(s.size)}
+                          className={`min-w-12 px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                            isSelected
+                              ? 'border-[#007185] bg-[#007185]/10 text-[#007185] shadow-sm ring-1 ring-[#007185]'
+                              : 'border-[#D5D9D9] bg-white text-[#0F1111] hover:border-[#565959]'
+                          }`}
+                        >
+                          {s.size}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}

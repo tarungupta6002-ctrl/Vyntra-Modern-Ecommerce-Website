@@ -176,6 +176,21 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     });
   }
 
+  const categorySlug = (product.category?.slug || '').toLowerCase();
+  const categoryName = (product.category?.name || '').toLowerCase();
+  const titleLower = (product.title || '').toLowerCase();
+  const isUnstitchedOrFreeSize =
+    categorySlug.includes('saree') ||
+    categoryName.includes('saree') ||
+    titleLower.includes('saree') ||
+    categorySlug.includes('shawl') ||
+    titleLower.includes('shawl') ||
+    categorySlug.includes('dupatta') ||
+    titleLower.includes('dupatta') ||
+    categorySlug.includes('jewel') ||
+    categorySlug.includes('bag') ||
+    categorySlug.includes('wallet');
+
   const sizes = (product.variants || [])
     .filter((v: any) => v.size)
     .map((v: any) => {
@@ -458,12 +473,13 @@ export function formatDetailedProduct(product: any): DetailedProduct {
       colors.length > 0
         ? colors
         : referenceItem?.colors || [{ name: 'Royal Heritage', hex: '#00288e' }],
-    sizeLabel: 'Select Size / Dimension',
-    sizes:
-      sizes.length > 0
-        ? sizes
-        : referenceItem?.sizes || [{ size: 'Free Size', disabled: false }],
-    sizeGuide: referenceItem?.sizeGuide,
+    sizeLabel: isUnstitchedOrFreeSize ? 'Size' : 'Select Size / Dimension',
+    sizes: isUnstitchedOrFreeSize
+      ? [{ size: 'Free Size', dimension: 'Length: 5.5m + 0.8m Blouse Piece', disabled: totalStock <= 0 }]
+      : sizes.length > 0
+      ? sizes
+      : referenceItem?.sizes || [{ size: 'Free Size', disabled: false }],
+    sizeGuide: isUnstitchedOrFreeSize ? undefined : referenceItem?.sizeGuide,
     modelInfo:
       referenceItem?.modelInfo ||
       'Crafted with premium natural materials and artisanal techniques.',

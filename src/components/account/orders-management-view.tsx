@@ -580,8 +580,21 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                             {item.title}
                           </h4>
                           <p className="text-xs text-on-surface-variant font-label">
-                            Size: <span className="font-semibold text-on-surface">{item.size || (item as any).selectedSize || 'N/A'}</span>{' '}
-                            &nbsp;|&nbsp; Color:{' '}
+                            {(() => {
+                              const isUnstitched =
+                                item.title?.toLowerCase().includes('saree') ||
+                                item.title?.toLowerCase().includes('shawl') ||
+                                item.title?.toLowerCase().includes('dupatta');
+                              const displaySize = isUnstitched
+                                ? 'Free Size'
+                                : (item.size || (item as any).selectedSize || 'N/A');
+                              return (
+                                <>
+                                  Size: <span className="font-semibold text-on-surface">{displaySize}</span>{' '}
+                                  &nbsp;|&nbsp; Color:{' '}
+                                </>
+                              );
+                            })()}
                             <span className="font-semibold text-on-surface">{item.color || (item as any).selectedColor || 'N/A'}</span>{' '}
                             &nbsp;|&nbsp; Qty:{' '}
                             <span className="font-semibold text-on-surface">{item.quantity}</span>

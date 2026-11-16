@@ -289,7 +289,12 @@ export async function calculateTrustedCheckoutAmount({
       quantity: item.quantity,
       unitPrice,
       totalPrice: itemTotal,
-      selectedSize: item.selectedSize || variant.size,
+      selectedSize:
+        product.title?.toLowerCase().includes('saree') ||
+        product.title?.toLowerCase().includes('shawl') ||
+        product.title?.toLowerCase().includes('dupatta')
+          ? 'Free Size'
+          : item.selectedSize || variant.size,
       selectedColor: item.selectedColor || variant.color,
       inventoryId,
       inventoryType,

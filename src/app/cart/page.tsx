@@ -600,11 +600,20 @@ export default function CartPage() {
 
                                   {/* Attributes & Stock */}
                                   <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-on-surface-variant font-medium">
-                                    {item.size && (
-                                      <span className="bg-surface-container px-2.5 py-0.5 rounded text-on-surface">
-                                        Size: <strong className="font-semibold">{item.size}</strong>
-                                      </span>
-                                    )}
+                                    {(() => {
+                                      const isSareeOrUnstitched =
+                                        item.title?.toLowerCase().includes('saree') ||
+                                        item.title?.toLowerCase().includes('shawl') ||
+                                        item.title?.toLowerCase().includes('dupatta');
+                                      const effectiveSize = isSareeOrUnstitched
+                                        ? 'Free Size'
+                                        : item.size;
+                                      return effectiveSize ? (
+                                        <span className="bg-surface-container px-2.5 py-0.5 rounded text-on-surface">
+                                          Size: <strong className="font-semibold">{effectiveSize}</strong>
+                                        </span>
+                                      ) : null;
+                                    })()}
                                     {item.color && (
                                       <span className="bg-surface-container px-2.5 py-0.5 rounded text-on-surface flex items-center gap-1.5">
                                         Color:
