@@ -1,0 +1,5 @@
+import { redirect } from 'next/navigation';
+
+export default function BagsPage() {
+  redirect('/category/bags-backpacks');
+}

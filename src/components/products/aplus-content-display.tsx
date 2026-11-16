@@ -1,0 +1,508 @@
+'use client';
+
+import React from 'react';
+import {
+  Sparkles,
+  Award,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Ruler,
+  RotateCcw,
+  Store,
+  Quote,
+  Feather,
+  Layers,
+  Heart,
+  ChevronRight,
+} from 'lucide-react';
+import { APlusData, APlusModule } from '@/types/aplus';
+
+interface APlusContentDisplayProps {
+  aplus: APlusData;
+  brandName?: string;
+}
+
+export function APlusContentDisplay({ aplus, brandName = 'Vyntra Artisan' }: APlusContentDisplayProps) {
+  if (!aplus || !aplus.modules || aplus.modules.length === 0) {
+    return null;
+  }
+
+  // Header background style generator
+  const getHeaderTheme = (style: string) => {
+    switch (style) {
+      case 'gold_heritage':
+        return {
+          bg: 'bg-gradient-to-r from-[#975A16] via-[#D69E2E] to-[#744210]',
+          text: 'text-white',
+          badge: 'bg-[#FFD814] text-[#0F1111]',
+          subtext: 'text-amber-100',
+        };
+      case 'midnight_navy':
+        return {
+          bg: 'bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0B1120]',
+          text: 'text-white',
+          badge: 'bg-[#007185] text-white',
+          subtext: 'text-slate-300',
+        };
+      case 'emerald_artisanal':
+        return {
+          bg: 'bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#022C22]',
+          text: 'text-white',
+          badge: 'bg-emerald-300 text-emerald-950',
+          subtext: 'text-emerald-100',
+        };
+      case 'clean_minimal':
+        return {
+          bg: 'bg-[#F7F8F8] border-b border-[#D5D9D9]',
+          text: 'text-[#0F1111]',
+          badge: 'bg-[#007185] text-white',
+          subtext: 'text-[#565959]',
+        };
+      case 'maroon_luxury':
+      default:
+        return {
+          bg: 'bg-gradient-to-r from-[#5C0017] via-[#800020] to-[#36000E]',
+          text: 'text-white',
+          badge: 'bg-[#FFD814] text-[#0F1111]',
+          subtext: 'text-rose-100',
+        };
+    }
+  };
+
+  const theme = getHeaderTheme(aplus.headerStyle);
+
+  return (
+    <section className="w-full space-y-10 my-8 animate-in fade-in duration-300">
+      {/* 1. Colorful Section Header Banner (FROM THE BRAND / FROM THE MAKER) */}
+      <div className={`rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden ${theme.bg}`}>
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-headline font-black uppercase tracking-widest shadow-sm ${theme.badge}`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{aplus.headerTitle || 'FROM THE MAKER'}</span>
+          </span>
+
+          <h2 className={`text-2xl sm:text-3xl font-headline font-extrabold tracking-tight ${theme.text}`}>
+            {brandName} — Artisan Heritage Studio
+          </h2>
+
+          {aplus.headerSubtitle && (
+            <p className={`text-xs sm:text-sm max-w-2xl mx-auto font-medium leading-relaxed ${theme.subtext}`}>
+              {aplus.headerSubtitle}
+            </p>
+          )}
+        </div>
+
+        {/* Decorative background watermark */}
+        <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none text-white">
+          <Store className="w-56 h-56" />
+        </div>
+      </div>
+
+      {/* 2. Sequential Vendor-Configured Modules */}
+      <div className="space-y-12">
+        {aplus.modules.map((mod) => (
+          <div key={mod.id} className="w-full">
+            {renderModule(mod, brandName)}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function renderModule(mod: APlusModule, brandName: string) {
+  switch (mod.type) {
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 1: FULL-WIDTH HERO BANNER (AMAZON A+ RESPONSIVE NATURAL HEIGHT)  */
+    /* ----------------------------------------------------------------------- */
+    case 'hero_banner':
+      const isBoilerplateTitle =
+        !mod.title ||
+        mod.title.trim().toLowerCase() === 'product description' ||
+        mod.title.trim().toLowerCase() === 'new section heading';
+      const isBoilerplateSubtitle =
+        !mod.subtitle ||
+        mod.subtitle.toLowerCase().includes('preserving centuries') ||
+        mod.subtitle.toLowerCase().includes('authentic handcrafted masterpiece');
+      const isBoilerplateBadge =
+        !mod.badgeText ||
+        mod.badgeText === 'HERITAGE ARCHIVE' ||
+        mod.badgeText === 'HERITAGE ATELIER';
+
+      const showCustomOverlay =
+        (!isBoilerplateTitle && Boolean(mod.title)) ||
+        (!isBoilerplateSubtitle && Boolean(mod.subtitle)) ||
+        (!isBoilerplateBadge && Boolean(mod.badgeText));
+
+      return (
+        <div className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-[#D5D9D9] bg-white group">
+          <div className="relative w-full bg-[#131921] flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={mod.imageUrl || 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=1600&q=80'}
+              alt={mod.altText || mod.title || 'Hero Banner'}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-auto block object-contain mx-auto"
+            />
+            {/* Dark gradient overlay ONLY if the vendor provided real custom text */}
+            {showCustomOverlay && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col justify-end p-6 sm:p-10 text-white pointer-events-none">
+                <div className="max-w-2xl space-y-1.5">
+                  {!isBoilerplateBadge && mod.badgeText && (
+                    <span className="bg-[#FFD814] text-[#0F1111] text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded shadow inline-block">
+                      {mod.badgeText}
+                    </span>
+                  )}
+                  {!isBoilerplateTitle && mod.title && (
+                    <h3 className="text-xl sm:text-2xl font-headline font-bold text-white drop-shadow-sm">
+                      {mod.title}
+                    </h3>
+                  )}
+                  {!isBoilerplateSubtitle && mod.subtitle && (
+                    <p className="text-xs sm:text-sm text-white/90 font-medium leading-relaxed drop-shadow-sm max-w-xl">
+                      {mod.subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 2: IMAGE WITH TEXT (LEFT OR RIGHT LAYOUT)                        */
+    /* ----------------------------------------------------------------------- */
+    case 'image_text_split':
+      const isLeft = mod.imagePosition !== 'right';
+      return (
+        <div className="bg-[#F7F8F8] rounded-2xl p-6 sm:p-8 border border-[#D5D9D9] shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            {/* Image Column */}
+            <div className={`md:col-span-6 ${isLeft ? 'md:order-1' : 'md:order-2'}`}>
+              <div className="rounded-xl overflow-hidden bg-white border border-[#D5D9D9] shadow-sm flex items-center justify-center p-2 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={mod.imageUrl || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1000&q=80'}
+                  alt={mod.altText || mod.title || 'Artisan split showcase'}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-auto max-h-[550px] object-contain rounded-lg group-hover:scale-102 transition-transform duration-500"
+                />
+              </div>
+            </div>
+
+            {/* Narrative Column */}
+            <div className={`md:col-span-6 space-y-3 ${isLeft ? 'md:order-2' : 'md:order-1'}`}>
+              {mod.badgeText && (
+                <span className="bg-[#800020] text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-block">
+                  {mod.badgeText}
+                </span>
+              )}
+              {mod.title && (
+                <h3 className="text-xl sm:text-2xl font-headline font-bold text-[#0F1111] leading-snug">
+                  {mod.title}
+                </h3>
+              )}
+              {mod.description && (
+                <p className="text-xs sm:text-sm text-[#0F1111] leading-relaxed">
+                  {mod.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 3: THREE / FOUR FEATURE CARDS                                    */
+    /* ----------------------------------------------------------------------- */
+    case 'feature_cards_3':
+    case 'feature_cards_4':
+      const isFour = mod.type === 'feature_cards_4';
+      const cards = mod.cards || [];
+      return (
+        <div className="space-y-4">
+          {mod.title && (
+            <h3 className="text-lg sm:text-xl font-headline font-bold text-[#0F1111] pb-2 border-b border-[#D5D9D9]">
+              {mod.title}
+            </h3>
+          )}
+
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFour ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-5`}>
+            {cards.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white rounded-xl border border-[#D5D9D9] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                {c.imageUrl && (
+                  <div className="relative aspect-[4/3] bg-[#F7F8F8] overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.imageUrl} alt={c.altText || c.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-headline font-bold text-sm text-[#0F1111]">{c.title}</h4>
+                    <p className="text-xs text-[#565959] leading-relaxed mt-1">{c.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 4: LIFESTYLE IMAGE GALLERY                                       */
+    /* ----------------------------------------------------------------------- */
+    case 'lifestyle_gallery':
+      const galleryImgs = [mod.imageUrl, mod.secondaryImageUrl, mod.tertiaryImageUrl].filter(Boolean) as string[];
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#D5D9D9]">
+            <h3 className="text-lg sm:text-xl font-headline font-bold text-[#0F1111]">
+              {mod.title || 'Atelier Lifestyle Gallery'}
+            </h3>
+            <span className="text-xs text-[#565959] font-semibold">Curated Editorial Lookbook</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {galleryImgs.map((src, i) => (
+              <div
+                key={i}
+                className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#F7F8F8] border border-[#D5D9D9] shadow-sm group"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={`Lookbook ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded">
+                  Look #{i + 1}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 5: MATERIAL & CRAFTSMANSHIP DEEP DIVE                            */
+    /* ----------------------------------------------------------------------- */
+    case 'craftsmanship_story':
+      return (
+        <div className="bg-[#FFFBE6] rounded-2xl p-6 sm:p-8 border border-[#FFD814] shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#F7CA00]/40">
+            <div className="space-y-1">
+              {mod.badgeText && (
+                <span className="bg-[#800020] text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                  {mod.badgeText}
+                </span>
+              )}
+              <h3 className="text-xl sm:text-2xl font-headline font-bold text-[#0F1111]">
+                {mod.title || 'Material & Craftsmanship Standard'}
+              </h3>
+            </div>
+            <span className="text-xs font-bold text-[#800020] flex items-center gap-1">
+              <ShieldCheck className="h-4 w-4" />
+              <span>Certified Handloom Integrity</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            <div className="md:col-span-7 space-y-3">
+              <p className="text-xs sm:text-sm text-[#0F1111] leading-relaxed">
+                {mod.description ||
+                  'Produced in certified artisan weaver collectives. Our zero-compromise fiber standard uses natural dyes, non-toxic processing, and ethical remuneration for master craftsmen.'}
+              </p>
+
+              {mod.stats && mod.stats.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 pt-3">
+                  {mod.stats.map((s, idx) => (
+                    <div key={idx} className="bg-white p-3 rounded-xl border border-[#FFD814] text-center shadow-xs">
+                      <span className="text-[10px] text-[#565959] uppercase font-bold">{s.label}</span>
+                      <p className="text-base sm:text-lg font-headline font-black text-[#800020] mt-0.5">
+                        {s.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {mod.imageUrl && (
+              <div className="md:col-span-5 relative aspect-[4/3] rounded-xl overflow-hidden bg-white border border-[#FFD814]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={mod.imageUrl} alt="Craftsmanship" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 6: PRODUCT HIGHLIGHTS GRID                                       */
+    /* ----------------------------------------------------------------------- */
+    case 'product_highlights':
+      const bullets = mod.highlights || [
+        'Pure Handloom Origin certified by artisan co-operative',
+        'Natural yarn count calibrated for breathable year-round comfort',
+        'Double-reinforced seams tested for over 50 wash cycles',
+        'Express Dispatch in climate-sealed sustainable presentation packaging',
+      ];
+      return (
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#D5D9D9] shadow-sm space-y-4">
+          <h3 className="text-lg sm:text-xl font-headline font-bold text-[#0F1111] pb-2 border-b border-[#D5D9D9]">
+            {mod.title || 'Product Craft Highlights'}
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {bullets.map((b, i) => (
+              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
+                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                  ✓
+                </div>
+                <span className="text-xs sm:text-sm font-semibold text-[#0F1111] leading-snug">{b}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 7: SIZE CHART & CARE INSTRUCTIONS                                */
+    /* ----------------------------------------------------------------------- */
+    case 'care_and_size':
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Care Tips */}
+          <div className="bg-white rounded-2xl p-6 border border-[#D5D9D9] shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#D5D9D9]">
+              <RotateCcw className="h-4 w-4 text-[#007185]" />
+              <h4 className="font-headline font-bold text-base text-[#0F1111]">Care &amp; Longevity Instructions</h4>
+            </div>
+            <ul className="space-y-2.5 text-xs text-[#0F1111]">
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-[#007185]">•</span>
+                <span>Dry clean recommended for first 2-3 washes to preserve natural luster.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-[#007185]">•</span>
+                <span>Cold hand wash with mild botanical or silk-friendly detergent thereafter.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-[#007185]">•</span>
+                <span>Dry inside out in shade; avoid harsh direct midday sunlight.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-[#007185]">•</span>
+                <span>Warm iron on reverse side under protective cotton press cloth.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Size Matrix */}
+          <div className="bg-white rounded-2xl p-6 border border-[#D5D9D9] shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-[#D5D9D9]">
+              <Ruler className="h-4 w-4 text-[#007185]" />
+              <h4 className="font-headline font-bold text-base text-[#0F1111]">Fit &amp; Sizing Matrix (Inches)</h4>
+            </div>
+            <div className="overflow-x-auto border border-[#D5D9D9] rounded-xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase text-[10px]">
+                  <tr>
+                    <th className="p-2 font-bold">Size</th>
+                    <th className="p-2 font-bold">Chest</th>
+                    <th className="p-2 font-bold">Waist</th>
+                    <th className="p-2 font-bold">Length</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#D5D9D9]">
+                  {[
+                    { s: 'S', c: '38"', w: '32"', l: '40"' },
+                    { s: 'M', c: '40"', w: '34"', l: '41"' },
+                    { s: 'L', c: '42"', w: '36"', l: '42"' },
+                    { s: 'XL', c: '44"', w: '38"', l: '43"' },
+                  ].map((r) => (
+                    <tr key={r.s} className="hover:bg-[#F7F8F8]/50">
+                      <td className="p-2 font-bold text-[#0F1111]">{r.s}</td>
+                      <td className="p-2 text-[#565959]">{r.c}</td>
+                      <td className="p-2 text-[#565959]">{r.w}</td>
+                      <td className="p-2 text-[#565959]">{r.l}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 8: BRAND STORY & ATELIER PHILOSOPHY                              */
+    /* ----------------------------------------------------------------------- */
+    case 'brand_story':
+      return (
+        <div className="bg-gradient-to-br from-[#131921] to-[#232F3E] text-white rounded-2xl p-6 sm:p-10 shadow-lg border border-white/10 space-y-6">
+          <div className="max-w-3xl space-y-4">
+            <span className="bg-[#FFD814] text-[#0F1111] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded">
+              ATELIER PHILOSOPHY
+            </span>
+            <div className="flex items-start gap-3">
+              <Quote className="h-8 w-8 text-[#FFD814] shrink-0 opacity-80" />
+              <blockquote className="text-base sm:text-xl font-headline italic font-medium leading-relaxed text-slate-100">
+                &ldquo;{mod.quote || 'We believe heritage textiles carry the soul of the craftsperson. Every warp and weft tells a story of patience, dignity, and cultural continuity.'}&rdquo;
+              </blockquote>
+            </div>
+            {mod.author && (
+              <p className="text-xs sm:text-sm font-bold text-[#FFD814] pl-11">— {mod.author}</p>
+            )}
+          </div>
+        </div>
+      );
+
+    /* ----------------------------------------------------------------------- */
+    /* MODULE 9: FULL-WIDTH PROMOTIONAL BANNER                                 */
+    /* ----------------------------------------------------------------------- */
+    case 'promo_banner':
+      return (
+        <div className="w-full rounded-2xl overflow-hidden shadow-md border border-[#D5D9D9] bg-white">
+          <div className="relative w-full bg-[#EAEDED] flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={mod.imageUrl || 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1600&q=80'}
+              alt={mod.altText || 'Promotional Banner'}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-auto block object-contain mx-auto"
+            />
+            {mod.title && (
+              <div className="p-4 sm:p-6 bg-white border-t border-[#EAEDED] text-center w-full">
+                <div className="space-y-1">
+                  <h3 className="text-xl sm:text-2xl font-headline font-black text-[#0F1111]">
+                    {mod.title}
+                  </h3>
+                  {mod.subtitle && (
+                    <p className="text-xs sm:text-sm text-[#565959] max-w-md mx-auto font-medium">
+                      {mod.subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    default:
+      return null;
+  }
+}

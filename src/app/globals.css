@@ -1,0 +1,353 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/AmazonEmber_Rg.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/AmazonEmber_W_SBd.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/AmazonEmber_W_SBd.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/AmazonEmber_Bd.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/AmazonEmber_Bd.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Amazon Ember';
+  src: url('/fonts/AmazonEmber_Bd.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --vyntra-header: #131921;
+    --vyntra-nav: #232F3E;
+    --vyntra-primary: #FFD814;
+    --vyntra-primary-hover: #F7CA00;
+    --vyntra-buy-now: #FF9900;
+    --vyntra-buy-now-hover: #FA8900;
+    --vyntra-accent: #007185;
+    --vyntra-text: #0F1111;
+    --vyntra-secondary-text: #565959;
+    --vyntra-background: #FFFFFF;
+    --vyntra-surface: #EAEDED;
+    --vyntra-border: #D5D9D9;
+    --vyntra-success: #067D62;
+    --vyntra-error: #B12704;
+    --font-amazon: "Amazon Ember", Arial, sans-serif;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #EAEDED;
+    color: #0F1111;
+    font-family: "Amazon Ember", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  /* Universal Amazon Ember typography across all headers and components */
+  h1, h2, h3, h4, h5, h6, p, span, a, button, input, select, textarea, label {
+    font-family: "Amazon Ember", Arial, sans-serif;
+  }
+
+  /* E-commerce numbers and prices in Indian Rupees: Exact Amazon Ember */
+  .font-mono,
+  .tabular-nums {
+    font-family: "Amazon Ember", Arial, sans-serif !important;
+    font-feature-settings: 'tnum' on, 'zero' on;
+    letter-spacing: normal;
+  }
+}
+
+/* Amazon-Inspired Global Button Classes */
+.btn-add-to-cart {
+  background-color: #FFD814;
+  color: #0F1111;
+  border: 1px solid #FCD200;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 5px 11px;
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+}
+.btn-add-to-cart:hover:not(:disabled) {
+  background-color: #F7CA00;
+  border-color: #F2C200;
+}
+.btn-add-to-cart:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-buy-now {
+  background-color: #FF9900;
+  color: #0F1111;
+  border: 1px solid #FF8F00;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 5px 11px;
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 5px rgba(213, 217, 217, 0.5);
+}
+.btn-buy-now:hover:not(:disabled) {
+  background-color: #FA8900;
+  border-color: #E67A00;
+}
+.btn-buy-now:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: #0F1111;
+  border: 1px solid #D5D9D9;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: #F7FAFA;
+  border-color: #A6A6A6;
+}
+
+.link-teal {
+  color: #007185;
+}
+.link-teal:hover {
+  color: #C45500;
+  text-decoration: underline;
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes floatSlowAlt {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(6px); }
+}
+@keyframes shimmerWave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-float-slow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+.animate-float-alt {
+  animation: floatSlowAlt 4.6s ease-in-out infinite;
+}
+.shimmer-badge {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-badge::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: shimmerWave 2.8s infinite;
+}
+
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes slideUpFade {
+  0% { transform: translate(-50%, 20px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
+}
+.toast-enter {
+  animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.38); }
+  75% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.heart-bounce-anim {
+  animation: heartPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bagBounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+  60% { transform: translateY(2px); }
+  100% { transform: translateY(0); }
+}
+.bag-added-anim {
+  animation: bagBounce 0.35s ease;
+}
+
+.product-card {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px -6px rgba(0, 40, 142, 0.14), 0 8px 16px -4px rgba(144, 77, 0, 0.08);
+}
+.img-zoom {
+  transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.product-card:hover .img-zoom {
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-alt,
+  .shimmer-badge::after {
+    animation: none !important;
+  }
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Scrollbar that only appears when scrolling or hovering */
+.scroll-on-interaction {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+.scroll-on-interaction::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+.scroll-on-interaction::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-on-interaction::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+.scroll-on-interaction:hover,
+.scroll-on-interaction.is-scrolling {
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+}
+.scroll-on-interaction:hover::-webkit-scrollbar-thumb,
+.scroll-on-interaction.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.28);
+}
+.scroll-on-interaction::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+
+/* ========================================================================= */
+/* PRINT OPTIMIZATION FOR TAX INVOICES & OFFICIAL BILLING DOCUMENTS          */
+/* ========================================================================= */
+@media print {
+  /* 1. Completely hide site header, navigation bars, footer, cart drawer & modals */
+  header,
+  footer,
+  nav,
+  aside,
+  .print\:hidden,
+  [data-cart-drawer],
+  #cart-drawer {
+    display: none !important;
+  }
+
+  /* 2. Strip root layout paddings & background colors */
+  main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  body,
+  html {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 3. Paper layout size & print margin */
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm 6mm 8mm;
+  }
+}

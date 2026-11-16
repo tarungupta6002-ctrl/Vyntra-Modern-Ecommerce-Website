@@ -1,0 +1,1232 @@
+// ==============================================================================
+// VYNTRA E-COMMERCE MARKETPLACE — PRODUCTION PRISMA SCHEMA
+// Configured for Supabase Cloud PostgreSQL (Mumbai) with High Precision & Security
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------------------------------
+
+enum UserRole {
+  CUSTOMER
+  VENDOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum OrderItemStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  UPI
+  CARD
+  NETBANKING
+  COD
+  WALLET
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+
+enum PayoutSettlementType {
+  BANK_TRANSFER
+  INTERNAL_OFFSET
+}
+
+enum AllocationStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ------------------------------------------------------------------------------
+// PHASE 12 ENUMS: RETURNS, REPLACEMENTS, REFUNDS & ADJUSTMENTS
+// ------------------------------------------------------------------------------
+
+enum ReturnType {
+  RETURN_REFUND
+  REPLACEMENT
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PICKED_UP
+  RECEIVED_AT_WH
+  QC_PASSED
+  QC_FAILED
+  QC_DISPUTED
+  REFUND_OFFERED
+  COMPLETED
+  CANCELLED
+}
+
+enum ReturnReason {
+  DAMAGED_ON_ARRIVAL
+  DEFECTIVE
+  WRONG_ITEM
+  SIZE_FIT_ISSUE
+  NOT_AS_DESCRIBED
+  QUALITY_NOT_EXPECTED
+  BUYER_REMORSE
+}
+
+enum RefundStatus {
+  INITIATED
+  GATEWAY_PENDING
+  CONFIRMED
+  FAILED
+  RECONCILIATION_REQUIRED
+}
+
+enum RefundMode {
+  ORIGINAL_PAYMENT
+  STORE_CREDIT
+  MANUAL_BANK_TRANSFER
+}
+
+enum AdjustmentType {
+  RETURN_REFUND_DEBIT
+  REPLACEMENT_RESTOCK_CREDIT
+  DAMAGED_ITEM_FEE
+  SHIPPING_REVERSAL
+  PENALTY
+  COMPENSATION
+  MANUAL_CORRECTION
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+// ------------------------------------------------------------------------------
+// PHASE 13 ENUMS: MULTI-SELLER MARKETPLACE & INDEPENDENT LOGISTICS
+// ------------------------------------------------------------------------------
+
+enum OfferCondition {
+  NEW
+  REFURBISHED
+  ARTISAN_RESTORED
+}
+
+enum FulfillmentType {
+  SELLER_FULFILLED
+  VYNTRA_FULFILLED
+}
+
+enum ShipmentStatus {
+  PENDING
+  LABEL_CREATED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED_TO_ORIGIN
+}
+
+// ------------------------------------------------------------------------------
+// USER & IDENTITY (Mapped 1:1 to Supabase Auth auth.users UUID)
+// ------------------------------------------------------------------------------
+
+model User {
+  id     String   @id // Matches Supabase auth.users.id (UUID)
+  email  String   @unique
+  name   String
+  phone  String?
+  role   UserRole @default(CUSTOMER)
+  avatar String?
+  tier   String   @default("Royal Member")
+
+  // Relations
+  addresses          Address[]
+  orders             Order[]
+  reviews            Review[]
+  wishlistItems      WishlistItem[]
+  curatedBoards      CuratedBoard[]
+  cart               Cart?
+  vendorProfile      VendorProfile?
+  vendorApplications VendorApplication[]
+  returnRequests     ReturnRequest[]
+  refundTransactions RefundTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+// ------------------------------------------------------------------------------
+// VENDOR ONBOARDING, PROFILE & TOKENIZED PAYOUTS
+// ------------------------------------------------------------------------------
+
+model VendorApplication {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storeName        String
+  storeSlug        String
+  storeDescription String?
+  businessEmail    String
+  businessPhone    String
+  gstNumber        String?
+  panNumber        String?
+  documents        Json? // Verification document URLs and metadata
+
+  status             ApplicationStatus @default(SUBMITTED)
+  reviewedByAdminId  String?
+  rejectionReason    String?
+  internalAdminNotes String?
+  reviewedAt         DateTime?
+
+  // Resubmission audit trail linkage
+  previousApplicationId String?
+  previousApplication   VendorApplication?  @relation("ApplicationHistory", fields: [previousApplicationId], references: [id])
+  resubmissions         VendorApplication[] @relation("ApplicationHistory")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model VendorProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  storeName        String
+  storeSlug        String  @unique
+  storeDescription String?
+  logoUrl          String?
+  bannerUrl        String?
+
+  gstNumber  String?
+  panNumber  String?
+  status     VendorStatus @default(PENDING)
+  isVerified Boolean      @default(false)
+
+  // Tokenized Payout Details (PCI / RBI Compliant)
+  payoutBeneficiaryId String? // Tokenized contact/fund account ID from payment provider
+  bankName            String? // e.g. "HDFC Bank" for display
+  bankAccountLast4    String? // e.g. "5621" for display only
+  ifscCode            String? // Standard public routing identifier
+  payoutsEnabled      Boolean @default(false)
+
+  commissionRate Decimal @default(10.00) @db.Decimal(5, 2) // Marketplace commission percentage
+  rating         Float   @default(5.0)
+  totalSales     Int     @default(0)
+
+  // Relations
+  products              Product[]
+  orderItems            OrderItem[]
+  inventories           ProductInventory[]
+  payouts               VendorPayout[]
+  returnRequests        ReturnRequest[]
+  refundTransactions    RefundTransaction[]
+  vendorAdjustments     VendorAdjustment[]
+  adjustmentAllocations VendorAdjustmentAllocation[]
+
+  // Multi-Seller Additive Relations (Phase 13)
+  sellerOffers          SellerOffer[]
+  offerVariants         OfferVariant[]
+  warehouses            VendorWarehouse[]
+  shipments             VendorShipment[]
+  ownedBrands           Brand[]                      @relation("BrandOwner")
+  mediaAssets           MediaAsset[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeSlug])
+  @@index([status])
+}
+
+model VendorPayout {
+  id       String        @id @default(cuid())
+  vendorId String
+  vendor   VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  grossAmount        Decimal              @db.Decimal(12, 2)
+  commissionDeducted Decimal              @db.Decimal(12, 2)
+  netAmount          Decimal              @db.Decimal(12, 2)
+  status             PayoutStatus         @default(PENDING)
+  settlementType     PayoutSettlementType @default(BANK_TRANSFER)
+
+  periodStart     DateTime
+  periodEnd       DateTime
+  referenceNumber String?
+  paidAt          DateTime?
+
+  orderItems            OrderItem[]
+  vendorAdjustments     VendorAdjustment[]
+  adjustmentAllocations VendorAdjustmentAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, vendorId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([settlementType])
+}
+
+// ------------------------------------------------------------------------------
+// ADDRESSES
+// ------------------------------------------------------------------------------
+
+model Address {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName      String
+  phone         String
+  streetAddress String
+  locality      String?
+  landmark      String?
+  city          String
+  state         String
+  postalCode    String
+  country       String      @default("India")
+  addressType   AddressType @default(HOME)
+  isDefault     Boolean     @default(false)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ------------------------------------------------------------------------------
+// CATEGORIES & CATALOG
+// ------------------------------------------------------------------------------
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  imageUrl    String?
+  parentId    String?
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children    Category[] @relation("SubCategories")
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+// ------------------------------------------------------------------------------
+// PRODUCTS, VARIANTS & INVENTORY
+// ------------------------------------------------------------------------------
+
+model Product {
+  id            String   @id @default(cuid())
+  title         String
+  subtitle      String?
+  slug          String   @unique
+  description   String?  @db.Text
+  brand         String
+  brandRefId    String?
+  brandRef      Brand?         @relation(fields: [brandRefId], references: [id], onDelete: SetNull)
+  basePrice     Decimal  @db.Decimal(10, 2)
+  discountPrice Decimal? @db.Decimal(10, 2)
+  hasVariants   Boolean  @default(true)
+  isPublished   Boolean  @default(false) // Safe default: must be explicitly published
+  isCustomized  Boolean  @default(false) // NORMAL/READY-MADE vs CUSTOMIZED/MADE-TO-ORDER
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  vendorId String
+  vendor   VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  images        ProductImage[]
+  variants      ProductVariant[]
+  inventories   ProductInventory[]
+  sellerOffers  SellerOffer[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
+  cartItems     CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Composite unique constraint ensures inventory records cannot mismatch product and vendor
+  @@unique([id, vendorId])
+  @@index([slug])
+  @@index([brand])
+  @@index([brandRefId])
+  @@index([categoryId])
+  @@index([vendorId])
+  @@index([isPublished])
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sku                String   @unique
+  size               String? // e.g. "S", "M", "L", "40", "Free Size"
+  color              String? // e.g. "Royal Sapphire Blue"
+  price              Decimal  @db.Decimal(10, 2)
+  originalPrice      Decimal? @db.Decimal(10, 2)
+  discountPercentage Decimal? @db.Decimal(5, 2)
+  imageUrl           String?
+  barcode            String?  @unique
+
+  orderItems    OrderItem[]
+  inventories   ProductInventory[]
+  offerVariants OfferVariant[]
+  cartItems     CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Composite unique constraint ensures inventory records cannot mismatch variant and product
+  @@unique([id, productId])
+  @@index([productId])
+  @@index([sku])
+  @@index([barcode])
+}
+
+// SINGLE SOURCE OF TRUTH FOR REAL-TIME STOCK AND ORDER RESERVATION
+model ProductInventory {
+  id String @id @default(cuid())
+
+  productId String
+  variantId String
+  vendorId  String
+
+  // Composite foreign keys enforce strict ownership and product-variant alignment:
+  // 1. Variant must belong to the specified product
+  // 2. Product must belong to the specified vendor
+  product Product        @relation(fields: [productId, vendorId], references: [id, vendorId], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId, productId], references: [id, productId], onDelete: Cascade)
+  vendor  VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  sku               String
+  quantity          Int     @default(0) // Physical count in warehouse
+  reservedQuantity  Int     @default(0) // Locked in checkout/pending payment
+  lowStockThreshold Int     @default(5)
+  warehouseLocation String? // e.g. "Jaipur Central Atelier"
+
+  allocatedReplacements ReturnRequest[] @relation("AllocatedReplacementInventory")
+  restockedReturns      ReturnRequest[] @relation("RestockReturnInventory")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([id, variantId, vendorId])
+  @@unique([vendorId, sku])
+  @@unique([variantId, warehouseLocation])
+  @@index([productId])
+  @@index([vendorId])
+  @@index([sku])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  altText   String?
+  isPrimary Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+}
+
+// ------------------------------------------------------------------------------
+// CUSTOMER PERSISTENT CART & ITEMS (Multi-device synchronized)
+// ------------------------------------------------------------------------------
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id            String         @id @default(cuid())
+  cartId        String
+  cart          Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId     String
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  variantId     String
+  variant       ProductVariant @relation(fields: [variantId, productId], references: [id, productId], onDelete: Cascade)
+
+  // Multi-Seller Optional Linkages (Additive)
+  sellerOfferId  String?
+  sellerOffer    SellerOffer?   @relation(fields: [sellerOfferId], references: [id], onDelete: SetNull)
+
+  offerVariantId String?
+  offerVariant   OfferVariant?  @relation(fields: [offerVariantId], references: [id], onDelete: SetNull)
+
+  quantity      Int            @default(1)
+  selectedSize  String?
+  selectedColor String?
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([sellerOfferId])
+  @@index([offerVariantId])
+}
+
+// ------------------------------------------------------------------------------
+// WISHLIST & CURATED BOARDS (Normalized, strictly unique)
+// ------------------------------------------------------------------------------
+
+model WishlistItem {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  selectedSize      String?
+  notifyOnPriceDrop Boolean @default(false)
+
+  boardMemberships CuratedBoardItem[]
+
+  createdAt DateTime @default(now())
+
+  // Database-enforced absolute guarantee: 1 product save per user
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model CuratedBoard {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String // e.g. "Diwali Festive Looks"
+  description String?
+  isDefault   Boolean @default(false)
+  isPrivate   Boolean @default(true)
+  coverImage  String?
+
+  items CuratedBoardItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CuratedBoardItem {
+  id      String       @id @default(cuid())
+  boardId String
+  board   CuratedBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  wishlistItemId String
+  wishlistItem   WishlistItem @relation(fields: [wishlistItemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([boardId, wishlistItemId])
+  @@index([boardId])
+  @@index([wishlistItemId])
+}
+
+// ------------------------------------------------------------------------------
+// ORDERS & ORDER ITEMS
+// ------------------------------------------------------------------------------
+
+model Order {
+  id          String @id @default(cuid())
+  orderNumber String @unique
+  userId      String
+  user        User   @relation(fields: [userId], references: [id])
+
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod @default(UPI)
+
+  subtotal    Decimal @db.Decimal(12, 2)
+  discount    Decimal @default(0.00) @db.Decimal(12, 2)
+  shippingFee Decimal @default(0.00) @db.Decimal(12, 2)
+  tax         Decimal @default(0.00) @db.Decimal(12, 2)
+  totalAmount Decimal @db.Decimal(12, 2)
+  refundedAmount Decimal @default(0.00) @db.Decimal(12, 2)
+
+  shippingAddressId String?
+  shippingAddress   Address? @relation(fields: [shippingAddressId], references: [id])
+
+  trackingNumber String?
+  courierPartner String?
+
+  // COD Courier Remittance & Settlement Audit Trail
+  remittanceReference String?
+  settledAt           DateTime?
+
+  // Online Payment Gateway Reference & Strict Replay Protection
+  razorpayPaymentId   String?       @unique
+  razorpayOrderId     String?
+
+  items              OrderItem[]
+  vendorShipments    VendorShipment[]
+  returnRequests     ReturnRequest[]
+  refundTransactions RefundTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  vendorId String
+  vendor   VendorProfile @relation(fields: [vendorId], references: [id])
+
+  quantity      Int     @default(1)
+  unitPrice     Decimal @db.Decimal(10, 2)
+  totalPrice    Decimal @db.Decimal(12, 2)
+  selectedSize  String?
+  selectedColor String?
+
+  status OrderItemStatus @default(PENDING)
+
+  // Phase 11: Product-wise Financial Snapshot (Nullable without default; legacy rows remain NULL)
+  commissionRate    Decimal?      @db.Decimal(5, 2)
+  commissionAmount  Decimal?      @db.Decimal(12, 2)
+  commissionTax     Decimal?      @db.Decimal(12, 2) // Null / Pending CA confirmation
+  netEarnings       Decimal?      @db.Decimal(12, 2) // Gross - Commission
+  payoutStatus      PayoutStatus? // Nullable without default; legacy rows remain NULL
+
+  vendorPayoutId    String?
+  vendorPayout      VendorPayout? @relation(fields: [vendorPayoutId], references: [id])
+
+  deliveredAt          DateTime?
+  isCustomizedSnapshot Boolean   @default(false)
+
+  // Multi-Seller Additive Fields (Phase 13)
+  vendorShipmentId String?
+  vendorShipment   VendorShipment?       @relation(fields: [vendorShipmentId], references: [id], onDelete: SetNull)
+
+  sellerOfferId    String?
+  sellerOffer      SellerOffer?          @relation(fields: [sellerOfferId], references: [id], onDelete: SetNull)
+
+  offerVariantId   String?
+  offerVariant     OfferVariant?         @relation(fields: [offerVariantId], references: [id], onDelete: SetNull)
+
+  shipmentItems    VendorShipmentItem[]
+
+  returnRequest     ReturnRequest?
+  review            Review?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([vendorId])
+  @@index([vendorPayoutId])
+  @@index([vendorShipmentId])
+  @@index([sellerOfferId])
+  @@index([offerVariantId])
+  @@index([payoutStatus])
+  @@index([deliveredAt])
+}
+
+// ------------------------------------------------------------------------------
+// REVIEWS
+// ------------------------------------------------------------------------------
+
+model Review {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderItemId String?    @unique
+  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  rating         Int
+  title          String?
+  comment        String        @db.Text
+  isVerified     Boolean       @default(false)
+  status         ReviewStatus  @default(PENDING)
+  moderationNote String?       @db.Text
+  moderatedBy    String?
+  moderatedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+  @@index([status])
+  @@index([productId, status])
+}
+
+// ------------------------------------------------------------------------------
+// PLATFORM CONFIGURATION & SETTINGS (Phase 11)
+// ------------------------------------------------------------------------------
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ------------------------------------------------------------------------------
+// PHASE 12: RETURNS, REPLACEMENTS, REFUNDS & VENDOR ADJUSTMENTS
+// ------------------------------------------------------------------------------
+
+model ReturnRequest {
+  id                   String            @id @default(cuid())
+  orderId              String
+  orderItemId          String            @unique // 1:1 Strict guarantee: No resubmission per original item
+  vendorProfileId      String
+  userId               String
+  type                 ReturnType        @default(RETURN_REFUND)
+  status               ReturnStatus      @default(REQUESTED)
+  reason               ReturnReason
+  detailedReason       String?
+  customerNotes        String?
+  adminNotes           String?
+  vendorNotes          String?
+
+  requestedQuantity    Int               @default(1)
+
+  // Reverse Shipment & Logistics Tracking
+  reverseTrackingNumber String?
+  reverseCourierPartner String?
+  pickedUpAt           DateTime?
+  receivedAtWarehouseAt DateTime?
+
+  // Forward Replacement Shipment Tracking
+  replacementTrackingNumber String?
+  replacementCourierPartner String?
+  replacementDispatchedAt   DateTime?
+  replacementDeliveredAt    DateTime?
+
+  // Quality Check (QC) Tracking
+  qcPassed             Boolean?
+  qcFailedReason       String?
+  qcNotes              String?
+  qcCompletedAt        DateTime?
+  rejectedAt           DateTime?
+
+  // Dispute Handling
+  isDisputed           Boolean           @default(false)
+  disputeNotes         String?
+  disputeResolvedAt    DateTime?
+  disputedByRole       String?
+  disputeResolution    String?
+
+  // Concurrency & Monotonic Sequence Allocation
+  nextRefundSequence   Int               @default(1)
+
+  // Composite Inventory References (Nullable for non-replacement/un-restocked states)
+  allocatedInventoryId String?
+  allocatedVariantId   String?
+  allocatedVendorId    String?
+
+  restockInventoryId   String?
+  restockVariantId     String?
+  restockVendorId      String?
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  // Native Relations
+  order                Order             @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderItem            OrderItem         @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  vendor               VendorProfile     @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Composite Inventory Relations
+  allocatedInventory   ProductInventory? @relation("AllocatedReplacementInventory", fields: [allocatedInventoryId, allocatedVariantId, allocatedVendorId], references: [id, variantId, vendorId], onDelete: Restrict)
+  restockInventory     ProductInventory? @relation("RestockReturnInventory", fields: [restockInventoryId, restockVariantId, restockVendorId], references: [id, variantId, vendorId], onDelete: Restrict)
+
+  refundTransactions   RefundTransaction[]
+  vendorAdjustments    VendorAdjustment[]
+
+  @@unique([id, vendorProfileId])
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([vendorProfileId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([rejectedAt])
+}
+
+model RefundTransaction {
+  id                   String             @id @default(cuid())
+  returnRequestId      String
+  orderId              String
+  userId               String
+  vendorProfileId      String
+  clientRequestId      String             // Mandatory non-null client idempotency token
+  requestSequence      Int                // 1-based sequential per ReturnRequest
+
+  status               RefundStatus       @default(INITIATED)
+  mode                 RefundMode         @default(ORIGINAL_PAYMENT)
+
+  amount               Decimal            @db.Decimal(10, 2)
+  shippingFeeRefund    Decimal            @default(0.00) @db.Decimal(10, 2)
+  vendorShare          Decimal            @db.Decimal(10, 2)
+  platformShare        Decimal            @db.Decimal(10, 2)
+
+  gatewayTransactionId String?
+  gatewayReference     String?
+  gatewayResponse      Json?
+  failureReason        String?
+  processedAt          DateTime?
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  // Native Relations
+  returnRequest        ReturnRequest      @relation(fields: [returnRequestId], references: [id], onDelete: Restrict)
+  order                Order              @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  vendor               VendorProfile      @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
+
+  vendorAdjustments    VendorAdjustment[]
+
+  @@unique([id, vendorProfileId])
+  @@unique([returnRequestId, clientRequestId])
+  @@unique([returnRequestId, requestSequence])
+  @@index([returnRequestId])
+  @@index([orderId])
+  @@index([vendorProfileId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VendorAdjustment {
+  id                  String             @id @default(cuid())
+  vendorProfileId     String
+  amount              Decimal            @db.Decimal(10, 2)
+  type                AdjustmentType
+  description         String
+
+  // Mutually exclusive parent references
+  returnRequestId     String?
+  refundTransactionId String?
+  vendorPayoutId      String?
+
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  // Native & Composite Relations
+  vendor              VendorProfile      @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
+  returnRequest       ReturnRequest?     @relation(fields: [returnRequestId, vendorProfileId], references: [id, vendorProfileId], onDelete: Restrict)
+  refundTransaction   RefundTransaction? @relation(fields: [refundTransactionId, vendorProfileId], references: [id, vendorProfileId], onDelete: Restrict)
+  vendorPayout        VendorPayout?      @relation(fields: [vendorPayoutId, vendorProfileId], references: [id, vendorId], onDelete: Restrict)
+  allocations         VendorAdjustmentAllocation[]
+
+  @@unique([id, vendorProfileId])
+  @@index([vendorProfileId])
+  @@index([returnRequestId])
+  @@index([refundTransactionId])
+  @@index([vendorPayoutId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+
+model VendorAdjustmentAllocation {
+  id                 String           @id @default(cuid())
+  vendorAdjustmentId String
+  vendorPayoutId     String
+  vendorProfileId    String
+  amount             Decimal          @db.Decimal(10, 2)
+  allocationSequence Int
+  status             AllocationStatus @default(ACTIVE)
+  notes              String?
+
+  reversedAt         DateTime?
+  reversalReason     String?
+  createdAt          DateTime         @default(now())
+
+  // Composite Relations
+  vendorAdjustment   VendorAdjustment @relation(fields: [vendorAdjustmentId, vendorProfileId], references: [id, vendorProfileId], onDelete: Restrict)
+  vendorPayout       VendorPayout     @relation(fields: [vendorPayoutId, vendorProfileId], references: [id, vendorId], onDelete: Restrict)
+  vendor             VendorProfile    @relation(fields: [vendorProfileId], references: [id], onDelete: Restrict)
+
+  @@unique([vendorAdjustmentId, vendorPayoutId])
+  @@unique([vendorAdjustmentId, allocationSequence])
+  @@index([vendorAdjustmentId])
+  @@index([vendorPayoutId])
+  @@index([vendorProfileId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==============================================================================
+// PHASE 13: MULTI-SELLER MARKETPLACE MODELS & SHIPMENT SUB-ORDERS
+// ==============================================================================
+
+model Brand {
+  id                      String         @id @default(cuid())
+  name                    String         @unique
+  slug                    String         @unique
+  logoUrl                 String?
+  bannerUrl               String?
+  description             String?        @db.Text
+  isVerified              Boolean        @default(false)
+  registeredOwnerVendorId String?
+  registeredOwner         VendorProfile? @relation("BrandOwner", fields: [registeredOwnerVendorId], references: [id], onDelete: SetNull)
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model VendorWarehouse {
+  id            String        @id @default(cuid())
+  vendorId      String
+  vendor        VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  warehouseCode String
+  facilityName  String
+  streetAddress String
+  city          String
+  state         String
+  postalCode    String
+  contactPhone  String
+  isDefault     Boolean       @default(false)
+
+  inventories OfferInventory[]
+  shipments   VendorShipment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([vendorId, warehouseCode])
+  @@index([vendorId])
+  @@index([postalCode])
+}
+
+model SellerOffer {
+  id              String          @id @default(cuid())
+  productId       String
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendorId        String
+  vendor          VendorProfile   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  condition       OfferCondition  @default(NEW)
+  status          String          @default("ACTIVE") // ACTIVE, INACTIVE, PAUSED
+  fulfillmentType FulfillmentType @default(SELLER_FULFILLED)
+  handlingDays    Int             @default(2) // SLA dispatch window in days
+
+  isBuyBoxWinner  Boolean         @default(false)
+
+  offerVariants OfferVariant[]
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, vendorId, condition])
+  @@index([productId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([isBuyBoxWinner])
+}
+
+model OfferVariant {
+  id               String         @id @default(cuid())
+  sellerOfferId    String
+  sellerOffer      SellerOffer    @relation(fields: [sellerOfferId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  vendorId         String
+  vendor           VendorProfile  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  sellerSku          String
+  sellingPrice       Decimal  @db.Decimal(10, 2)
+  mrpPrice           Decimal? @db.Decimal(10, 2)
+  discountPercentage Decimal? @db.Decimal(5, 2)
+  status             String   @default("ACTIVE")
+
+  inventories OfferInventory[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sellerOfferId, productVariantId])
+  @@unique([vendorId, sellerSku])
+  @@index([sellerOfferId])
+  @@index([productVariantId])
+  @@index([vendorId])
+  @@index([sellerSku])
+  @@index([sellingPrice])
+}
+
+model OfferInventory {
+  id             String          @id @default(cuid())
+  offerVariantId String
+  offerVariant   OfferVariant    @relation(fields: [offerVariantId], references: [id], onDelete: Cascade)
+  warehouseId    String
+  warehouse      VendorWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  quantity          Int @default(0)
+  reservedQuantity  Int @default(0)
+  lowStockThreshold Int @default(5)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([offerVariantId, warehouseId])
+  @@index([offerVariantId])
+  @@index([warehouseId])
+}
+
+model VendorShipment {
+  id             String           @id @default(cuid())
+  orderId        String
+  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendorId       String
+  vendor         VendorProfile    @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  warehouseId    String?
+  warehouse      VendorWarehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+
+  shipmentNumber String          @unique // e.g. "VYN-SHP-202611-001A"
+  status         ShipmentStatus  @default(PENDING)
+
+  subtotal       Decimal         @db.Decimal(12, 2)
+  shippingFee    Decimal         @default(0.00) @db.Decimal(12, 2)
+
+  courierPartner   String?
+  trackingNumber   String?
+  shippingLabelUrl String?
+  manifestUrl      String?
+  dispatchedAt     DateTime?
+  deliveredAt      DateTime?
+
+  items      VendorShipmentItem[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([trackingNumber])
+}
+
+model VendorShipmentItem {
+  id             String         @id @default(cuid())
+  shipmentId     String
+  shipment       VendorShipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItemId    String
+  orderItem      OrderItem      @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  productId      String
+  variantId      String?
+  sellerOfferId  String?
+  offerVariantId String?
+  quantity       Int            @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shipmentId, orderItemId])
+  @@index([shipmentId])
+  @@index([orderItemId])
+}
+
+// ------------------------------------------------------------------------------
+// MEDIA MANAGER ARCHITECTURE (Phase 6)
+// Centralized, verified media asset repository for vendors and catalog admins
+// ------------------------------------------------------------------------------
+
+enum MediaAssetCategory {
+  PRODUCT_GALLERY
+  COLOR_SWATCH
+  APLUS_CONTENT
+  BRAND_ASSET
+  OTHER
+}
+
+model MediaAsset {
+  id             String             @id @default(cuid())
+  vendorId       String?
+  vendor         VendorProfile?     @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  title          String
+  fileName       String
+  fileSize       Int
+  mimeType       String
+  width          Int?
+  height         Int?
+  url            String
+  thumbnailUrl   String?
+  category       MediaAssetCategory @default(PRODUCT_GALLERY)
+  tags           String[]           @default([])
+  referenceCount Int                @default(0)
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------------------------
+// ADMIN MULTI-SELLER AUDIT TRAIL (Phase 7)
+// Immutable logging of administrative decisions, offer approvals, and moderation
+// ------------------------------------------------------------------------------
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  adminEmail String
+  entity     String   // "VENDOR", "OFFER", "PRODUCT", "SHIPMENT", "PAYOUT", "SETTING"
+  entityId   String
+  action     String   // "APPROVE", "REJECT", "SUSPEND", "REACTIVATE", "UPDATE", "MODERATE"
+  details    Json?    // { before, after, reason }
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
+// ------------------------------------------------------------------------------
+// PAYMENT GATEWAY WEBHOOK AUDIT & IDEMPOTENCY LEDGER
+// ------------------------------------------------------------------------------
+
+model PaymentWebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventType   String
+  paymentId   String?
+  orderId     String?
+  payload     Json?
+  status      String   @default("PROCESSED") // "PROCESSED" | "FAILED" | "DUPLICATE_IGNORED" | "UNMATCHED_RECONCILED"
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+
+
+

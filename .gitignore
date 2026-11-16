@@ -1,0 +1,39 @@
+# Next.js build output
+.next/
+out/
+dist/
+scratch/
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment variables & secrets (CRITICAL: Never commit .env)
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+*.pem
+
+# IDE & Editor folders
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript build info
+tsconfig.tsbuildinfo
