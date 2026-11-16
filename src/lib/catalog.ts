@@ -640,13 +640,6 @@ export const getDetailedProductBySlug = cache(
     // Fallback to static reference database
     const fallback = getFallbackProductBySlug(slug);
   if (fallback) {
-    if (!fallback.aplusContent) {
-      fallback.aplusContent = createDefaultAPlusContent({
-        title: fallback.title,
-        brand: fallback.brand,
-        category: fallback.category || 'fashion',
-      });
-    }
     if (fallback.colors && fallback.colors.length > 0) {
       fallback.colors = fallback.colors.map((c, i) => ({
         ...c,
