@@ -138,6 +138,7 @@ export interface DetailedProduct {
     imageUrl?: string | null;
   }>;
   highlights?: string[];
+  customSpecs?: Array<{ label: string; value: string }>;
   images: ProductImage[];
   colors: ProductColor[];
   sizeLabel: string;

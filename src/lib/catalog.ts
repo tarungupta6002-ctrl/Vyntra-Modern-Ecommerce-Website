@@ -219,8 +219,10 @@ export function formatDetailedProduct(product: any): DetailedProduct {
   });
   const colors = Array.from(colorMap.values());
 
-  // Parse structured Amazon A+ Content or generate curated default
+  // Parse structured Amazon A+ Content, Specs, Highlights or generate curated defaults
   let aplusData: APlusData | undefined = undefined;
+  let customSpecs: Array<{ label: string; value: string }> | undefined = undefined;
+  let customHighlights: string[] | undefined = undefined;
   let cleanDescription = '';
 
   if (product.description) {
@@ -231,6 +233,14 @@ export function formatDetailedProduct(product: any): DetailedProduct {
         if (parsed) {
           if (typeof parsed.plainDescription === 'string') {
             cleanDescription = parsed.plainDescription.trim();
+          }
+          if (Array.isArray(parsed.specs) && parsed.specs.length > 0) {
+            customSpecs = parsed.specs;
+          }
+          if (Array.isArray(parsed.highlights) && parsed.highlights.length > 0) {
+            customHighlights = parsed.highlights.filter(
+              (h: any) => typeof h === 'string' && h.trim().length > 0
+            );
           }
           if (parsed.aplus && Array.isArray(parsed.aplus.modules)) {
             aplusData = parsed.aplus;
@@ -460,14 +470,18 @@ export function formatDetailedProduct(product: any): DetailedProduct {
         imageUrl: v.imageUrl,
       };
     }),
-    highlights: [
-      `Artisan Heritage Brand: ${product.brand}`,
-      `Authentic Certified: Crafted under strict Vyntra quality assurance`,
-      product.isCustomized
-        ? 'Customized / Made to Order: Specially handcrafted upon order placement'
-        : 'Ready to Ship: Express dispatch in premium protective packaging',
-      'Direct from Verified Weaver & Artisan Guild across India',
-    ],
+    highlights:
+      customHighlights && customHighlights.length > 0
+        ? customHighlights
+        : [
+            `Artisan Heritage Brand: ${product.brand}`,
+            `Authentic Certified: Crafted under strict Vyntra quality assurance`,
+            product.isCustomized
+              ? 'Customized / Made to Order: Specially handcrafted upon order placement'
+              : 'Ready to Ship: Express dispatch in premium protective packaging',
+            'Direct from Verified Weaver & Artisan Guild across India',
+          ],
+    customSpecs,
     images,
     colors:
       colors.length > 0

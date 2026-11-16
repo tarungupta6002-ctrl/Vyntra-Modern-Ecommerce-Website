@@ -1185,36 +1185,47 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
           <div className="border border-[#D5D9D9] rounded-xl overflow-hidden max-w-4xl">
             <table className="w-full text-left text-xs">
               <tbody className="divide-y divide-[#D5D9D9]">
-                <tr className="bg-[#F7F8F8]">
-                  <th className="py-3 px-4 font-bold text-[#565959] w-1/3">Brand</th>
-                  <td className="py-3 px-4 text-[#0F1111] font-semibold">{product.brand}</td>
-                </tr>
-                <tr>
-                  <th className="py-3 px-4 font-bold text-[#565959]">Merchant Guild</th>
-                  <td className="py-3 px-4 text-[#0F1111]">{product.vendorName}</td>
-                </tr>
-                <tr className="bg-[#F7F8F8]">
-                  <th className="py-3 px-4 font-bold text-[#565959]">Fulfillment Model</th>
-                  <td className="py-3 px-4 text-[#0F1111] font-semibold">
-                    {product.isCustomized ? 'Customized / Made to Order' : 'Ready to Ship (Pre-stocked)'}
-                  </td>
-                </tr>
-                <tr>
-                  <th className="py-3 px-4 font-bold text-[#565959]">Category</th>
-                  <td className="py-3 px-4 text-[#0F1111] capitalize">{product.category}</td>
-                </tr>
-                <tr className="bg-[#F7F8F8]">
-                  <th className="py-3 px-4 font-bold text-[#565959]">Material &amp; Weave</th>
-                  <td className="py-3 px-4 text-[#0F1111]">100% Certified Organic Natural Fiber</td>
-                </tr>
-                <tr>
-                  <th className="py-3 px-4 font-bold text-[#565959]">Country of Origin</th>
-                  <td className="py-3 px-4 text-[#0F1111]">India</td>
-                </tr>
-                <tr className="bg-[#F7F8F8]">
-                  <th className="py-3 px-4 font-bold text-[#565959]">Care &amp; Wash</th>
-                  <td className="py-3 px-4 text-[#0F1111]">Dry Clean Recommended for Longevity</td>
-                </tr>
+                {(() => {
+                  const baseSpecs: Array<{ label: string; value: string; isBold?: boolean }> = [
+                    { label: 'Brand', value: product.brand, isBold: true },
+                    { label: 'Merchant Guild', value: product.vendorName },
+                    {
+                      label: 'Fulfillment Model',
+                      value: product.isCustomized ? 'Customized / Made to Order' : 'Ready to Ship (Pre-stocked)',
+                      isBold: true,
+                    },
+                    { label: 'Category', value: product.category },
+                  ];
+
+                  // Add vendor-provided technical specs or fallback defaults
+                  const additionalSpecs: Array<{ label: string; value: string; isBold?: boolean }> =
+                    product.customSpecs && product.customSpecs.length > 0
+                      ? product.customSpecs.map((s) => ({ label: s.label, value: s.value }))
+                      : [
+                          { label: 'Material & Weave', value: '100% Certified Organic Natural Fiber' },
+                          { label: 'Country of Origin', value: 'India' },
+                          { label: 'Care & Wash', value: 'Dry Clean Recommended for Longevity' },
+                        ];
+
+                  // Deduplicate in case vendor specified "Brand" or "Category"
+                  const allRows = [
+                    ...baseSpecs.filter(
+                      (b) => !additionalSpecs.some((a) => a.label.toLowerCase() === b.label.toLowerCase())
+                    ),
+                    ...additionalSpecs,
+                  ];
+
+                  return allRows.map((row, idx) => (
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-[#F7F8F8]' : 'bg-white'}>
+                      <th className="py-3 px-4 font-bold text-[#565959] w-1/3 sm:w-1/4">
+                        {row.label}
+                      </th>
+                      <td className={`py-3 px-4 text-[#0F1111] capitalize ${row.isBold ? 'font-semibold' : ''}`}>
+                        {row.value}
+                      </td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           </div>

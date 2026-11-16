@@ -233,10 +233,12 @@ export async function POST(request: Request) {
     const subtitle = body.subtitle?.trim() || null;
 
     let finalDescription = description;
-    if (body.aplus) {
+    if (body.aplus || body.specs || body.highlights) {
       finalDescription = JSON.stringify({
         plainDescription: description || '',
-        aplus: body.aplus,
+        specs: Array.isArray(body.specs) ? body.specs : [],
+        highlights: Array.isArray(body.highlights) ? body.highlights : [],
+        aplus: body.aplus || null,
       });
     }
 

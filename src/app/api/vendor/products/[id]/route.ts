@@ -84,14 +84,22 @@ export async function GET(request: Request, context: RouteContext) {
     }, 0);
 
     let aplus = null;
+    let specs: Array<{ label: string; value: string }> = [];
+    let highlights: string[] = [];
     let plainDescription = product.description;
     if (product.description && product.description.trim().startsWith('{')) {
       try {
         const parsed = JSON.parse(product.description);
         if (parsed?.aplus) {
           aplus = parsed.aplus;
-          plainDescription = parsed.plainDescription || '';
         }
+        if (Array.isArray(parsed?.specs)) {
+          specs = parsed.specs;
+        }
+        if (Array.isArray(parsed?.highlights)) {
+          highlights = parsed.highlights;
+        }
+        plainDescription = parsed.plainDescription || '';
       } catch {}
     }
 
@@ -101,6 +109,8 @@ export async function GET(request: Request, context: RouteContext) {
       subtitle: product.subtitle,
       slug: product.slug,
       description: plainDescription,
+      specs,
+      highlights,
       aplus,
       brand: product.brand,
       price: Number(product.basePrice),
@@ -189,10 +199,12 @@ export async function PUT(request: Request, context: RouteContext) {
     const stockQuantity = Math.max(0, parseInt(body.stock, 10) || 10);
 
     let finalDescription = description;
-    if (body.aplus) {
+    if (body.aplus || body.specs || body.highlights) {
       finalDescription = JSON.stringify({
         plainDescription: description || '',
-        aplus: body.aplus,
+        specs: Array.isArray(body.specs) ? body.specs : [],
+        highlights: Array.isArray(body.highlights) ? body.highlights : [],
+        aplus: body.aplus || null,
       });
     }
 

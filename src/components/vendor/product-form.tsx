@@ -150,22 +150,30 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
   // Description & Highlights
   const [description, setDescription] = useState(initialData?.description || '');
-  const [highlights, setHighlights] = useState<string[]>([
-    'Handcrafted in small artisan batches by master weavers.',
-    '100% genuine natural fibers certified for sustainability.',
-    'Traditional heritage weaving technique with modern tailoring.',
-    'Pre-shrunk and color-fast tested for long-lasting luxury.',
-  ]);
+  const [highlights, setHighlights] = useState<string[]>(
+    Array.isArray(initialData?.highlights) && initialData.highlights.length > 0
+      ? initialData.highlights
+      : [
+          'Handcrafted in small artisan batches by master weavers.',
+          '100% genuine natural fibers certified for sustainability.',
+          'Traditional heritage weaving technique with modern tailoring.',
+          'Pre-shrunk and color-fast tested for long-lasting luxury.',
+        ]
+  );
   const [newHighlight, setNewHighlight] = useState('');
 
   // Specifications
-  const [specs, setSpecs] = useState<Array<{ label: string; value: string }>>([
-    { label: 'Material & Fabric', value: '100% Pure Organic Handloom Weave' },
-    { label: 'Weave Type', value: 'Heritage Artisan Loom' },
-    { label: 'Fit Type', value: 'Contemporary Tailored Fit' },
-    { label: 'Care Instructions', value: 'Dry Clean Recommended' },
-    { label: 'Country of Origin', value: 'India' },
-  ]);
+  const [specs, setSpecs] = useState<Array<{ label: string; value: string }>>(
+    Array.isArray(initialData?.specs) && initialData.specs.length > 0
+      ? initialData.specs
+      : [
+          { label: 'Material & Fabric', value: '100% Pure Organic Handloom Weave' },
+          { label: 'Weave Type', value: 'Heritage Artisan Loom' },
+          { label: 'Fit Type', value: 'Contemporary Tailored Fit' },
+          { label: 'Care Instructions', value: 'Dry Clean Recommended' },
+          { label: 'Country of Origin', value: 'India' },
+        ]
+  );
 
   // Size Guide
   const [sizeChart, setSizeChart] = useState<Array<{ size: string; chest: string; waist: string; length: string }>>([
@@ -686,6 +694,8 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         isPublished: publishIntent,
         isCustomized,
         description: description.trim() || undefined,
+        specs: specs.filter((s) => s.label.trim() && s.value.trim()),
+        highlights: highlights.filter((h) => h.trim()),
         aplus: aplusData,
         images: images.map((img) => img.url),
         stock: hasVariants ? undefined : parseInt(standardStock, 10) || 10,
