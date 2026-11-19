@@ -153,12 +153,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   const [highlights, setHighlights] = useState<string[]>(
     Array.isArray(initialData?.highlights) && initialData.highlights.length > 0
       ? initialData.highlights
-      : [
-          'Handcrafted in small artisan batches by master weavers.',
-          '100% genuine natural fibers certified for sustainability.',
-          'Traditional heritage weaving technique with modern tailoring.',
-          'Pre-shrunk and color-fast tested for long-lasting luxury.',
-        ]
+      : []
   );
   const [newHighlight, setNewHighlight] = useState('');
 
@@ -167,10 +162,6 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     Array.isArray(initialData?.specs) && initialData.specs.length > 0
       ? initialData.specs
       : [
-          { label: 'Material & Fabric', value: '100% Pure Organic Handloom Weave' },
-          { label: 'Weave Type', value: 'Heritage Artisan Loom' },
-          { label: 'Fit Type', value: 'Contemporary Tailored Fit' },
-          { label: 'Care Instructions', value: 'Dry Clean Recommended' },
           { label: 'Country of Origin', value: 'India' },
         ]
   );
@@ -410,17 +401,80 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     );
   }, [activeCategory]);
 
+  const isFootwearCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const fullPath = (activeCategory?.fullPath || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('shoe') ||
+      slug.includes('footwear') ||
+      slug.includes('sneaker') ||
+      slug.includes('sandal') ||
+      slug.includes('boot') ||
+      slug.includes('loafer') ||
+      slug.includes('jutti') ||
+      slug.includes('mojri') ||
+      slug.includes('clog') ||
+      name.includes('shoe') ||
+      name.includes('footwear') ||
+      name.includes('sneaker') ||
+      name.includes('sandal') ||
+      fullPath.includes('shoe') ||
+      fullPath.includes('footwear') ||
+      pathStr.includes('shoe') ||
+      pathStr.includes('footwear') ||
+      titleLower.includes('shoe') ||
+      titleLower.includes('sneaker') ||
+      titleLower.includes('sandal') ||
+      titleLower.includes('footwear')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isWomenFootwear = React.useMemo(() => {
+    if (!isFootwearCategory) return false;
+    const combined = `${activeCategory?.slug || ''} ${activeCategory?.name || ''} ${title || ''} ${selectedPath.join(' ')}`.toLowerCase();
+    return (
+      combined.includes('women') ||
+      combined.includes('girl') ||
+      combined.includes('female') ||
+      combined.includes('ladies')
+    );
+  }, [isFootwearCategory, activeCategory, title, selectedPath]);
+
   const AVAILABLE_SIZES = React.useMemo(() => {
-    return isFreeSizeCategory
-      ? ['Free Size']
-      : ['S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
-  }, [isFreeSizeCategory]);
+    if (isFreeSizeCategory) {
+      return ['Free Size'];
+    }
+    if (isFootwearCategory) {
+      if (isWomenFootwear) {
+        return ['3 UK', '4 UK', '5 UK', '6 UK', '7 UK', '8 UK', '9 UK'];
+      }
+      return ['5 UK', '6 UK', '7 UK', '8 UK', '9 UK', '10 UK', '11 UK', '12 UK'];
+    }
+    return ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
+  }, [isFreeSizeCategory, isFootwearCategory, isWomenFootwear]);
 
   useEffect(() => {
     if (isFreeSizeCategory) {
       setSelectedSizes(['Free Size']);
+    } else if (isFootwearCategory) {
+      if (isWomenFootwear) {
+        setSelectedSizes(['3 UK', '4 UK', '5 UK', '6 UK', '7 UK', '8 UK']);
+      } else {
+        setSelectedSizes(['6 UK', '7 UK', '8 UK', '9 UK', '10 UK']);
+      }
+    } else {
+      setSelectedSizes((prev) => {
+        const hasShoeSizes = prev.some((s) => s.includes('UK'));
+        if (hasShoeSizes || prev.includes('Free Size')) {
+          return ['S', 'M', 'L', 'XL', '2XL'];
+        }
+        return prev;
+      });
     }
-  }, [isFreeSizeCategory]);
+  }, [isFreeSizeCategory, isFootwearCategory, isWomenFootwear]);
 
   // Reset manual override whenever category changes so category defaults apply immediately
   useEffect(() => {
@@ -685,6 +739,62 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     setIsSubmitting(true);
 
     try {
+      // Sanitize A+ Content: strip unconfigured/empty/duplicate modules before saving
+      const cleanedAplusModules = (aplusData.modules || []).filter((mod) => {
+        if (!mod || !mod.type) return false;
+
+        if (mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4') {
+          const cards = mod.cards || [];
+          const validCards = cards.filter((c) => {
+            const hasRealImg = Boolean(c.imageUrl?.trim()) && !c.imageUrl?.includes('photo-1542291026-7eec264c27ff');
+            const isCustom = !c.title?.startsWith('Feature #') && !c.title?.startsWith('Hallmark #') && Boolean(c.title?.trim());
+            return hasRealImg || isCustom;
+          });
+          if (Boolean(mod.imageUrl?.trim())) {
+            // If cards were just boilerplate placeholders, clean them out so only the real banner stays
+            if (validCards.length === 0) {
+              mod.cards = [];
+            } else {
+              mod.cards = validCards;
+            }
+            return true;
+          }
+          mod.cards = validCards;
+          return validCards.length > 0;
+        }
+
+        if (mod.type === 'hero_banner') {
+          return Boolean(mod.imageUrl?.trim());
+        }
+
+        if (mod.type === 'image_text_split') {
+          return Boolean(mod.imageUrl?.trim() || mod.description?.trim());
+        }
+
+        if (mod.type === 'lifestyle_gallery') {
+          return Boolean(mod.imageUrl?.trim() || mod.secondaryImageUrl?.trim() || mod.tertiaryImageUrl?.trim());
+        }
+
+        return true;
+      });
+
+      // Deduplicate modules
+      const seenModSignatures = new Set<string>();
+      const deduplicatedModules = cleanedAplusModules.filter((mod) => {
+        const sig = `${mod.type}-${mod.imageUrl?.trim() || ''}-${mod.title || ''}`;
+        if (seenModSignatures.has(sig)) return false;
+        seenModSignatures.add(sig);
+        return true;
+      });
+
+      const sanitizedAplus =
+        deduplicatedModules.length > 0
+          ? {
+              ...aplusData,
+              modules: deduplicatedModules,
+            }
+          : undefined;
+
       const payload: any = {
         title: title.trim(),
         subtitle: subtitle.trim() || undefined,
@@ -697,7 +807,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         description: description.trim() || undefined,
         specs: specs.filter((s) => s.label.trim() && s.value.trim()),
         highlights: highlights.filter((h) => h.trim()),
-        aplus: aplusData.modules && aplusData.modules.length > 0 ? aplusData : undefined,
+        aplus: sanitizedAplus,
         images: images.map((img) => img.url),
         stock: hasVariants ? undefined : parseInt(standardStock, 10) || 10,
         variants: hasVariants
@@ -1506,7 +1616,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                     type="text"
                     value={builderColor}
                     onChange={(e) => setBuilderColor(e.target.value)}
-                    placeholder="e.g. Green, Royal Blue, Black..."
+                    placeholder={isFootwearCategory ? 'e.g. Black White, Grey Pink, Navy Blue...' : 'e.g. Green, Royal Blue, Black...'}
                     className="w-full px-3 py-2 text-xs border border-[#D5D9D9] rounded-lg focus:outline-none focus:border-[#007185] bg-white font-semibold"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1522,7 +1632,11 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 <div className="lg:col-span-5 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-[#0F1111]">
-                      2. Choose Sizes
+                      {isFootwearCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose UK Shoe Sizes (India Standard)</span>
+                      ) : (
+                        <span>2. Choose Sizes</span>
+                      )}
                     </label>
                     <button
                       type="button"
@@ -1536,6 +1650,35 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       {selectedSizes.length === AVAILABLE_SIZES.length ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
+
+                  {/* Footwear Quick Range Presets */}
+                  {isFootwearCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Quick Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['3 UK', '4 UK', '5 UK', '6 UK', '7 UK', '8 UK'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Women (3-8 UK)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['6 UK', '7 UK', '8 UK', '9 UK', '10 UK', '11 UK'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Men (6-11 UK)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['3 UK', '4 UK', '5 UK', '6 UK', '7 UK', '8 UK', '9 UK', '10 UK', '11 UK', '12 UK'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        All UK Sizes
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     {AVAILABLE_SIZES.map((sz) => {
                       const isSelected = selectedSizes.includes(sz);
@@ -1576,7 +1719,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 <Layers className="w-8 h-8 text-[#565959]/40 mx-auto" />
                 <p className="text-sm font-bold text-[#0F1111]">No Variants Added Yet</p>
                 <p className="text-xs text-[#565959] max-w-md mx-auto">
-                  Type a color name above (e.g. <strong>Green</strong>), select your sizes (S, M, L, XL, 2XL), and click <strong>&quot;+ Add Variations&quot;</strong> to generate your clean catalog matrix.
+                  Type a color name above (e.g. <strong>{isFootwearCategory ? 'Black White' : 'Green'}</strong>), select your sizes ({isFootwearCategory ? '6 UK, 7 UK, 8 UK...' : 'S, M, L, XL, 2XL'}), and click <strong>&quot;+ Add Variations&quot;</strong> to generate your clean catalog matrix.
                 </p>
               </div>
             ) : (
@@ -1831,21 +1974,27 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
             <div className="flex items-center gap-2">
               <Ruler className="h-4 w-4 text-[#007185]" />
               <span className="text-xs font-bold text-[#0F1111] uppercase tracking-wider">
-                {isMeasurementChartVisible ? 'Apparel Measurement Chart (Inches)' : 'Category Sizing & Dimensions Guide'}
+                {isFootwearCategory
+                  ? 'Footwear Sizing & Fit Conversion Matrix (India / UK / EU)'
+                  : isMeasurementChartVisible
+                  ? 'Apparel Measurement Chart (Inches)'
+                  : 'Category Sizing & Dimensions Guide'}
               </span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  measurementProfile.showApparelChart
+                  isFootwearCategory
+                    ? 'bg-sky-50 text-[#007185] border border-sky-200'
+                    : measurementProfile.showApparelChart
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-amber-50 text-amber-800 border border-amber-200'
                 }`}
               >
-                {measurementProfile.badge}
+                {isFootwearCategory ? (isWomenFootwear ? "Women's Footwear" : "Men's Footwear") : measurementProfile.badge}
               </span>
             </div>
 
             {/* Optional override toggle for special listings */}
-            {!measurementProfile.showApparelChart && (
+            {!isFootwearCategory && !measurementProfile.showApparelChart && (
               <button
                 type="button"
                 onClick={() => setShowChartOverride(!isMeasurementChartVisible)}
@@ -1856,8 +2005,59 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
             )}
           </div>
 
-          {/* Conditional Display: Stitched Apparel vs Unstitched / Non-Apparel Guidance */}
-          {isMeasurementChartVisible ? (
+          {/* Conditional Display: Footwear vs Stitched Apparel vs Unstitched / Non-Apparel Guidance */}
+          {isFootwearCategory ? (
+            <div className="space-y-3">
+              <p className="text-[11px] text-[#565959]">
+                Standard India/UK footwear fit reference. Buyers will see this size conversion guide in the <strong>&quot;Size Chart&quot;</strong> modal on your product detail page.
+              </p>
+
+              <div className="overflow-x-auto border border-[#D5D9D9] rounded-xl max-w-2xl bg-white shadow-sm">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="py-2.5 px-3 font-bold">Brand Size</th>
+                      <th className="py-2.5 px-3 font-bold text-[#007185]">UK / India</th>
+                      <th className="py-2.5 px-3 font-bold">EU</th>
+                      <th className="py-2.5 px-3 font-bold">USA</th>
+                      <th className="py-2.5 px-3 font-bold">Heel to Toe (in)</th>
+                      <th className="py-2.5 px-3 font-bold">Foot Length (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#D5D9D9]/50">
+                    {(isWomenFootwear
+                      ? [
+                          { brand: '3', uk: '3 UK', eu: '35.5', us: '4.5', in: '8.7 in', cm: '22.1 cm' },
+                          { brand: '4', uk: '4 UK', eu: '36.7', us: '5.5', in: '9.0 in', cm: '22.9 cm' },
+                          { brand: '5', uk: '5 UK', eu: '38.0', us: '6.5', in: '9.3 in', cm: '23.7 cm' },
+                          { brand: '6', uk: '6 UK', eu: '39.3', us: '7.5', in: '9.7 in', cm: '24.6 cm' },
+                          { brand: '7', uk: '7 UK', eu: '40.7', us: '8.5', in: '10.0 in', cm: '25.4 cm' },
+                          { brand: '8', uk: '8 UK', eu: '42.0', us: '9.5', in: '10.3 in', cm: '26.2 cm' },
+                        ]
+                      : [
+                          { brand: '6', uk: '6 UK', eu: '40.0', us: '7.0', in: '9.8 in', cm: '25.0 cm' },
+                          { brand: '7', uk: '7 UK', eu: '41.0', us: '8.0', in: '10.2 in', cm: '26.0 cm' },
+                          { brand: '8', uk: '8 UK', eu: '42.0', us: '9.0', in: '10.6 in', cm: '27.0 cm' },
+                          { brand: '9', uk: '9 UK', eu: '43.0', us: '10.0', in: '11.0 in', cm: '28.0 cm' },
+                          { brand: '10', uk: '10 UK', eu: '44.5', us: '11.0', in: '11.4 in', cm: '29.0 cm' },
+                          { brand: '11', uk: '11 UK', eu: '46.0', us: '12.0', in: '11.8 in', cm: '30.0 cm' },
+                          { brand: '12', uk: '12 UK', eu: '47.0', us: '13.0', in: '12.2 in', cm: '31.0 cm' },
+                        ]
+                    ).map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="py-2 px-3 font-bold text-[#0F1111]">{row.brand}</td>
+                        <td className="py-2 px-3 font-extrabold text-[#007185]">{row.uk}</td>
+                        <td className="py-2 px-3 text-[#565959]">{row.eu}</td>
+                        <td className="py-2 px-3 text-[#565959]">{row.us}</td>
+                        <td className="py-2 px-3 text-[#565959]">{row.in}</td>
+                        <td className="py-2 px-3 text-[#565959]">{row.cm}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : isMeasurementChartVisible ? (
             <div className="space-y-3">
               <p className="text-[11px] text-[#565959]">
                 Specify garment measurements in inches for standard sizes S to XL. This measurement table helps buyers pick their exact fit and significantly reduces returns.

@@ -218,6 +218,7 @@ function BoysClothingContent() {
       return 0; // featured
     });
   }, [
+    liveDbProducts,
     activeCategory,
     selectedBrands,
     selectedPriceRange,
@@ -628,7 +629,10 @@ function BoysClothingContent() {
                   >
                     <div>
                       {/* Image Container */}
-                      <div className="relative aspect-[4/5] w-full bg-zinc-50 rounded-sm overflow-hidden flex items-center justify-center mb-2">
+                      <Link
+                        href={`/products/${product.slug || product.id}`}
+                        className="relative aspect-[4/5] w-full bg-zinc-50 rounded-sm overflow-hidden flex items-center justify-center mb-2 block cursor-pointer"
+                      >
                         <Image
                           src={product.image}
                           alt={product.title}
@@ -641,7 +645,7 @@ function BoysClothingContent() {
                             Amazon&apos;s Choice
                           </span>
                         )}
-                      </div>
+                      </Link>
 
                       {/* Swatches Row */}
                       {product.swatches && product.swatches.length > 0 && (
@@ -662,15 +666,17 @@ function BoysClothingContent() {
                         </div>
                       )}
 
-                      {/* Brand Name */}
-                      <div className="text-[12px] font-bold text-zinc-900 uppercase tracking-tight line-clamp-1">
-                        {product.brand}
-                      </div>
+                      {/* Brand & Title Link */}
+                      <Link href={`/products/${product.slug || product.id}`} className="block group/title">
+                        <div className="text-[12px] font-bold text-zinc-900 uppercase tracking-tight line-clamp-1">
+                          {product.brand}
+                        </div>
 
-                      {/* Title */}
-                      <h2 className="text-[12px] text-zinc-700 line-clamp-2 hover:text-amber-700 leading-snug cursor-pointer my-0.5">
-                        {product.title}
-                      </h2>
+                        {/* Title */}
+                        <h2 className="text-[12px] text-zinc-700 line-clamp-2 group-hover/title:text-amber-700 hover:text-amber-700 leading-snug cursor-pointer my-0.5">
+                          {product.title}
+                        </h2>
+                      </Link>
 
                       {/* Ratings & Bought Count */}
                       <div className="flex items-center gap-1 text-[11px] my-1">

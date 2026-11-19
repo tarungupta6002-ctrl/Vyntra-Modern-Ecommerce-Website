@@ -28,6 +28,98 @@ export function APlusContentDisplay({ aplus, brandName = 'Vyntra Artisan' }: APl
     return null;
   }
 
+  // Smart validation & cleanup filter: strips unconfigured/blank/duplicate/foreign-sample modules
+  const validModules = React.useMemo(() => {
+    if (!aplus?.modules || !Array.isArray(aplus.modules)) return [];
+
+    const seenSignatures = new Set<string>();
+
+    return aplus.modules.filter((mod) => {
+      if (!mod || !mod.type) return false;
+
+      // 1. Feature Cards (3 or 4)
+      if (mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4') {
+        const cards = mod.cards || [];
+
+        // Check for boilerplate placeholder cards (e.g. "Feature #1", "Highlight a key...")
+        const isAllBlankPlaceholders =
+          cards.length > 0 &&
+          cards.every(
+            (c) =>
+              !c.imageUrl?.trim() &&
+              (c.title?.startsWith('Feature #') || c.title?.startsWith('Hallmark #') || !c.title)
+          );
+
+        // If module has no banner image and all cards are blank placeholders, discard it
+        if (isAllBlankPlaceholders && !mod.imageUrl?.trim()) {
+          return false;
+        }
+
+        // Check if cards have foreign brand Nike sample photos (photo-1542291026-7eec264c27ff) on a non-Nike brand
+        const hasSampleNikeImages = cards.some((c) =>
+          c.imageUrl?.includes('photo-1542291026-7eec264c27ff')
+        );
+        const isNikeBrand = brandName.toLowerCase().includes('nike');
+        if (hasSampleNikeImages && !isNikeBrand && !mod.imageUrl?.trim()) {
+          return false;
+        }
+
+        // If cards are completely empty (0 cards) and no banner imageUrl, discard
+        if (cards.length === 0 && !mod.imageUrl?.trim()) {
+          return false;
+        }
+
+        // Deduplication signature: must include mod.imageUrl so different banners are never dropped!
+        const cardSig = cards.map((c) => `${c.title}-${c.imageUrl || ''}`).join('|');
+        const signature = `${mod.type}-${mod.imageUrl?.trim() || ''}-${mod.title || ''}-${cardSig}`;
+        if (seenSignatures.has(signature)) {
+          return false;
+        }
+        seenSignatures.add(signature);
+        return true;
+      }
+
+      // 2. Hero Banner
+      if (mod.type === 'hero_banner') {
+        if (!mod.imageUrl?.trim() && !mod.title?.trim()) {
+          return false;
+        }
+        const signature = `hero-${mod.imageUrl || ''}-${mod.title || ''}`;
+        if (seenSignatures.has(signature)) return false;
+        seenSignatures.add(signature);
+        return true;
+      }
+
+      // 3. Image with Text Split
+      if (mod.type === 'image_text_split') {
+        if (!mod.imageUrl?.trim() && !mod.description?.trim()) {
+          return false;
+        }
+        const signature = `split-${mod.imageUrl || ''}-${mod.title || ''}`;
+        if (seenSignatures.has(signature)) return false;
+        seenSignatures.add(signature);
+        return true;
+      }
+
+      // 4. Lifestyle Gallery
+      if (mod.type === 'lifestyle_gallery') {
+        const hasAnyImg = Boolean(
+          mod.imageUrl?.trim() ||
+          mod.secondaryImageUrl?.trim() ||
+          mod.tertiaryImageUrl?.trim()
+        );
+        if (!hasAnyImg) return false;
+        return true;
+      }
+
+      return true;
+    });
+  }, [aplus.modules, brandName]);
+
+  if (validModules.length === 0) {
+    return null;
+  }
+
   // Header background style generator
   const getHeaderTheme = (style: string) => {
     switch (style) {
@@ -72,38 +164,44 @@ export function APlusContentDisplay({ aplus, brandName = 'Vyntra Artisan' }: APl
 
   const theme = getHeaderTheme(aplus.headerStyle);
 
+  const showHeader = Boolean(aplus.headerTitle || aplus.headerSubtitle);
+
   return (
     <section className="w-full space-y-10 my-8 animate-in fade-in duration-300">
-      {/* 1. Colorful Section Header Banner (FROM THE BRAND / FROM THE MAKER) */}
-      <div className={`rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden ${theme.bg}`}>
-        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-2">
-          <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-headline font-black uppercase tracking-widest shadow-sm ${theme.badge}`}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>{aplus.headerTitle || 'FROM THE MAKER'}</span>
-          </span>
+      {/* 1. Optional Section Header Banner */}
+      {showHeader && (
+        <div className={`rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden ${theme.bg}`}>
+          <div className="relative z-10 max-w-4xl mx-auto text-center space-y-2">
+            {aplus.headerTitle && (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-headline font-black uppercase tracking-widest shadow-sm ${theme.badge}`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>{aplus.headerTitle}</span>
+              </span>
+            )}
 
-          <h2 className={`text-2xl sm:text-3xl font-headline font-extrabold tracking-tight ${theme.text}`}>
-            {brandName} — Artisan Heritage Studio
-          </h2>
+            <h2 className={`text-2xl sm:text-3xl font-headline font-extrabold tracking-tight ${theme.text}`}>
+              {brandName}
+            </h2>
 
-          {aplus.headerSubtitle && (
-            <p className={`text-xs sm:text-sm max-w-2xl mx-auto font-medium leading-relaxed ${theme.subtext}`}>
-              {aplus.headerSubtitle}
-            </p>
-          )}
+            {aplus.headerSubtitle && (
+              <p className={`text-xs sm:text-sm max-w-2xl mx-auto font-medium leading-relaxed ${theme.subtext}`}>
+                {aplus.headerSubtitle}
+              </p>
+            )}
+          </div>
+
+          {/* Decorative background watermark */}
+          <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none text-white">
+            <Store className="w-56 h-56" />
+          </div>
         </div>
-
-        {/* Decorative background watermark */}
-        <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none text-white">
-          <Store className="w-56 h-56" />
-        </div>
-      </div>
+      )}
 
       {/* 2. Sequential Vendor-Configured Modules */}
       <div className="space-y-12">
-        {aplus.modules.map((mod) => (
+        {validModules.map((mod) => (
           <div key={mod.id} className="w-full">
             {renderModule(mod, brandName)}
           </div>
@@ -225,6 +323,53 @@ function renderModule(mod: APlusModule, brandName: string) {
     case 'feature_cards_4':
       const isFour = mod.type === 'feature_cards_4';
       const cards = mod.cards || [];
+
+      // If the vendor provided an overall graphic banner image (e.g. 970x600 Amazon creative),
+      // and cards are either empty or boilerplate placeholders, render the full-width graphic banner!
+      const hasBoilerplateOrEmptyCards =
+        cards.length === 0 ||
+        cards.every((c) => {
+          const isBlankImg = !c.imageUrl || c.imageUrl.trim() === '';
+          const isSampleImg =
+            c.imageUrl?.includes('photo-1583391733956') ||
+            c.imageUrl?.includes('photo-1542291026-7eec264c27ff') ||
+            c.imageUrl?.includes('photo-1560769629-975ec94e6a86') ||
+            c.imageUrl?.includes('photo-1595950653106-6c9ebd614d3a');
+          const isPlaceholderTitle =
+            !c.title ||
+            c.title.startsWith('Feature #') ||
+            c.title.startsWith('Hallmark #') ||
+            c.title === 'Product Features';
+          return (isBlankImg && isPlaceholderTitle) || isSampleImg;
+        });
+
+      if (mod.imageUrl && hasBoilerplateOrEmptyCards) {
+        return (
+          <div className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-[#D5D9D9] bg-white group">
+            <div className="relative w-full bg-white flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={mod.imageUrl}
+                alt={mod.altText || mod.title || 'Brand Banner'}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-auto block object-contain mx-auto"
+              />
+            </div>
+          </div>
+        );
+      }
+
+      const displayCards = cards.filter((c) => {
+        const hasRealImg = Boolean(c.imageUrl?.trim());
+        const isPlaceholder = c.title?.startsWith('Feature #') || c.title?.startsWith('Hallmark #');
+        return hasRealImg || !isPlaceholder;
+      });
+
+      if (displayCards.length === 0 && !mod.imageUrl) {
+        return null;
+      }
+
       return (
         <div className="space-y-4">
           {mod.title && (
@@ -234,7 +379,7 @@ function renderModule(mod: APlusModule, brandName: string) {
           )}
 
           <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFour ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-5`}>
-            {cards.map((c) => (
+            {displayCards.map((c) => (
               <div
                 key={c.id}
                 className="bg-white rounded-xl border border-[#D5D9D9] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"

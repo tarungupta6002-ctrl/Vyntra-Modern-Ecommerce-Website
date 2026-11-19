@@ -37,8 +37,8 @@ const MODULE_DEFINITIONS: Array<{
 }> = [
   {
     type: 'hero_banner',
-    title: 'Full-Width Hero Banner',
-    desc: 'Cinematic wide visual with bold headline and subtitle overlay',
+    title: 'Full-Width Image Banner (Standard Amazon A+)',
+    desc: 'Full-width edge-to-edge product banner (970x600, 970x300, or any brand graphic)',
     icon: Layout,
   },
   {
@@ -97,7 +97,7 @@ const MODULE_DEFINITIONS: Array<{
   },
 ];
 
-export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier' }: APlusBuilderProps) {
+export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand' }: APlusBuilderProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [highlightedModuleId, setHighlightedModuleId] = useState<string | null>(null);
 
@@ -132,38 +132,38 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier
     let newMod: APlusModule = {
       id: newId,
       type,
-      title: 'New Section Heading',
-      description: 'Detail the heritage, artisanal techniques, and unique qualities of this creation.',
-      imageUrl: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=1200&q=80',
+      title: type === 'hero_banner' ? '' : 'Product Features',
+      description: type === 'hero_banner' ? '' : 'Highlight the key qualities, craftsmanship, and benefits of your product.',
+      imageUrl: '',
     };
 
     if (type === 'hero_banner') {
-      newMod.subtitle = 'Authentic Handcrafted Masterpiece • Vyntra Curated Edition';
-      newMod.badgeText = 'HERITAGE ATELIER';
+      newMod.subtitle = '';
+      newMod.badgeText = '';
     } else if (type === 'image_text_split') {
       newMod.imagePosition = 'left';
-      newMod.badgeText = 'WEAVING INTEGRITY';
+      newMod.badgeText = 'PREMIUM QUALITY';
     } else if (type === 'feature_cards_3' || type === 'feature_cards_4') {
       const count = type === 'feature_cards_4' ? 4 : 3;
       newMod.cards = Array.from({ length: count }).map((_, i) => ({
         id: `card-${i + 1}`,
-        title: `Hallmark #${i + 1}`,
-        description: 'Excellence in hand-spun yarn and ethical craft compensation.',
-        imageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=600&q=80',
+        title: `Feature #${i + 1}`,
+        description: 'Highlight a key product feature or benefit.',
+        imageUrl: '',
       }));
     } else if (type === 'lifestyle_gallery') {
-      newMod.imageUrl = 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80';
-      newMod.secondaryImageUrl = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80';
-      newMod.tertiaryImageUrl = 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&q=80';
+      newMod.imageUrl = '';
+      newMod.secondaryImageUrl = '';
+      newMod.tertiaryImageUrl = '';
     } else if (type === 'craftsmanship_story') {
       newMod.stats = [
-        { label: 'Artisan Hours', value: '36+ hrs' },
-        { label: 'Weaver Fair Share', value: '100%' },
+        { label: 'Quality Tested', value: '100%' },
+        { label: 'Durability', value: 'High Grade' },
         { label: 'Purity Standard', value: 'Certified' },
       ];
     } else if (type === 'brand_story') {
-      newMod.quote = 'True luxury is created by patient hands with respect for traditional weaving lineage.';
-      newMod.author = `${brandName} Master Artisan`;
+      newMod.quote = 'Committed to delivering authentic quality, enduring style, and unmatched everyday comfort.';
+      newMod.author = `${brandName} Official`;
     }
 
     onChange({
@@ -209,6 +209,30 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier
     const copy = aplusData.modules.filter((_, i) => i !== index);
     onChange({ ...aplusData, modules: copy });
   };
+
+  // Remove all incomplete/empty modules
+  const handleRemoveEmptyModules = () => {
+    const cleaned = (aplusData.modules || []).filter((mod) => {
+      if (mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4') {
+        const hasImg = (mod.cards || []).some((c) => Boolean(c.imageUrl?.trim())) || Boolean(mod.imageUrl?.trim());
+        return hasImg;
+      }
+      if (mod.type === 'hero_banner') return Boolean(mod.imageUrl?.trim());
+      if (mod.type === 'lifestyle_gallery') {
+        return Boolean(mod.imageUrl?.trim() || mod.secondaryImageUrl?.trim() || mod.tertiaryImageUrl?.trim());
+      }
+      return true;
+    });
+    onChange({ ...aplusData, modules: cleaned });
+  };
+
+  const hasIncompleteModules = (aplusData.modules || []).some((mod) => {
+    if (mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4') {
+      return !(mod.cards || []).some((c) => Boolean(c.imageUrl?.trim())) && !mod.imageUrl?.trim();
+    }
+    if (mod.type === 'hero_banner') return !mod.imageUrl?.trim();
+    return false;
+  });
 
   return (
     <div className="space-y-6">
@@ -270,9 +294,21 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier
       {/* 2. Active Modules List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
-            Configured A+ Content Modules ({aplusData.modules?.length || 0})
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
+              Configured A+ Content Modules ({aplusData.modules?.length || 0})
+            </span>
+            {hasIncompleteModules && (
+              <button
+                type="button"
+                onClick={handleRemoveEmptyModules}
+                className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                title="Remove modules that have no photos or content"
+              >
+                Clear Empty Modules
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setShowAddMenu(true)}
@@ -313,6 +349,12 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier
           <div className="space-y-4">
             {aplusData.modules.map((mod, idx) => {
               const isHighlighted = highlightedModuleId === mod.id;
+              const isIncomplete =
+                (mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4')
+                  ? !(mod.cards || []).some((c) => Boolean(c.imageUrl?.trim())) && !mod.imageUrl?.trim()
+                  : mod.type === 'hero_banner'
+                  ? !mod.imageUrl?.trim()
+                  : false;
               return (
                 <div
                   key={mod.id}
@@ -337,6 +379,11 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Artisan Atelier
                       {isHighlighted && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#007185] text-white font-extrabold uppercase animate-pulse">
                           Newly Added
+                        </span>
+                      )}
+                      {isIncomplete && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
+                          Incomplete (Add photo or will be auto-omitted)
                         </span>
                       )}
                     </div>

@@ -148,6 +148,7 @@ const TOP_BRANDS_DEALS: any[] = [];
 // Rich Product Catalog for Bestsellers
 interface ShoeProduct {
   id: string;
+  slug?: string;
   title: string;
   brand: string;
   price: number;
@@ -313,6 +314,7 @@ function MensShoesContent() {
 
     return result;
   }, [
+    liveShoes,
     selectedSubCategory,
     selectedBrands,
     primeOnly,
@@ -833,7 +835,10 @@ function MensShoesContent() {
                       )}
 
                       {/* Product Image */}
-                      <div className="relative aspect-square w-full bg-[#f8f8f8] rounded-md overflow-hidden mb-3">
+                      <Link
+                        href={`/products/${product.slug || product.id}`}
+                        className="relative aspect-square w-full bg-[#f8f8f8] rounded-md overflow-hidden mb-3 block cursor-pointer"
+                      >
                         <Image
                           src={product.image}
                           alt={product.title}
@@ -842,17 +847,19 @@ function MensShoesContent() {
                           className="object-contain p-3 group-hover:scale-105 transition-transform duration-300"
                           sizes="(max-width: 640px) 300px, 240px"
                         />
-                      </div>
+                      </Link>
 
                       {/* Brand & Title */}
                       <div className="flex-1 flex flex-col justify-between">
                         <div>
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
-                            {product.brand}
-                          </span>
-                          <h4 className="text-xs font-medium text-[#0F1111] line-clamp-2 mt-0.5 group-hover:text-[#007185] transition-colors leading-snug">
-                            {product.title}
-                          </h4>
+                          <Link href={`/products/${product.slug || product.id}`} className="block group/title">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
+                              {product.brand}
+                            </span>
+                            <h4 className="text-xs font-medium text-[#0F1111] line-clamp-2 mt-0.5 group-hover/title:text-[#007185] group-hover:text-[#007185] transition-colors leading-snug cursor-pointer">
+                              {product.title}
+                            </h4>
+                          </Link>
 
                           {/* Ratings */}
                           <div className="flex items-center gap-1.5 mt-1.5 text-[#DE7921]">

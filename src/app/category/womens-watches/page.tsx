@@ -287,6 +287,7 @@ function WomensWatchesContent() {
 
     return result;
   }, [
+    liveDbProducts,
     selectedSubCategory,
     selectedBrands,
     selectedMaterial,
@@ -857,7 +858,10 @@ function WomensWatchesContent() {
                       >
                         <div>
                           {/* Image & Badges */}
-                          <div className="relative aspect-square w-full rounded-md overflow-hidden bg-stone-50 mb-3">
+                          <Link
+                            href={`/products/${product.slug || product.id}`}
+                            className="relative aspect-square w-full rounded-md overflow-hidden bg-stone-50 mb-3 block cursor-pointer"
+                          >
                             <Image
                               src={product.image}
                               alt={product.title}
@@ -870,7 +874,11 @@ function WomensWatchesContent() {
                             {/* Wishlist Heart */}
                             <button
                               type="button"
-                              onClick={() => toggleWishlist(product.id)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleWishlist(product.id);
+                              }}
                               className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-xs text-stone-600 hover:text-rose-600 transition-colors z-10 cursor-pointer"
                               aria-label="Wishlist"
                             >
@@ -887,15 +895,17 @@ function WomensWatchesContent() {
                                 Best Seller
                               </span>
                             )}
-                          </div>
+                          </Link>
 
                           {/* Brand & Title */}
-                          <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">
-                            {product.brand}
-                          </p>
-                          <h3 className="text-xs sm:text-[13px] font-medium text-[#0F1111] line-clamp-2 leading-tight hover:text-[#C45500] cursor-pointer mt-0.5">
-                            {product.title}
-                          </h3>
+                          <Link href={`/products/${product.slug || product.id}`} className="block group/title">
+                            <p className="text-xs font-bold text-stone-500 uppercase tracking-wider">
+                              {product.brand}
+                            </p>
+                            <h3 className="text-xs sm:text-[13px] font-medium text-[#0F1111] line-clamp-2 leading-tight group-hover/title:text-[#007185] hover:text-[#C45500] cursor-pointer mt-0.5">
+                              {product.title}
+                            </h3>
+                          </Link>
 
                           {/* Rating & Reviews */}
                           <div className="flex items-center gap-1.5 mt-1.5">

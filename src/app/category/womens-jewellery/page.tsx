@@ -255,6 +255,7 @@ function WomensJewelleryContent() {
 
     return result;
   }, [
+    liveDbProducts,
     selectedSubCategory,
     selectedBrands,
     selectedMetal,

@@ -232,7 +232,7 @@ function LingerieContent() {
     }
 
     return result;
-  }, [selectedSubCategory, selectedBrands, primeOnly, minDiscount, priceRange, sortBy]);
+  }, [liveDbProducts, selectedSubCategory, selectedBrands, primeOnly, minDiscount, priceRange, sortBy]);
 
   const activeSubcategoryData = useMemo(() => {
     return LINGERIE_VISUAL_BUBBLES.find((b) => b.slug === selectedSubCategory);
@@ -712,7 +712,10 @@ function LingerieContent() {
 
                       <div>
                         {/* Image */}
-                        <div className="relative aspect-[3/4] w-full rounded-md bg-[#F7F7F7] overflow-hidden mb-2.5">
+                        <Link
+                          href={`/products/${product.slug || product.id}`}
+                          className="relative aspect-[3/4] w-full rounded-md bg-[#F7F7F7] overflow-hidden mb-2.5 block cursor-pointer"
+                        >
                           <Image
                             src={product.image}
                             alt={product.title}
@@ -726,17 +729,19 @@ function LingerieContent() {
                               Best Seller
                             </div>
                           )}
-                        </div>
+                        </Link>
 
-                        {/* Brand */}
-                        <div className="text-xs font-bold text-[#565959] uppercase tracking-wide">
-                          {product.brand}
-                        </div>
+                        {/* Brand & Title Link */}
+                        <Link href={`/products/${product.slug || product.id}`} className="block group/title">
+                          <div className="text-xs font-bold text-[#565959] uppercase tracking-wide">
+                            {product.brand}
+                          </div>
 
-                        {/* Title */}
-                        <h4 className="text-xs sm:text-[13px] font-medium text-[#0F1111] line-clamp-2 mt-0.5 leading-snug group-hover:text-[#007185]">
-                          {product.title}
-                        </h4>
+                          {/* Title */}
+                          <h4 className="text-xs sm:text-[13px] font-medium text-[#0F1111] line-clamp-2 mt-0.5 leading-snug group-hover/title:text-[#007185] group-hover:text-[#007185] transition-colors cursor-pointer">
+                            {product.title}
+                          </h4>
+                        </Link>
 
                         {/* Rating */}
                         <div className="flex items-center gap-1.5 mt-1">

@@ -192,7 +192,7 @@ function WomensEthnicWearContent({ params }: PageProps) {
     }
 
     return result;
-  }, [activeTab, selectedSubCategory, primeOnly, selectedBrands, minDiscount, priceRange, sortBy]);
+  }, [liveDbProducts, activeTab, selectedSubCategory, primeOnly, selectedBrands, minDiscount, priceRange, sortBy]);
 
   return (
     <div className="w-full bg-[#FFFFFF] min-h-screen text-[#0F1111]">

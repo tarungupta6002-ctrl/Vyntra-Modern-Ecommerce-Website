@@ -191,7 +191,7 @@ function LuggageContent() {
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0;
     });
-  }, [selectedSubCategory, selectedBrands, primeOnly, priceRange, minRating, sortBy]);
+  }, [liveDbProducts, selectedSubCategory, selectedBrands, primeOnly, priceRange, minRating, sortBy]);
 
   const activeCategoryTitle = useMemo(() => {
     if (selectedSubCategory === 'all') return 'Luggage';
@@ -467,7 +467,10 @@ function LuggageContent() {
                 >
                   <div>
                     {/* Image */}
-                    <div className="relative aspect-square w-full bg-[#f9f9f9] rounded-sm overflow-hidden flex items-center justify-center mb-2">
+                    <Link
+                      href={`/products/${product.slug || product.id}`}
+                      className="relative aspect-square w-full bg-[#f9f9f9] rounded-sm overflow-hidden flex items-center justify-center mb-2 block cursor-pointer"
+                    >
                       <Image
                         src={product.image}
                         alt={product.title}
@@ -480,17 +483,19 @@ function LuggageContent() {
                           #1 Best Seller
                         </span>
                       )}
-                    </div>
+                    </Link>
 
-                    {/* Brand */}
-                    <div className="text-[12px] font-bold text-zinc-900 uppercase tracking-tight line-clamp-1">
-                      {product.brand}
-                    </div>
+                    {/* Brand & Title Link */}
+                    <Link href={`/products/${product.slug || product.id}`} className="block group/title">
+                      <div className="text-[12px] font-bold text-zinc-900 uppercase tracking-tight line-clamp-1">
+                        {product.brand}
+                      </div>
 
-                    {/* Title */}
-                    <h3 className="text-[12px] text-zinc-700 line-clamp-2 hover:text-amber-700 leading-snug cursor-pointer my-0.5 font-normal">
-                      {product.title}
-                    </h3>
+                      {/* Title */}
+                      <h3 className="text-[12px] text-zinc-700 line-clamp-2 group-hover/title:text-amber-700 hover:text-amber-700 leading-snug cursor-pointer my-0.5 font-normal">
+                        {product.title}
+                      </h3>
+                    </Link>
 
                     {/* Rating */}
                     <div className="flex items-center gap-1 text-[11px] my-1">

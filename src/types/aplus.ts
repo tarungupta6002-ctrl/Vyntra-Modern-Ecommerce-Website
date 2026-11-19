@@ -76,13 +76,72 @@ export function createDefaultAPlusContent(params: {
   secondaryImage?: string;
   storeName?: string;
 }): APlusData {
-  const brandName = params.brand || 'Vyntra Atelier';
+  const brandName = params.brand || 'Vyntra Brand';
+  const isEthnic = params.category === 'ethnic';
   const heroImg =
     params.heroImage ||
     'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=1600&q=80';
   const secondaryImg =
     params.secondaryImage ||
     'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80';
+
+  if (!isEthnic) {
+    return {
+      headerTitle: 'FROM THE BRAND',
+      headerSubtitle: `Official Brand Showcase & Quality Standards by ${brandName}`,
+      headerStyle: 'clean_minimal',
+      modules: [
+        {
+          id: 'mod-hero-1',
+          type: 'hero_banner',
+          title: brandName,
+          subtitle: 'Engineered for Performance, Style & Everyday Comfort',
+          imageUrl: heroImg,
+          altText: `${brandName} Official Banner`,
+          badgeText: 'ORIGINAL BRAND',
+        },
+        {
+          id: 'mod-split-1',
+          type: 'image_text_split',
+          title: 'Premium Craftsmanship & Quality',
+          description:
+            `Engineered with precision and premium materials. Every ${brandName} piece undergoes rigorous multi-point quality testing to deliver uncompromising comfort, modern styling, and long-lasting durability.`,
+          imageUrl: secondaryImg,
+          altText: `${brandName} product highlight`,
+          imagePosition: 'left',
+          badgeText: 'AUTHENTIC QUALITY',
+        },
+        {
+          id: 'mod-cards-1',
+          type: 'feature_cards_3',
+          title: 'Product Highlights & Benefits',
+          cards: [
+            {
+              id: 'c-1',
+              title: 'Premium Quality Materials',
+              description: 'Selected for superior durability, lightweight performance, and daily resilience.',
+              imageUrl: '',
+              altText: 'Premium materials',
+            },
+            {
+              id: 'c-2',
+              title: 'Ergonomic Comfort',
+              description: 'Designed around real anatomical contours for supportive, all-day ease of wear.',
+              imageUrl: '',
+              altText: 'Ergonomic comfort',
+            },
+            {
+              id: 'c-3',
+              title: 'Built to Last',
+              description: 'Reinforced stress points and high-durability construction built for reliable longevity.',
+              imageUrl: '',
+              altText: 'Built to last',
+            },
+          ],
+        },
+      ],
+    };
+  }
 
   return {
     headerTitle: 'FROM THE MAKER',

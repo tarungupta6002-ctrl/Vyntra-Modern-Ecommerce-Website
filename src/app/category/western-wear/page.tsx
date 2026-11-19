@@ -220,7 +220,7 @@ export default function WesternWearPage() {
     }
 
     return result;
-  }, [selectedSubCategory, selectedBrands, primeOnly, minDiscount, priceRange, sortBy]);
+  }, [liveWesternProducts, selectedSubCategory, selectedBrands, primeOnly, minDiscount, priceRange, sortBy]);
 
   const activeSubcategoryData = useMemo(() => {
     return WESTERN_VISUAL_BUBBLES.find((b) => b.slug === selectedSubCategory);

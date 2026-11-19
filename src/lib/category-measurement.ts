@@ -56,11 +56,22 @@ export const INNERWEAR_SLUGS = new Set([
   'mens-vests-undershirts',
 ]);
 
-// 4. Artisanal Footwear
+// 4. Artisanal & Modern Footwear
 export const FOOTWEAR_SLUGS = new Set([
   'footwear',                 // Parent
-  'artisanal-juttis-mojris',  // Subcategory
+  'shoes',
+  'mens-shoes',
+  'mens-sports-shoes',
+  'womens-shoes',
+  'kids-shoes',
   'formal-casual-shoes',      // Subcategory
+  'casual-shoes',
+  'sports-shoes',
+  'sneakers',
+  'boots',
+  'loafers',
+  'sandals',
+  'artisanal-juttis-mojris',  // Subcategory
 ]);
 
 // 5. Horology & Fine Jewelry
@@ -148,16 +159,23 @@ export function getCategoryMeasurementProfile(
   }
 
   // 3. Footwear
-  if (FOOTWEAR_SLUGS.has(normalizedSlug) || FOOTWEAR_SLUGS.has(normalizedParentSlug)) {
+  if (
+    FOOTWEAR_SLUGS.has(normalizedSlug) ||
+    FOOTWEAR_SLUGS.has(normalizedParentSlug) ||
+    normalizedSlug.includes('shoe') ||
+    normalizedSlug.includes('footwear') ||
+    normalizedSlug.includes('sneaker') ||
+    (categoryName && (categoryName.toLowerCase().includes('shoe') || categoryName.toLowerCase().includes('footwear')))
+  ) {
     return {
       showApparelChart: false,
       type: 'footwear',
-      badge: 'Artisanal Footwear',
-      title: 'Measurement Chart Not Applicable for Footwear',
+      badge: 'Footwear Sizing',
+      title: 'Shoe Sizing & Fit Conversion Matrix',
       description:
         'Footwear items use India/UK/EU shoe sizing. Standard chest/waist measurement chart does not apply.',
       recommendation:
-        'Add shoe sizes (e.g. UK 6, UK 7, UK 8, UK 9, UK 10) directly under Product Variants above.',
+        'Standard India/UK shoe sizing conversion matrix is enabled for this product.',
     };
   }
 

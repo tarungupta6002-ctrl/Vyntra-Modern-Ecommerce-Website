@@ -191,20 +191,31 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     categorySlug.includes('bag') ||
     categorySlug.includes('wallet');
 
-  const sizes = (product.variants || [])
+  // Deduplicate sizes into clean unique size options
+  const sizeMap = new Map<string, { size: string; dimension?: string; disabled: boolean }>();
+  (product.variants || [])
     .filter((v: any) => v.size)
-    .map((v: any) => {
+    .forEach((v: any) => {
       const variantStock = (v.inventories || []).reduce(
         (acc: number, inv: any) =>
           acc + Math.max(0, (inv.quantity || 0) - (inv.reservedQuantity || 0)),
         0
       );
-      return {
-        size: v.size,
-        dimension: v.sku,
-        disabled: variantStock <= 0,
-      };
+      const isAvailable = variantStock > 0;
+      if (!sizeMap.has(v.size)) {
+        sizeMap.set(v.size, {
+          size: v.size,
+          dimension: v.sku,
+          disabled: !isAvailable,
+        });
+      } else {
+        const existing = sizeMap.get(v.size)!;
+        if (isAvailable) {
+          existing.disabled = false;
+        }
+      }
     });
+  const sizes = Array.from(sizeMap.values());
 
   // Map real image-based variant swatches
   const colorMap = new Map<string, { name: string; hex: string; imageUrl?: string }>();
@@ -463,19 +474,19 @@ export function formatDetailedProduct(product: any): DetailedProduct {
       customHighlights && customHighlights.length > 0
         ? customHighlights
         : [
-            `Artisan Heritage Brand: ${product.brand}`,
-            `Authentic Certified: Crafted under strict Vyntra quality assurance`,
+            `Brand: ${product.brand}`,
+            `Authentic Quality: Verified under strict Vyntra quality assurance standards`,
             product.isCustomized
-              ? 'Customized / Made to Order: Specially handcrafted upon order placement'
+              ? 'Customized / Made to Order: Specially prepared upon order placement'
               : 'Ready to Ship: Express dispatch in premium protective packaging',
-            'Direct from Verified Weaver & Artisan Guild across India',
+            'Direct from Verified Sellers across India',
           ],
     customSpecs,
     images,
     colors:
       colors.length > 0
         ? colors
-        : referenceItem?.colors || [{ name: 'Royal Heritage', hex: '#00288e' }],
+        : referenceItem?.colors || [{ name: 'Standard Edition', hex: '#111827' }],
     sizeLabel: isUnstitchedOrFreeSize ? 'Size' : 'Select Size / Dimension',
     sizes: isUnstitchedOrFreeSize
       ? [{ size: 'Free Size', dimension: 'Length: 5.5m + 0.8m Blouse Piece', disabled: totalStock <= 0 }]
@@ -485,25 +496,24 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     sizeGuide: isUnstitchedOrFreeSize ? undefined : referenceItem?.sizeGuide,
     modelInfo:
       referenceItem?.modelInfo ||
-      'Crafted with premium natural materials and artisanal techniques.',
+      'Crafted with premium materials and quality engineering.',
     tabs: referenceItem?.tabs || {
       story: {
-        badge: 'Direct Artisan Weave',
-        title: 'Master Craftsmanship & Heritage',
+        badge: 'Product Overview',
+        title: 'Specifications & Quality Assurance',
         description: [
           cleanDescription ||
-            'Each piece is produced in small batches by master craftspersons in accordance with traditional handloom standards.',
+            'Genuine brand product verified under Vyntra quality and authenticity standards.',
         ],
         stats: [
-          { label: 'Artisan Hours', value: '36 hrs' },
-          { label: 'Purity Standard', value: '100% Certified' },
+          { label: 'Quality Check', value: '100% Passed' },
+          { label: 'Authenticity', value: '100% Genuine' },
         ],
         image: images[0]?.src,
       },
       specs: [
         { label: 'Brand', val: product.brand },
-        { label: 'Vendor Guild', val: product.vendor?.storeName || 'Vyntra Atelier' },
-        { label: 'Material Weave', val: 'Pure Organic Fiber' },
+        { label: 'Seller', val: product.vendor?.storeName || 'Vyntra Seller' },
         { label: 'Origin', val: 'India' },
       ],
       care: [

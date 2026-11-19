@@ -278,6 +278,7 @@ function WomensEyewearContent() {
 
     return result;
   }, [
+    liveDbProducts,
     selectedSubCategory,
     selectedBrands,
     selectedShape,

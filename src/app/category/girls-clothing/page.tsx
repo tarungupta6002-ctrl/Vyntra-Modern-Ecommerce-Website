@@ -209,6 +209,7 @@ function GirlsClothingContent() {
 
     return result;
   }, [
+    liveDbProducts,
     selectedSubCategory,
     selectedBrands,
     selectedSizes,
@@ -588,7 +589,10 @@ function GirlsClothingContent() {
                     )}
 
                     {/* Product Image */}
-                    <div className="relative aspect-[3/4] w-full bg-[#f8f8f8] rounded-md overflow-hidden mb-2.5">
+                    <Link
+                      href={`/products/${product.slug || product.id}`}
+                      className="relative aspect-[3/4] w-full bg-[#f8f8f8] rounded-md overflow-hidden mb-2.5 block cursor-pointer"
+                    >
                       <Image
                         src={product.image}
                         alt={product.title}
@@ -597,7 +601,7 @@ function GirlsClothingContent() {
                         className="object-contain p-2 group-hover:scale-104 transition-transform duration-300"
                         sizes="(max-width: 640px) 300px, 240px"
                       />
-                    </div>
+                    </Link>
 
                     {/* Color Swatches (Exact from screenshots) */}
                     {product.swatches && product.swatches.length > 0 && (
@@ -624,12 +628,14 @@ function GirlsClothingContent() {
                     {/* Brand & Title */}
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
-                          {product.brand}
-                        </span>
-                        <h3 className="text-xs font-medium text-[#0F1111] line-clamp-2 mt-0.5 group-hover:text-[#007185] transition-colors leading-snug">
-                          {product.title}
-                        </h3>
+                        <Link href={`/products/${product.slug || product.id}`} className="block group/title">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
+                            {product.brand}
+                          </span>
+                          <h3 className="text-xs font-medium text-[#0F1111] line-clamp-2 mt-0.5 group-hover/title:text-[#007185] group-hover:text-[#007185] transition-colors leading-snug cursor-pointer">
+                            {product.title}
+                          </h3>
+                        </Link>
 
                         {/* Ratings & Bought Count */}
                         <div className="flex items-center gap-1.5 mt-1.5 text-[#DE7921]">
