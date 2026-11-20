@@ -184,20 +184,31 @@ export default function VyntraHomepage() {
       );
     }
 
-    if (chip === 'Audio & Wearables') {
+    if (
+      chip === 'Mobiles & Electronics' ||
+      chip === 'Audio & Wearables' ||
+      chip === 'Electronics' ||
+      chip === 'Mobiles'
+    ) {
       return (
         cat.includes('audio') ||
         cat.includes('electronic') ||
         cat.includes('wearable') ||
         cat.includes('watch') ||
+        cat.includes('mobile') ||
+        cat.includes('phone') ||
         sub.includes('headphone') ||
         sub.includes('audio') ||
         sub.includes('wearable') ||
         sub.includes('watch') ||
+        sub.includes('mobile') ||
+        sub.includes('phone') ||
         id === 'prod-1' ||
         id === 'prod-3' ||
         title.includes('headphone') ||
-        title.includes('watch')
+        title.includes('watch') ||
+        title.includes('phone') ||
+        title.includes('apex')
       );
     }
 
@@ -245,7 +256,7 @@ export default function VyntraHomepage() {
 
   // Fallback product visibility flags
   const showFallbackProd1 = matchesCategory(
-    { id: 'prod-1', category: 'Audio & Wearables', subCategory: 'audio', title: 'Apex Pro' },
+    { id: 'prod-1', category: 'Mobiles & Electronics', subCategory: 'audio', title: 'Apex Pro' },
     activeChip
   );
   const showFallbackProd2 = matchesCategory(
@@ -253,7 +264,7 @@ export default function VyntraHomepage() {
     activeChip
   );
   const showFallbackProd3 = matchesCategory(
-    { id: 'prod-3', category: 'Audio & Wearables', subCategory: 'smartwatch', title: 'Smartwatch' },
+    { id: 'prod-3', category: 'Mobiles & Electronics', subCategory: 'smartwatch', title: 'Smartwatch' },
     activeChip
   );
   const showFallbackProd4 = matchesCategory(
@@ -272,9 +283,9 @@ export default function VyntraHomepage() {
     const count =
       featuredProducts.length > 0
         ? featuredProducts.filter((p) => matchesCategory(p, chip)).length
-        : (matchesCategory({ id: 'prod-1', category: 'Audio & Wearables', subCategory: 'audio', title: 'Apex Pro' }, chip) ? 1 : 0) +
+        : (matchesCategory({ id: 'prod-1', category: 'Mobiles & Electronics', subCategory: 'audio', title: 'Apex Pro' }, chip) ? 1 : 0) +
           (matchesCategory({ id: 'prod-2', category: 'Fashion', subCategory: 'ethnic', title: 'Kurta' }, chip) ? 1 : 0) +
-          (matchesCategory({ id: 'prod-3', category: 'Audio & Wearables', subCategory: 'smartwatch', title: 'Smartwatch' }, chip) ? 1 : 0) +
+          (matchesCategory({ id: 'prod-3', category: 'Mobiles & Electronics', subCategory: 'smartwatch', title: 'Smartwatch' }, chip) ? 1 : 0) +
           (matchesCategory({ id: 'prod-4', category: 'Clean Skincare', subCategory: 'skincare', title: 'Kumkumadi' }, chip) ? 1 : 0);
 
     if (count > 0) {
@@ -512,9 +523,9 @@ export default function VyntraHomepage() {
               href: '/category/fashion',
             },
             {
-              title: 'Electronics',
-              count: '1.8k+ Items',
-              badge: 'Pro Tech',
+              title: 'Mobiles & Electronics',
+              count: '2.4k+ Devices',
+              badge: 'Phones & Audio',
               badgeColor: 'bg-primary text-[#0F1111] font-bold',
               img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDP2xrfkhe3LslFL7nC-6jsMKgIBZJSi-4_YvbfkNyliZrvns1v5FUwsuuhKAMXBY5OV9UfvBkdsKtFi7Ajg8d6MwS-xLQHMsZvy8WYYdOIIthV5b1UzfIH6PwCMM3dPiSEVo1Gfxr9WYO1yMc2NkFx3PphQf_R_dlrgGjwMTvCh5gDwI8cGuaN3cmQsAetPcWcBtT8WbMgDph4DmP9I5fdHEXP8zIe9f4UlTX-h6U',
               href: '/category/electronics',
@@ -848,7 +859,7 @@ export default function VyntraHomepage() {
 
           {/* Interactive Filter Chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {['Top Curated', 'Fashion', 'Audio & Wearables', 'Clean Skincare'].map(
+            {['Top Curated', 'Mobiles & Electronics', 'Fashion', 'Clean Skincare'].map(
               (chip) => (
                 <button
                   key={chip}
