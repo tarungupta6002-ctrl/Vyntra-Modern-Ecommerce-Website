@@ -244,15 +244,17 @@ export default function AdminVendorsPage() {
   };
 
   useEffect(() => {
-    // Keep pendingAppCount synced
-    fetch('/api/admin/vendor-applications?limit=1')
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.data?.pendingCount !== undefined) {
-          setPendingAppCount(j.data.pendingCount);
-        }
-      })
-      .catch(() => {});
+    // Keep pendingAppCount synced on non-applications tabs (applications tab already receives pendingCount)
+    if (activeTab !== 'applications') {
+      fetch('/api/admin/vendor-applications?limit=1')
+        .then((r) => r.json())
+        .then((j) => {
+          if (j?.data?.pendingCount !== undefined) {
+            setPendingAppCount(j.data.pendingCount);
+          }
+        })
+        .catch(() => {});
+    }
   }, [activeTab]);
 
   useEffect(() => {

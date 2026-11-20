@@ -37,6 +37,7 @@ import { useWishlistStore } from '@/store/wishlist-store';
 import { useAddressStore } from '@/store/address-store';
 import { formatINR } from '@/lib/utils';
 import { APlusContentDisplay } from '@/components/products/aplus-content-display';
+import { ProductReviewsSection } from '@/components/products/product-reviews-section';
 import { SellerOfferItem } from '@/types/multiseller';
 import {
   DetailedProduct,
@@ -151,7 +152,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
   const [selectedSize, setSelectedSize] = useState<string>(defaultSize);
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const isWishlisted = useWishlistStore((state) =>
+    state.items.some(
+      (item) =>
+        item.id === product.id ||
+        item.productId === product.id ||
+        (item.slug && (item.slug === product.slug || item.slug === product.id))
+    )
+  );
   const [pincode, setPincode] = useState(activeAddress?.pincode || '210427');
   const [pincodeChecked, setPincodeChecked] = useState(true);
   const [showStickyBar, setShowStickyBar] = useState(false);
@@ -273,10 +281,8 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
   const isLowStock = currentStock > 0 && currentStock <= 5;
   const activeImage = product.images[activeImageIndex] || product.images[0];
 
-  // Wishlist check
+  // Sticky bar scroll listener
   useEffect(() => {
-    setIsWishlisted(useWishlistStore.getState().isInWishlist(product.id));
-
     const handleScroll = () => {
       if (window.scrollY > 600) {
         setShowStickyBar(true);
@@ -286,7 +292,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [product.id]);
+  }, []);
 
   // Image zoom handler
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -402,15 +408,12 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
         inStock: !isOutOfStock,
         boardIds: ['all'],
       });
-      setIsWishlisted(isAdded);
       if (isAdded) {
         showToast('Saved to your Wishlist!');
       } else {
         showToast('Removed from Wishlist', 'info');
       }
     } catch (err: any) {
-      // Revert isWishlisted state if API rejected the mutation
-      setIsWishlisted(useWishlistStore.getState().isInWishlist(product.id));
       showToast(err?.message || 'Could not update Wishlist.', 'info');
     }
   };
@@ -494,6 +497,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  key={activeImage.id || activeImage.src}
                   src={activeImage.src}
                   alt={activeImage.alt}
                   fetchPriority="high"
@@ -507,7 +511,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                         }
                       : { transform: 'scale(1)' }
                   }
-                  className="max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-100 ease-out select-none mx-auto"
+                  className="max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-100 ease-out select-none mx-auto animate-in fade-in duration-200"
                 />
 
                 {/* Overlays / Badges */}
@@ -661,13 +665,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                         key={color.name}
                         type="button"
                         onClick={() => handleSelectColor(color)}
-                        className={`group relative flex flex-col items-center p-1 rounded-lg border-2 transition-all shrink-0 ${
+                        className={`group relative flex flex-col items-center p-1 rounded-lg border-2 transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007185] focus-visible:ring-offset-2 ${
                           isSelected
                             ? 'border-[#007185] ring-2 ring-[#007185]/20 bg-[#007185]/5 shadow-sm'
                             : 'border-[#D5D9D9] hover:border-[#565959] bg-white'
                         }`}
                         title={`Select ${color.name}`}
                         aria-label={`Color ${color.name}${isSelected ? ' (Selected)' : ''}`}
+                        aria-pressed={isSelected}
                       >
                         {/* Square Swatch Thumbnail */}
                         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden bg-[#F7F8F8] flex items-center justify-center relative">
@@ -750,7 +755,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                           type="button"
                           disabled={s.disabled}
                           onClick={() => setSelectedSize(s.size)}
-                          className={`min-w-12 px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                          className={`min-w-12 px-3 py-1.5 rounded-md text-xs font-bold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007185] focus-visible:ring-offset-2 ${
                             isSelected
                               ? 'border-[#007185] bg-[#007185]/10 text-[#007185] shadow-sm ring-1 ring-[#007185]'
                               : s.disabled
@@ -758,6 +763,8 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                               : 'border-[#D5D9D9] bg-white text-[#0F1111] hover:border-[#565959] cursor-pointer'
                           }`}
                           title={s.disabled ? `${s.size} - Currently out of stock in this color` : `${s.size}`}
+                          aria-label={`Size ${s.size}${isSelected ? ' (Selected)' : ''}${s.disabled ? ' (Out of stock)' : ''}`}
+                          aria-pressed={isSelected}
                         >
                           {s.size}
                         </button>
@@ -1439,93 +1446,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
         </div>
 
         {/* 4. Customer Reviews & Ratings */}
-        <div id="customer-reviews" className="space-y-6 pt-4 border-t border-[#D5D9D9]">
-          <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
-            <Star className="h-5 w-5 text-[#FFA41C] fill-[#FFA41C]" />
-            <h2 className="text-xl font-headline font-bold text-[#0F1111]">
-              Customer Reviews ({product.reviewCount})
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-            {/* Left: Star Breakdown */}
-            <div className="md:col-span-4 space-y-3">
-              <div className="flex items-baseline gap-2">
-                <div className="flex items-center text-[#FFA41C]">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="h-5 w-5 fill-[#FFA41C]" />
-                  ))}
-                </div>
-                <span className="text-xl font-bold text-[#0F1111]">
-                  {product.rating.toFixed(1)} out of 5
-                </span>
-              </div>
-              <p className="text-xs text-[#565959]">{product.reviewCount} global ratings</p>
-
-              <div className="space-y-1.5 pt-2">
-                {[
-                  { star: 5, pct: 78 },
-                  { star: 4, pct: 16 },
-                  { star: 3, pct: 4 },
-                  { star: 2, pct: 1 },
-                  { star: 1, pct: 1 },
-                ].map((row) => (
-                  <div key={row.star} className="flex items-center gap-3 text-xs">
-                    <span className="text-[#007185] hover:underline w-12 font-medium">
-                      {row.star} star
-                    </span>
-                    <div className="flex-1 h-3 rounded-full bg-[#EAEDED] overflow-hidden">
-                      <div
-                        className="h-full bg-[#FFA41C] rounded-full"
-                        style={{ width: `${row.pct}%` }}
-                      />
-                    </div>
-                    <span className="text-[#565959] w-8 text-right font-mono">{row.pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Reviews List */}
-            <div className="md:col-span-8 space-y-4">
-              {product.reviews.list && product.reviews.list.length > 0 ? (
-                product.reviews.list.map((rev) => (
-                  <div key={rev.id} className="p-4 rounded-xl border border-[#D5D9D9] bg-white space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-[#800020]/10 text-[#800020] font-bold text-xs flex items-center justify-center">
-                        {rev.initials || 'VP'}
-                      </div>
-                      <span className="text-xs font-bold text-[#0F1111]">{rev.author}</span>
-                      {rev.verified && (
-                        <span className="text-[10px] text-[#067D62] font-semibold flex items-center gap-0.5">
-                          <CheckCircle className="h-3 w-3" />
-                          <span>Verified Purchase</span>
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex text-[#FFA41C]">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            className={`h-3 w-3 ${s <= rev.rating ? 'fill-[#FFA41C]' : 'text-[#D5D9D9]'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs font-bold text-[#0F1111]">{rev.title}</span>
-                    </div>
-                    <p className="text-xs text-[#0F1111] leading-relaxed">{rev.text}</p>
-                    <span className="text-[10px] text-[#565959]">Reviewed in India on {rev.date}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center border border-dashed border-[#D5D9D9] rounded-xl text-xs text-[#565959]">
-                  No written customer reviews yet. Be the first to share your experience with this artisan piece!
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <ProductReviewsSection product={product} />
 
         {/* 5. Related Products Carousel / Grid */}
         {product.relatedProducts && product.relatedProducts.length > 0 && (

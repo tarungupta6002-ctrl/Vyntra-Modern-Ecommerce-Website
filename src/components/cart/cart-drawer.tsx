@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,33 @@ import {
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import { formatINR } from '@/lib/utils';
+
+interface CrossSellProduct {
+  productId: string;
+  title: string;
+  brand: string;
+  variantId: string;
+  size: string;
+  color: string;
+  price: number;
+  originalPrice: number;
+  image: string;
+  vendorName: string;
+}
+
+const DEFAULT_CROSS_SELL: CrossSellProduct = {
+  productId: 'VYN-KOL-901',
+  title: 'Handcrafted Tuscan Tan Kolhapuris',
+  brand: 'Vyntra Artisan',
+  variantId: 'var-kolhapuri-tan',
+  size: '9',
+  color: 'Tuscan Tan',
+  price: 1850,
+  originalPrice: 2999,
+  image:
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuCkS7yqJbq-jEkIPKDBNo8ePNeQm_dz27yKFkjHC6QykS9p0YgfRdpHPM6xsZpqXreQk7JkVaNI3-wHAYA11TAJltvxy8MBcIuWVCLVfjdEfM8wNJv6u7WDEwWwCIJyK9xnHLdZaMwOQTILpTWRmjZ_naBUq9NSFAVM6dAgkksbtKzIKeVznYs92oZDS_pyvRtu6Z4bIwaCh-28_Vhc1v49sjDcYY_d8pSlyCKRlV8',
+  vendorName: 'Kolhapur Craft Guild',
+};
 
 export function CartDrawer() {
   const router = useRouter();
@@ -76,65 +103,115 @@ export function CartDrawer() {
   // Free delivery is complimentary on all artisan orders
   const isFreeDeliveryUnlocked = totalItems > 0;
 
-  // Check if Kolhapuris cross-sell is in cart
-  const hasKolhapuris = items.some((item) => item.productId === 'VYN-KOL-901');
+  // Check if cross-sell item is in cart
+  const hasCrossSell = items.some((item) => item.productId === DEFAULT_CROSS_SELL.productId);
+
+  const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const checkoutTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear timers on unmount to prevent leaks
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+      if (checkoutTimerRef.current) clearTimeout(checkoutTimerRef.current);
+    };
+  }, []);
 
   // Handle smooth dismiss
   const handleDismiss = () => {
     setIsAnimatingOut(true);
-    setTimeout(() => {
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    dismissTimerRef.current = setTimeout(() => {
       setIsAnimatingOut(false);
       closeCart();
     }, 280);
   };
 
-  // Keyboard accessibility: Escape key closes drawer
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleDismiss();
-      }
-    };
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const drawerPanelRef = useRef<HTMLElement | null>(null);
 
+  // Keyboard accessibility: Escape key closes drawer, focus trap & focus restore
+  useEffect(() => {
     if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
       document.body.style.overflow = 'hidden';
+
+      const timer = setTimeout(() => {
+        if (!drawerPanelRef.current) return;
+        const focusable = drawerPanelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) {
+          focusable[0].focus();
+        }
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          handleDismiss();
+          return;
+        }
+
+        if (e.key === 'Tab') {
+          if (!drawerPanelRef.current) return;
+          const focusable = drawerPanelRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length === 0) {
+            e.preventDefault();
+            return;
+          }
+          const firstElement = focusable[0];
+          const lastElement = focusable[focusable.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement || !drawerPanelRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            if (document.activeElement === lastElement || !drawerPanelRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = 'unset';
+        if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+          previousFocusRef.current.focus();
+          previousFocusRef.current = null;
+        }
+      };
     } else {
       document.body.style.overflow = 'unset';
     }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen]);
 
   // Checkout redirect action
   const handleCheckout = () => {
     setRedirecting(true);
-    setTimeout(() => {
+    if (checkoutTimerRef.current) clearTimeout(checkoutTimerRef.current);
+    checkoutTimerRef.current = setTimeout(() => {
       handleDismiss();
       router.push('/checkout');
       setRedirecting(false);
     }, 400);
   };
 
-  // Add cross-sell Kolhapuris
-  const handleAddKolhapuris = () => {
+  // Add cross-sell item dynamically using configured metadata
+  const handleAddCrossSell = () => {
     addItem({
-      id: `cross-kolhapuri-${Date.now()}`,
-      productId: 'VYN-KOL-901',
-      title: 'Handcrafted Tuscan Tan Kolhapuris',
-      brand: 'Vyntra Artisan',
-      variantId: 'var-kolhapuri-tan',
-      size: '9',
-      color: 'Tuscan Tan',
-      price: 1850,
-      originalPrice: 2999,
+      id: `cross-${DEFAULT_CROSS_SELL.productId}-${Date.now()}`,
       quantity: 1,
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCkS7yqJbq-jEkIPKDBNo8ePNeQm_dz27yKFkjHC6QykS9p0YgfRdpHPM6xsZpqXreQk7JkVaNI3-wHAYA11TAJltvxy8MBcIuWVCLVfjdEfM8wNJv6u7WDEwWwCIJyK9xnHLdZaMwOQTILpTWRmjZ_naBUq9NSFAVM6dAgkksbtKzIKeVznYs92oZDS_pyvRtu6Z4bIwaCh-28_Vhc1v49sjDcYY_d8pSlyCKRlV8',
-      vendorName: 'Kolhapur Craft Guild',
+      ...DEFAULT_CROSS_SELL,
     });
   };
 
@@ -146,7 +223,7 @@ export function CartDrawer() {
       id="cartModalRoot"
       role="dialog"
       aria-modal="true"
-      aria-label="Shopping Bag Drawer"
+      aria-labelledby="cart-drawer-heading"
     >
       {/* Darkened Translucent Scrim Backdrop */}
       <div
@@ -160,6 +237,7 @@ export function CartDrawer() {
 
       {/* Active Slide-In Cart Drawer Surface */}
       <aside
+        ref={drawerPanelRef}
         aria-label="Shopping Bag Drawer"
         className={`relative w-full max-w-[490px] h-full bg-surface-container-lowest shadow-2xl flex flex-col z-10 transform transition-transform duration-300 ease-out ${
           isAnimatingOut ? 'translate-x-full' : 'translate-x-0'
@@ -173,7 +251,7 @@ export function CartDrawer() {
               <ShoppingBag className="h-5 w-5" />
             </div>
             <div className="flex items-baseline gap-2">
-              <h2 className="font-headline font-bold text-lg text-on-surface tracking-tight">
+              <h2 id="cart-drawer-heading" className="font-headline font-bold text-lg text-on-surface tracking-tight">
                 Shopping Bag
               </h2>
               <span
@@ -354,8 +432,8 @@ export function CartDrawer() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0 relative shadow-xs">
                     <Image
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkS7yqJbq-jEkIPKDBNo8ePNeQm_dz27yKFkjHC6QykS9p0YgfRdpHPM6xsZpqXreQk7JkVaNI3-wHAYA11TAJltvxy8MBcIuWVCLVfjdEfM8wNJv6u7WDEwWwCIJyK9xnHLdZaMwOQTILpTWRmjZ_naBUq9NSFAVM6dAgkksbtKzIKeVznYs92oZDS_pyvRtu6Z4bIwaCh-28_Vhc1v49sjDcYY_d8pSlyCKRlV8"
-                      alt="Handcrafted Tuscan Tan Kolhapuris"
+                      src={DEFAULT_CROSS_SELL.image}
+                      alt={DEFAULT_CROSS_SELL.title}
                       fill
                       sizes="48px"
                       className="object-cover"
@@ -368,24 +446,24 @@ export function CartDrawer() {
                       </span>
                     </div>
                     <p className="text-xs font-semibold text-on-surface truncate leading-tight">
-                      Handcrafted Tuscan Tan Kolhapuris
+                      {DEFAULT_CROSS_SELL.title}
                     </p>
-                    <p className="text-xs font-bold text-primary mt-0.5 font-mono">+₹1,850</p>
+                    <p className="text-xs font-bold text-primary mt-0.5 font-mono">+{formatINR(DEFAULT_CROSS_SELL.price)}</p>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  disabled={hasKolhapuris}
-                  onClick={handleAddKolhapuris}
+                  disabled={hasCrossSell}
+                  onClick={handleAddCrossSell}
                   className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1 shadow-xs active:scale-95 ${
-                    hasKolhapuris
+                    hasCrossSell
                       ? 'bg-secondary text-on-secondary cursor-default'
                       : 'bg-primary text-on-primary hover:bg-primary-container'
                   }`}
                   id="addCrossSellBtn"
                 >
-                  {hasKolhapuris ? (
+                  {hasCrossSell ? (
                     <>
                       <Check className="h-3.5 w-3.5" />
                       <span>Added</span>

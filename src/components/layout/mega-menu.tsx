@@ -26,7 +26,7 @@ export function MegaMenu({
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="absolute top-full left-0 w-full bg-white text-[#0F1111] shadow-2xl border-t border-[#D5D9D9] border-b-2 border-b-[#FF9900] z-50 transition-all duration-200 animate-in fade-in-50 slide-in-from-top-1"
+      className="absolute top-full left-0 w-full bg-white text-[#0F1111] shadow-2xl border-t border-[#D5D9D9] border-b-2 border-b-[#FF9900] z-50 transition-all duration-200 ease-out animate-in fade-in-50 slide-in-from-top-1"
     >
       <div className="max-w-[1500px] mx-auto px-6 py-6">
         {activeTab === 'women' || activeTab === 'fashion' ? (

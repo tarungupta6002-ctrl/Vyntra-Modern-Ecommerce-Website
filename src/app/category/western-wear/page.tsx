@@ -21,6 +21,7 @@ import { FashionDepartmentSubNav } from '@/components/layout/fashion-department-
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { useCategoryProducts } from '@/hooks/use-category-products';
+import { CategoryProductCard } from '@/components/products/category-product-card';
 
 // 7 Western Wear Visual Bubbles (Amazon Halo Pop-Out Style)
 interface WesternBubble {
@@ -665,128 +666,29 @@ export default function WesternWearPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredProducts.map((product) => {
-                  const isSaved = isInWishlist(product.id);
-                  const isAdded = addedItemIds[product.id];
-
-                  return (
-                    <div
-                      key={product.id}
-                      className="group bg-white rounded-lg border border-[#E5E7EB] hover:border-[#007185] hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden p-3 relative"
-                    >
-                      {/* Wishlist Heart Icon */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toggleItem({
-                            id: product.id,
-                            productId: product.id,
-                            title: product.title,
-                            brand: product.brand,
-                            price: product.price,
-                            originalPrice: product.originalPrice,
-                            image: product.image,
-                            rating: product.rating,
-                            inStock: true,
-                            boardIds: ['all', 'western-wear'],
-                          })
-                        }
-                        className="absolute top-3.5 right-3.5 z-10 p-1.5 rounded-full bg-white/90 shadow-xs hover:bg-white transition-colors cursor-pointer"
-                        title={isSaved ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                      >
-                        <Heart
-                          className={`h-4 w-4 ${
-                            isSaved ? 'fill-[#E01A22] text-[#E01A22]' : 'text-stone-400 hover:text-[#E01A22]'
-                          }`}
-                        />
-                      </button>
-
-                      <div>
-                        {/* Image */}
-                        <div className="relative aspect-[3/4] w-full rounded-md bg-[#F7F7F7] overflow-hidden mb-2.5">
-                          <Image
-                            src={product.image}
-                            alt={product.title}
-                            fill
-                            unoptimized
-                            className="object-contain object-center group-hover:scale-105 transition-transform duration-300"
-                            sizes="(max-width: 640px) 100vw, 240px"
-                          />
-                          {product.isBestSeller && (
-                            <div className="absolute top-2 left-2 bg-[#E67A00] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-xs tracking-wider uppercase">
-                              Best Seller
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Brand */}
-                        <div className="text-xs font-bold text-[#565959] uppercase tracking-wide">
-                          {product.brand}
-                        </div>
-
-                        {/* Title */}
-                        <h4 className="text-xs sm:text-[13px] font-medium text-[#0F1111] line-clamp-2 mt-0.5 leading-snug group-hover:text-[#007185]">
-                          {product.title}
-                        </h4>
-
-                        {/* Star Rating & Reviews */}
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <div className="flex items-center text-[#DE7922]">
-                            <Star className="h-3.5 w-3.5 fill-[#DE7922]" />
-                            <span className="text-xs font-bold ml-1 text-[#0F1111]">
-                              {product.rating}
-                            </span>
-                          </div>
-                          <span className="text-xs text-[#007185]">({product.reviews})</span>
-                        </div>
-
-                        {/* Prime Badge */}
-                        {product.isPrime && (
-                          <div className="mt-1 flex items-center gap-1">
-                            <span className="text-[11px] font-extrabold text-[#007185]">
-                              <span className="text-[#00A8E1]">✓</span>prime
-                            </span>
-                            <span className="text-[11px] text-[#565959] font-medium">
-                              {product.deliveryDate}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Price & Discounts */}
-                        <div className="mt-2 flex items-baseline gap-2">
-                          <span className="text-base font-bold text-[#0F1111]">
-                            ₹{product.price.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-xs text-[#565959] line-through">
-                            ₹{product.originalPrice.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-xs font-bold text-[#CC0C39]">
-                            ({product.discount})
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Add to Cart Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleAddToCart(product)}
-                        className="mt-3 w-full py-1.5 px-3 rounded-full text-xs font-bold bg-[#FFD814] hover:bg-[#F7CA00] border border-[#FCD200] active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        {isAdded ? (
-                          <>
-                            <Check className="h-3.5 w-3.5 text-emerald-800" />
-                            <span>Added to Cart</span>
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            <span>Add to Cart</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
+                {filteredProducts.map((product) => (
+                  <CategoryProductCard
+                    key={product.id}
+                    product={product}
+                    isSaved={isInWishlist(product.id)}
+                    isAdded={Boolean(addedItemIds[product.id])}
+                    onToggleWishlist={(p) =>
+                      toggleItem({
+                        id: p.id,
+                        productId: p.id,
+                        title: p.title,
+                        brand: p.brand,
+                        price: p.price,
+                        originalPrice: p.originalPrice,
+                        image: p.image,
+                        rating: p.rating,
+                        inStock: true,
+                        boardIds: ['all', 'western-wear'],
+                      })
+                    }
+                    onAddToCart={(p) => handleAddToCart(p)}
+                  />
+                ))}
               </div>
           )}
             </section>

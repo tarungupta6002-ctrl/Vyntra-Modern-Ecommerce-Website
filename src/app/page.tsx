@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -24,11 +24,8 @@ import {
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 
-export default function VyntraHomepage() {
-  const { addItem, openCart } = useCartStore();
-  const { addItem: addWishlistItem, removeItem: removeWishlistItem, isInWishlist } = useWishlistStore();
-
-  // 1. Live Countdown Timer State (Hours, Minutes, Seconds)
+// 1. Live Countdown Ticker Component (Isolated leaf component to prevent full page re-renders)
+function FlashDealCountdown() {
   const [timeLeft, setTimeLeft] = useState({
     hours: '04',
     minutes: '28',
@@ -52,6 +49,36 @@ export default function VyntraHomepage() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  return (
+    <div className="flex items-center gap-2 bg-surface-container-lowest px-4 py-2 rounded-xl shadow-sm border border-outline-variant/30 hover:border-secondary-container/40 transition-colors">
+      <span className="relative flex h-3 w-3 mr-1">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-container opacity-75" />
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary-container" />
+      </span>
+      <span className="text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">
+        Offer Closes In:
+      </span>
+      <div className="flex items-center gap-1 text-base font-bold text-on-surface font-mono">
+        <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface font-bold">
+          {timeLeft.hours}
+        </span>
+        <span className="animate-pulse text-secondary-container">:</span>
+        <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface font-bold">
+          {timeLeft.minutes}
+        </span>
+        <span className="animate-pulse text-secondary-container">:</span>
+        <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface font-bold">
+          {timeLeft.seconds}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function VyntraHomepage() {
+  const { addItem, openCart } = useCartStore();
+  const { addItem: addWishlistItem, removeItem: removeWishlistItem, isInWishlist } = useWishlistStore();
 
   // 2. Interactive Toast Notification State
   const [toast, setToast] = useState<{
@@ -127,8 +154,70 @@ export default function VyntraHomepage() {
     'prod-2': 'M',
   });
 
-  // 6. Active Category Filter Chip
+  // 6. Active Category Filter Chip & Filtering
   const [activeChip, setActiveChip] = useState('Top Curated');
+
+  // Helper to match products by category/taxonomy
+  const matchesCategory = (
+    product: { category?: string; subCategory?: string; id?: string; title?: string },
+    chip: string
+  ): boolean => {
+    if (chip === 'Top Curated') return true;
+    const cat = (product.category || '').toLowerCase();
+    const sub = (product.subCategory || '').toLowerCase();
+    const title = (product.title || '').toLowerCase();
+    const id = (product.id || '').toLowerCase();
+
+    if (chip === 'Fashion') {
+      return (
+        cat.includes('fashion') ||
+        cat.includes('ethnic') ||
+        cat.includes('cloth') ||
+        cat.includes('apparel') ||
+        sub.includes('kurta') ||
+        sub.includes('ethnic') ||
+        sub.includes('apparel') ||
+        sub.includes('fashion') ||
+        id === 'prod-2' ||
+        title.includes('kurta') ||
+        title.includes('linen')
+      );
+    }
+
+    if (chip === 'Audio & Wearables') {
+      return (
+        cat.includes('audio') ||
+        cat.includes('electronic') ||
+        cat.includes('wearable') ||
+        cat.includes('watch') ||
+        sub.includes('headphone') ||
+        sub.includes('audio') ||
+        sub.includes('wearable') ||
+        sub.includes('watch') ||
+        id === 'prod-1' ||
+        id === 'prod-3' ||
+        title.includes('headphone') ||
+        title.includes('watch')
+      );
+    }
+
+    if (chip === 'Clean Skincare') {
+      return (
+        cat.includes('beauty') ||
+        cat.includes('skin') ||
+        cat.includes('skincare') ||
+        cat.includes('ayurved') ||
+        sub.includes('skin') ||
+        sub.includes('beauty') ||
+        sub.includes('elixir') ||
+        id === 'prod-4' ||
+        title.includes('kumkumadi') ||
+        title.includes('elixir')
+      );
+    }
+
+    return false;
+  };
 
   // 7. Added to Bag button feedback state
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
@@ -148,6 +237,55 @@ export default function VyntraHomepage() {
         console.warn('[Homepage Products Fetch Error, using fallback]:', err);
       });
   }, []);
+
+  // Filter dynamic products when available
+  const displayedDynamicProducts = useMemo(() => {
+    return featuredProducts.filter((prod) => matchesCategory(prod, activeChip));
+  }, [featuredProducts, activeChip]);
+
+  // Fallback product visibility flags
+  const showFallbackProd1 = matchesCategory(
+    { id: 'prod-1', category: 'Audio & Wearables', subCategory: 'audio', title: 'Apex Pro' },
+    activeChip
+  );
+  const showFallbackProd2 = matchesCategory(
+    { id: 'prod-2', category: 'Fashion', subCategory: 'ethnic', title: 'Kurta' },
+    activeChip
+  );
+  const showFallbackProd3 = matchesCategory(
+    { id: 'prod-3', category: 'Audio & Wearables', subCategory: 'smartwatch', title: 'Smartwatch' },
+    activeChip
+  );
+  const showFallbackProd4 = matchesCategory(
+    { id: 'prod-4', category: 'Clean Skincare', subCategory: 'skincare', title: 'Kumkumadi' },
+    activeChip
+  );
+
+  const fallbackMatchCount =
+    (showFallbackProd1 ? 1 : 0) +
+    (showFallbackProd2 ? 1 : 0) +
+    (showFallbackProd3 ? 1 : 0) +
+    (showFallbackProd4 ? 1 : 0);
+
+  const handleFilterChipClick = (chip: string) => {
+    setActiveChip(chip);
+    const count =
+      featuredProducts.length > 0
+        ? featuredProducts.filter((p) => matchesCategory(p, chip)).length
+        : (matchesCategory({ id: 'prod-1', category: 'Audio & Wearables', subCategory: 'audio', title: 'Apex Pro' }, chip) ? 1 : 0) +
+          (matchesCategory({ id: 'prod-2', category: 'Fashion', subCategory: 'ethnic', title: 'Kurta' }, chip) ? 1 : 0) +
+          (matchesCategory({ id: 'prod-3', category: 'Audio & Wearables', subCategory: 'smartwatch', title: 'Smartwatch' }, chip) ? 1 : 0) +
+          (matchesCategory({ id: 'prod-4', category: 'Clean Skincare', subCategory: 'skincare', title: 'Kumkumadi' }, chip) ? 1 : 0);
+
+    if (count > 0) {
+      showToast(
+        chip === 'Top Curated'
+          ? `Showing all curated products (${count})`
+          : `Filtered by: ${chip} (${count} product${count > 1 ? 's' : ''})`,
+        'tune'
+      );
+    }
+  };
 
   const handleAddToCart = (product: {
     id: string;
@@ -248,7 +386,7 @@ export default function VyntraHomepage() {
                 </div>
 
                 <div className="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center gap-2.5 border border-outline-variant/30 hover:border-outline-variant/80 hover:-translate-y-0.5 transition-all duration-200">
-                  <Zap className="h-5 w-5 text-primary shrink-0" />
+                  <Zap className="h-5 w-5 text-[#B45309] shrink-0" />
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-on-surface">Same-Day Metro</span>
                     <span className="text-[10px] text-on-surface-variant font-medium">
@@ -324,7 +462,7 @@ export default function VyntraHomepage() {
               }}
               className="animate-float-alt absolute bottom-16 right-6 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-xl flex items-center gap-3 border border-outline-variant/30 hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer"
             >
-              <div className="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
+              <div className="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary-container">
                 <Headphones className="h-4 w-4" />
               </div>
               <div className="flex flex-col">
@@ -350,7 +488,7 @@ export default function VyntraHomepage() {
       <section className="reveal-on-scroll w-full max-w-[1360px] mx-auto px-4 lg:px-10 py-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-2">
           <div>
-            <div className="flex items-center gap-1.5 text-primary text-xs uppercase tracking-wider font-bold mb-1">
+            <div className="flex items-center gap-1.5 text-accent text-xs uppercase tracking-wider font-bold mb-1">
               <Layers className="h-4 w-4" />
               <span>Curated Universes</span>
             </div>
@@ -377,7 +515,7 @@ export default function VyntraHomepage() {
               title: 'Electronics',
               count: '1.8k+ Items',
               badge: 'Pro Tech',
-              badgeColor: 'bg-primary text-white',
+              badgeColor: 'bg-primary text-[#0F1111] font-bold',
               img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDP2xrfkhe3LslFL7nC-6jsMKgIBZJSi-4_YvbfkNyliZrvns1v5FUwsuuhKAMXBY5OV9UfvBkdsKtFi7Ajg8d6MwS-xLQHMsZvy8WYYdOIIthV5b1UzfIH6PwCMM3dPiSEVo1Gfxr9WYO1yMc2NkFx3PphQf_R_dlrgGjwMTvCh5gDwI8cGuaN3cmQsAetPcWcBtT8WbMgDph4DmP9I5fdHEXP8zIe9f4UlTX-h6U',
               href: '/category/electronics',
             },
@@ -423,7 +561,8 @@ export default function VyntraHomepage() {
             <Link
               key={cat.title}
               href={cat.href}
-              className="group flex flex-col bg-surface-container-low hover:bg-surface-container rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-outline-variant/40 hover:border-primary/40"
+              prefetch={true}
+              className="group flex flex-col bg-surface-container-low hover:bg-surface-container rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] border border-outline-variant/40 hover:border-primary/40 cursor-pointer"
             >
               <div className="relative h-28 w-full bg-surface-container-high overflow-hidden">
                 <div
@@ -439,7 +578,7 @@ export default function VyntraHomepage() {
                 )}
               </div>
               <div className="p-3 text-center">
-                <h3 className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">
+                <h3 className="text-sm font-bold text-on-surface group-hover:text-accent transition-colors">
                   {cat.title}
                 </h3>
                 <span className="text-[10px] text-on-surface-variant font-medium">
@@ -473,28 +612,7 @@ export default function VyntraHomepage() {
             </div>
 
             {/* Live Countdown Ticker */}
-            <div className="flex items-center gap-2 bg-surface-container-lowest px-4 py-2 rounded-xl shadow-sm border border-outline-variant/30 hover:border-secondary-container/40 transition-colors">
-              <span className="relative flex h-3 w-3 mr-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-container opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary-container" />
-              </span>
-              <span className="text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">
-                Offer Closes In:
-              </span>
-              <div className="flex items-center gap-1 text-base font-bold text-on-surface font-mono">
-                <span className="bg-surface-container px-2 py-0.5 rounded text-primary font-bold">
-                  {timeLeft.hours}
-                </span>
-                <span className="animate-pulse text-secondary-container">:</span>
-                <span className="bg-surface-container px-2 py-0.5 rounded text-primary font-bold">
-                  {timeLeft.minutes}
-                </span>
-                <span className="animate-pulse text-secondary-container">:</span>
-                <span className="bg-surface-container px-2 py-0.5 rounded text-primary font-bold">
-                  {timeLeft.seconds}
-                </span>
-              </div>
-            </div>
+            <FlashDealCountdown />
           </div>
 
           {/* Deals Grid */}
@@ -518,7 +636,7 @@ export default function VyntraHomepage() {
                   <span className="text-[10px] text-on-surface-variant uppercase font-bold">
                     Kinetix Pulse 3
                   </span>
-                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-primary transition-colors">
+                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-accent transition-colors">
                     Ultra-Slim GPS Fitness Tracker
                   </h4>
                   <div className="flex items-baseline gap-2 mt-1">
@@ -588,7 +706,7 @@ export default function VyntraHomepage() {
                   <span className="text-[10px] text-on-surface-variant uppercase font-bold">
                     Forest Nectar
                   </span>
-                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-primary transition-colors">
+                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-accent transition-colors">
                     Glow Kumkumadi Oil (30ml)
                   </h4>
                   <div className="flex items-baseline gap-2 mt-1">
@@ -657,7 +775,7 @@ export default function VyntraHomepage() {
                   <span className="text-[10px] text-on-surface-variant uppercase font-bold">
                     Kala Living
                   </span>
-                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-primary transition-colors">
+                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-accent transition-colors">
                     Teakwood 15W Fast Pad
                   </h4>
                   <div className="flex items-baseline gap-2 mt-1">
@@ -719,7 +837,7 @@ export default function VyntraHomepage() {
       >
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-primary text-xs uppercase tracking-wider font-bold mb-1">
+            <div className="inline-flex items-center gap-1.5 text-accent text-xs uppercase tracking-wider font-bold mb-1">
               <Zap className="h-4 w-4" />
               <span>Verified Bestsellers</span>
             </div>
@@ -735,13 +853,10 @@ export default function VyntraHomepage() {
                 <button
                   key={chip}
                   type="button"
-                  onClick={() => {
-                    setActiveChip(chip);
-                    showToast(`Filtered by: ${chip}`, 'tune');
-                  }}
+                  onClick={() => handleFilterChipClick(chip)}
                   className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 active:scale-95 ${
                     activeChip === chip
-                      ? 'bg-primary-fixed text-primary shadow-sm'
+                      ? 'bg-[#FFD814] text-[#0F1111] shadow-sm'
                       : 'bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
@@ -755,7 +870,8 @@ export default function VyntraHomepage() {
         {/* 4-Column Product Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredProducts.length > 0 ? (
-            featuredProducts.slice(0, 4).map((prod) => {
+            displayedDynamicProducts.length > 0 ? (
+              displayedDynamicProducts.slice(0, 4).map((prod) => {
               const isFavorited = wishlist[prod.id];
               const isJustAdded = addedItems[prod.id];
               return (
@@ -782,7 +898,7 @@ export default function VyntraHomepage() {
                         </span>
                       )}
                       {prod.badge && (
-                        <span className="bg-primary-fixed text-primary text-[10px] px-2 py-0.5 rounded font-bold uppercase">
+                        <span className="bg-primary-fixed text-[#0F1111] text-[10px] px-2 py-0.5 rounded font-bold uppercase">
                           {prod.badge}
                         </span>
                       )}
@@ -819,7 +935,7 @@ export default function VyntraHomepage() {
                         </div>
                       </div>
                       <Link href={`/products/${prod.slug || 'handcrafted-premium-linen-kurta'}`}>
-                        <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                        <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                           {prod.title}
                         </h3>
                       </Link>
@@ -869,9 +985,33 @@ export default function VyntraHomepage() {
               );
             })
           ) : (
-            <>
-              {/* Product 1 */}
-          <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
+            <div className="col-span-full py-12 px-4 flex flex-col items-center justify-center text-center bg-surface-container-low rounded-xl border border-outline-variant/30">
+              <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-3">
+                <Sparkles className="h-6 w-6 text-on-surface-variant" />
+              </div>
+              <h3 className="font-headline text-base sm:text-lg font-bold text-on-surface mb-1">
+                No products found in {activeChip}
+              </h3>
+              <p className="text-xs sm:text-sm text-on-surface-variant max-w-md mb-4">
+                We couldn&apos;t find any items matching this category right now.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveChip('Top Curated');
+                  showToast('Showing all curated products', 'tune');
+                }}
+                className="px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] rounded-full text-xs font-bold transition-all active:scale-95 shadow-sm"
+              >
+                Reset to Top Curated
+              </button>
+            </div>
+          )
+        ) : fallbackMatchCount > 0 ? (
+          <>
+            {/* Product 1 */}
+            {showFallbackProd1 && (
+              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
             <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
               <div
                 className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
@@ -884,7 +1024,7 @@ export default function VyntraHomepage() {
                 <span className="bg-secondary-container text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
                   50% OFF
                 </span>
-                <span className="bg-primary-fixed text-primary text-[10px] px-2 py-0.5 rounded font-bold uppercase">
+                <span className="bg-primary-fixed text-[#0F1111] text-[10px] px-2 py-0.5 rounded font-bold uppercase">
                   Bestseller
                 </span>
               </div>
@@ -917,7 +1057,7 @@ export default function VyntraHomepage() {
                     <span className="text-outline font-normal">(1,240)</span>
                   </div>
                 </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                   Apex Pro Hybrid Noise-Cancelling Wireless Headphones
                 </h3>
               </div>
@@ -962,9 +1102,11 @@ export default function VyntraHomepage() {
               </div>
             </div>
           </div>
+            )}
 
-          {/* Product 2 (with Size Selectors) */}
-          <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
+            {/* Product 2 (with Size Selectors) */}
+            {showFallbackProd2 && (
+              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
             <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
               <div
                 className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
@@ -977,7 +1119,7 @@ export default function VyntraHomepage() {
                 <span className="bg-secondary-container text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
                   50% OFF
                 </span>
-                <span className="bg-primary-fixed text-primary text-[10px] px-2 py-0.5 rounded font-bold uppercase">
+                <span className="bg-primary-fixed text-[#0F1111] text-[10px] px-2 py-0.5 rounded font-bold uppercase">
                   Trending
                 </span>
               </div>
@@ -1010,7 +1152,7 @@ export default function VyntraHomepage() {
                     <span className="text-outline font-normal">(950)</span>
                   </div>
                 </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                   Ethnoc Handcrafted Pure Linen Kurta &amp; Trouser Set
                 </h3>
 
@@ -1073,15 +1215,17 @@ export default function VyntraHomepage() {
                 >
                   <Zap className="h-4 w-4" />
                   <span>
-                    {addedItems['prod-2'] ? 'Added ✓' : 'Instant Buy Now'}
+                    {addedItems['prod-2'] ? 'Added ✓' : 'Add to Cart'}
                   </span>
                 </button>
               </div>
             </div>
           </div>
+            )}
 
-          {/* Product 3 */}
-          <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
+            {/* Product 3 */}
+            {showFallbackProd3 && (
+              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
             <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
               <div
                 className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
@@ -1129,7 +1273,7 @@ export default function VyntraHomepage() {
                     <span className="text-outline font-normal">(410)</span>
                   </div>
                 </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                   Minimalist Series 7 Titanium AMOLED Smartwatch
                 </h3>
               </div>
@@ -1174,9 +1318,11 @@ export default function VyntraHomepage() {
               </div>
             </div>
           </div>
+            )}
 
-          {/* Product 4 */}
-          <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
+            {/* Product 4 */}
+            {showFallbackProd4 && (
+              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
             <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
               <div
                 className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
@@ -1224,7 +1370,7 @@ export default function VyntraHomepage() {
                     <span className="text-outline font-normal">(3,120)</span>
                   </div>
                 </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                   Cold-Pressed Kumkumadi Radiance &amp; Glow Night Elixir
                 </h3>
               </div>
@@ -1269,9 +1415,32 @@ export default function VyntraHomepage() {
               </div>
             </div>
           </div>
-            </>
-          )}
-        </div>
+            )}
+          </>
+        ) : (
+          <div className="col-span-full py-12 px-4 flex flex-col items-center justify-center text-center bg-surface-container-low rounded-xl border border-outline-variant/30">
+            <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-3">
+              <Sparkles className="h-6 w-6 text-on-surface-variant" />
+            </div>
+            <h3 className="font-headline text-base sm:text-lg font-bold text-on-surface mb-1">
+              No products found in {activeChip}
+            </h3>
+            <p className="text-xs sm:text-sm text-on-surface-variant max-w-md mb-4">
+              We couldn&apos;t find any items matching this category right now.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveChip('Top Curated');
+                showToast('Showing all curated products', 'tune');
+              }}
+              className="px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] rounded-full text-xs font-bold transition-all active:scale-95 shadow-sm"
+            >
+              Reset to Top Curated
+            </button>
+          </div>
+        )}
+      </div>
       </section>
 
       {/* ======================================================== */}
@@ -1281,7 +1450,7 @@ export default function VyntraHomepage() {
         <div className="bg-surface-container-low rounded-xl overflow-hidden shadow-sm grid grid-cols-1 lg:grid-cols-12 items-stretch border border-outline-variant/40 hover:shadow-md transition-shadow duration-300">
           <div className="lg:col-span-6 p-6 lg:p-10 flex flex-col justify-between">
             <div>
-              <span className="text-xs text-primary font-bold uppercase tracking-wider block mb-2 font-sans">
+              <span className="text-xs text-accent font-bold uppercase tracking-wider block mb-2 font-sans">
                 VYNTRA Living Edit 2025
               </span>
               <h2 className="font-display text-3xl sm:text-4xl text-on-surface font-extrabold leading-[1.1] mb-4">
@@ -1294,7 +1463,7 @@ export default function VyntraHomepage() {
 
               <div className="space-y-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary-container shrink-0 mt-0.5">
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
@@ -1346,7 +1515,7 @@ export default function VyntraHomepage() {
 
             <div className="absolute bottom-6 left-6 right-6 bg-surface-container-lowest/90 backdrop-blur-md p-4 rounded-xl shadow-lg flex items-center justify-between border border-outline-variant/30 hover:bg-surface-container-lowest transition-all">
               <div className="flex items-center gap-3">
-                <span className="text-2xl text-primary font-serif font-black">“</span>
+                <span className="text-2xl text-[#B45309] font-serif font-black">“</span>
                 <div>
                   <p className="text-xs text-on-surface italic leading-snug">
                     &ldquo;The pieces in this edit made working from home feel like an inspiring boutique hotel.&rdquo;
@@ -1356,7 +1525,7 @@ export default function VyntraHomepage() {
                   </span>
                 </div>
               </div>
-              <span className="hidden sm:inline-block bg-primary text-white text-[10px] px-2 py-1 rounded font-semibold shadow-sm shrink-0">
+              <span className="hidden sm:inline-block bg-primary text-[#0F1111] text-[10px] px-2 py-1 rounded font-bold shadow-sm shrink-0">
                 Editor&apos;s Pick
               </span>
             </div>
@@ -1372,7 +1541,7 @@ export default function VyntraHomepage() {
         id="lifestyles"
       >
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <span className="text-xs text-primary font-bold uppercase tracking-wider font-sans">
+          <span className="text-xs text-accent font-bold uppercase tracking-wider font-sans">
             Intuitive Navigation
           </span>
           <h2 className="font-headline text-2xl lg:text-3xl font-bold text-on-surface mt-1">
@@ -1398,7 +1567,7 @@ export default function VyntraHomepage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/90 via-[#0f172a]/35 to-transparent" />
             <div className="relative z-10">
-              <span className="bg-primary px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold mb-1.5 inline-block">
+              <span className="bg-primary text-[#0F1111] px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold mb-1.5 inline-block">
                 Deep Focus
               </span>
               <h3 className="font-headline text-xl font-bold mb-1">
@@ -1520,13 +1689,13 @@ export default function VyntraHomepage() {
         <div className="max-w-[1360px] mx-auto px-4 lg:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             <div className="lg:col-span-7">
-              <div className="inline-flex items-center gap-1.5 text-primary text-xs uppercase tracking-wider font-bold mb-2">
+              <div className="inline-flex items-center gap-1.5 text-accent text-xs uppercase tracking-wider font-bold mb-2">
                 <Sparkles className="h-4 w-4" />
                 <span>The VYNTRA Standard</span>
               </div>
               <h2 className="font-display text-3xl sm:text-4xl text-on-surface font-extrabold leading-[1.08] mb-4">
                 Shopping Should Feel Like <br />
-                <span className="text-primary italic">Discovery</span>, Not Overwhelm.
+                <span className="text-accent italic">Discovery</span>, Not Overwhelm.
               </h2>
               <p className="text-sm sm:text-base text-on-surface-variant mb-4 leading-relaxed">
                 Most Indian marketplaces bombard you with countdown clocks on junk goods and million-item feeds designed to induce exhaustion. VYNTRA was created on the opposite conviction: honest curation, exceptional build standards, and calm discovery.
@@ -1535,7 +1704,7 @@ export default function VyntraHomepage() {
               {/* 4 Metrics Tiles */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
                 <div className="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm text-center border border-outline-variant/30 hover:border-primary/40 hover:-translate-y-1 transition-all duration-200">
-                  <span className="font-headline text-2xl lg:text-3xl font-extrabold text-primary block">
+                  <span className="font-headline text-2xl lg:text-3xl font-extrabold text-primary-container block">
                     10k+
                   </span>
                   <p className="text-[11px] text-on-surface-variant font-bold mt-1">
@@ -1543,7 +1712,7 @@ export default function VyntraHomepage() {
                   </p>
                 </div>
                 <div className="bg-surface-container-lowest p-3.5 rounded-xl shadow-sm text-center border border-outline-variant/30 hover:border-primary/40 hover:-translate-y-1 transition-all duration-200">
-                  <span className="font-headline text-2xl lg:text-3xl font-extrabold text-primary block">
+                  <span className="font-headline text-2xl lg:text-3xl font-extrabold text-primary-container block">
                     99.4%
                   </span>
                   <p className="text-[11px] text-on-surface-variant font-bold mt-1">
@@ -1603,7 +1772,7 @@ export default function VyntraHomepage() {
       <section className="reveal-on-scroll w-full max-w-[1360px] mx-auto px-4 lg:px-10 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-surface-container-lowest p-6 rounded-xl shadow-sm flex items-start gap-4 border border-outline-variant/30 hover:border-primary/40 hover:-translate-y-1 hover:shadow-md transition-all duration-200">
-            <div className="w-12 h-12 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-primary-fixed text-primary-container flex items-center justify-center shrink-0">
               <Lock className="h-6 w-6" />
             </div>
             <div>

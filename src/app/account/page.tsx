@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -39,16 +40,49 @@ import {
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import { formatINR } from '@/lib/utils';
-import { OrdersManagementView } from '@/components/account/orders-management-view';
-import { SavedAddressesView } from '@/components/account/saved-addresses-view';
-import { WishlistManagementView } from '@/components/account/wishlist-management-view';
-import { ProfileSecurityView } from '@/components/account/profile-security-view';
+const TabLoadingSkeleton = () => (
+  <div className="p-8 flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
+
+const OrdersManagementView = dynamic(
+  () => import('@/components/account/orders-management-view').then((mod) => mod.OrdersManagementView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const SavedAddressesView = dynamic(
+  () => import('@/components/account/saved-addresses-view').then((mod) => mod.SavedAddressesView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const WishlistManagementView = dynamic(
+  () => import('@/components/account/wishlist-management-view').then((mod) => mod.WishlistManagementView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const ProfileSecurityView = dynamic(
+  () => import('@/components/account/profile-security-view').then((mod) => mod.ProfileSecurityView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const SavedPaymentsVaultView = dynamic(
+  () => import('@/components/account/saved-payments-vault-view').then((mod) => mod.SavedPaymentsVaultView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const HelpSupportView = dynamic(
+  () => import('@/components/account/help-support-view').then((mod) => mod.HelpSupportView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const OrderTrackingView = dynamic(
+  () => import('@/components/orders/order-tracking-view').then((mod) => mod.OrderTrackingView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const CustomerReviewsView = dynamic(
+  () => import('@/components/account/customer-reviews-view').then((mod) => mod.CustomerReviewsView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
+const CustomerReturnsView = dynamic(
+  () => import('@/components/account/customer-returns-view').then((mod) => mod.CustomerReturnsView),
+  { loading: TabLoadingSkeleton, ssr: false }
+);
 import { createClient } from '@/lib/supabase/client';
-import { SavedPaymentsVaultView } from '@/components/account/saved-payments-vault-view';
-import { HelpSupportView } from '@/components/account/help-support-view';
-import { OrderTrackingView } from '@/components/orders/order-tracking-view';
-import { CustomerReviewsView } from '@/components/account/customer-reviews-view';
-import { CustomerReturnsView } from '@/components/account/customer-returns-view';
 import { useAddressStore } from '@/store/address-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { usePaymentVaultStore } from '@/store/payment-vault-store';
