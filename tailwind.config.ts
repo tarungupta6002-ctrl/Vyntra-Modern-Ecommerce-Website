@@ -17,7 +17,9 @@ const config: Config = {
           fixed: '#FEF8E7',
           'fixed-dim': '#FCD200',
           'on-fixed': '#0F1111',
+          'on-primary': '#0F1111',
         },
+        'on-primary': '#0F1111',
         'buy-now': {
           DEFAULT: '#FF9900', // Amazon Orange
           hover: '#FA8900',

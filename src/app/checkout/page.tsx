@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Script from 'next/script';
 import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
@@ -37,6 +36,10 @@ import { usePaymentVaultStore } from '@/store/payment-vault-store';
 import { createClient } from '@/lib/supabase/client';
 import { CartItem } from '@/types';
 import { formatINR } from '@/lib/utils';
+import { CheckoutTrustBanner } from '@/components/cart/checkout-trust-banner';
+
+// Shared singleton promise to prevent concurrent duplicate Razorpay script injections
+let razorpayLoadingPromise: Promise<boolean> | null = null;
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -322,19 +325,43 @@ export default function CheckoutPage() {
   };
 
   // Real Checkout Execution for Phase 3 COD & Test Orders
-  // Helper to load Razorpay Checkout script dynamically
+  // Helper to load Razorpay Checkout script dynamically with singleton promise & DOM cleanup
   const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (typeof window === 'undefined') return resolve(false);
-      if ((window as any).Razorpay) return resolve(true);
+    if (typeof window === 'undefined') return Promise.resolve(false);
+    if ((window as any).Razorpay) return Promise.resolve(true);
+    if (razorpayLoadingPromise) return razorpayLoadingPromise;
+
+    razorpayLoadingPromise = new Promise((resolve) => {
+      const SCRIPT_ID = 'razorpay-checkout-sdk';
+      const existingScript = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
+
+      if (existingScript) {
+        if ((window as any).Razorpay) {
+          return resolve(true);
+        }
+        existingScript.addEventListener('load', () => resolve(true), { once: true });
+        existingScript.addEventListener('error', () => {
+          existingScript.remove();
+          razorpayLoadingPromise = null;
+          resolve(false);
+        }, { once: true });
+        return;
+      }
 
       const script = document.createElement('script');
+      script.id = SCRIPT_ID;
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
       script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.onerror = () => {
+        script.remove();
+        razorpayLoadingPromise = null;
+        resolve(false);
+      };
       document.body.appendChild(script);
     });
+
+    return razorpayLoadingPromise;
   };
 
   const executeCheckout = async (
@@ -1820,25 +1847,10 @@ export default function CheckoutPage() {
             </section>
 
             {/* Royal Assurance Guarantee Banner */}
-            <div className="p-4 bg-surface-container rounded-xl flex items-center gap-3 border border-surface-container">
-              <div className="w-10 h-10 rounded-full bg-primary-fixed text-primary flex items-center justify-center flex-shrink-0">
-                <RotateCcw className="h-5 w-5" />
-              </div>
-              <div className="text-xs">
-                <span className="font-headline font-bold text-on-surface block">
-                  15-Day Hassle-Free Returns &amp; Exchange
-                </span>
-                <span className="text-on-surface-variant">
-                  Complimentary doorstep pickup if sizing doesn&apos;t fit like a dream.
-                </span>
-              </div>
-            </div>
+            <CheckoutTrustBanner />
           </div>
         </div>
       </div>
-
-      {/* Official Razorpay Standard Web Checkout Script */}
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
       {/* Floating Micro-Toast */}
       {toast.show && (

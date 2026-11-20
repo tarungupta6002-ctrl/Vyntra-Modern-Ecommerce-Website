@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   RotateCcw,
@@ -53,6 +53,74 @@ export function ReturnRequestModal({
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  // Keyboard accessibility: Escape closes modal, focus trap & focus restore
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement | null;
+      document.body.style.overflow = 'hidden';
+
+      const timer = setTimeout(() => {
+        if (!modalRef.current) return;
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) {
+          focusable[0].focus();
+        }
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onClose();
+          return;
+        }
+
+        if (e.key === 'Tab') {
+          if (!modalRef.current) return;
+          const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length === 0) {
+            e.preventDefault();
+            return;
+          }
+          const firstElement = focusable[0];
+          const lastElement = focusable[focusable.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement || !modalRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            if (document.activeElement === lastElement || !modalRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = 'unset';
+        if (triggerRef.current && typeof triggerRef.current.focus === 'function') {
+          triggerRef.current.focus();
+          triggerRef.current = null;
+        }
+      };
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen, onClose]);
 
   // Fetch actual product variants to populate replacement sizes dynamically
   useEffect(() => {
@@ -167,6 +235,9 @@ export function ReturnRequestModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="return-request-heading"
       className={
         isFullScreen
           ? 'fixed inset-0 z-50 flex flex-col bg-white animate-in fade-in duration-150'
@@ -174,6 +245,7 @@ export function ReturnRequestModal({
       }
     >
       <div
+        ref={modalRef}
         className={
           isFullScreen
             ? 'relative w-full h-full flex flex-col bg-white overflow-hidden'
@@ -188,7 +260,7 @@ export function ReturnRequestModal({
             ) : (
               <RotateCcw className="h-5 w-5 text-amber-400" />
             )}
-            <h2 className="text-base font-semibold tracking-wide">
+            <h2 id="return-request-heading" className="text-base font-semibold tracking-wide">
               {requestType === 'REPLACEMENT' ? 'Request Replacement' : 'Request Return & Refund'}
             </h2>
           </div>

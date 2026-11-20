@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -85,6 +85,74 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [pincodeInput, setPincodeInput] = useState('');
   const [pincodeMessage, setPincodeMessage] = useState('');
+
+  const locationModalRef = useRef<HTMLDivElement | null>(null);
+  const locationTriggerRef = useRef<HTMLElement | null>(null);
+
+  // Keyboard accessibility: Escape closes location modal, focus trap & focus restore
+  useEffect(() => {
+    if (locationModalOpen) {
+      locationTriggerRef.current = document.activeElement as HTMLElement | null;
+      document.body.style.overflow = 'hidden';
+
+      const timer = setTimeout(() => {
+        if (!locationModalRef.current) return;
+        const focusable = locationModalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length > 0) {
+          focusable[0].focus();
+        }
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setLocationModalOpen(false);
+          return;
+        }
+
+        if (e.key === 'Tab') {
+          if (!locationModalRef.current) return;
+          const focusable = locationModalRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable.length === 0) {
+            e.preventDefault();
+            return;
+          }
+          const firstElement = focusable[0];
+          const lastElement = focusable[focusable.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement || !locationModalRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            if (document.activeElement === lastElement || !locationModalRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = 'unset';
+        if (locationTriggerRef.current && typeof locationTriggerRef.current.focus === 'function') {
+          locationTriggerRef.current.focus();
+          locationTriggerRef.current = null;
+        }
+      };
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [locationModalOpen]);
 
   // Active delivery address from address store
   const activeAddress = mounted ? (getSelectedAddress() || getDefaultAddress()) : undefined;
@@ -263,9 +331,12 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
           {/* Left section: Hamburger (mobile), Logo, Location Pin */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 text-white lg:hidden rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all"
-              aria-label="Toggle menu"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 text-white lg:hidden rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all"
+              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -526,8 +597,9 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             {/* Wishlist Icon Link */}
             <Link
               href="/account?tab=wishlist"
-              className="flex flex-col items-center justify-center py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-white relative group"
+              className="min-h-[44px] min-w-[44px] flex flex-col items-center justify-center py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-white relative group"
               title="Saved Wishlist"
+              aria-label={`Saved Wishlist, ${activeWishlistCount} items`}
             >
               <div className="relative">
                 <Heart className="h-5 w-5 text-white group-hover:text-[#FF9900] transition-colors" />
@@ -545,8 +617,9 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             <button
               type="button"
               onClick={toggleCart}
-              className="flex items-center gap-1.5 py-1.5 px-2.5 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-white group"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-white group"
               id="header-cart-btn"
+              aria-label={`View shopping cart with ${totalItems} items`}
             >
               <div className="relative flex items-center">
                 <ShoppingCart className="h-6 w-6 text-white group-hover:text-[#FFD814] transition-colors" />
@@ -651,7 +724,10 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
       {/* 4. MOBILE DRAWER MENU */}
       {/* ========================================================================= */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#232F3E] text-white px-4 py-3 border-t border-white/10 space-y-3 animate-in slide-in-from-top-2">
+        <div
+          id="mobile-navigation-drawer"
+          className="lg:hidden bg-[#232F3E] text-white px-4 py-3 border-t border-white/10 space-y-3 animate-in slide-in-from-top-2"
+        >
           <div className="flex items-center justify-between pb-2 border-b border-white/20">
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-[#FF9900]" />
@@ -662,7 +738,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             <Link
               href={mounted && isAuthenticated ? "/account" : "/login"}
               onClick={() => setMobileMenuOpen(false)}
-              className="text-xs text-[#FFD814] hover:underline"
+              className="min-h-[44px] inline-flex items-center text-xs text-[#FFD814] hover:underline"
             >
               {mounted && isAuthenticated ? 'My Account →' : 'Sign in →'}
             </Link>
@@ -674,7 +750,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
                 key={cat.name}
                 href={cat.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded bg-white/10 text-white hover:bg-[#007185] transition-colors"
+                className="min-h-[44px] flex items-center p-2.5 rounded bg-white/10 text-white hover:bg-[#007185] transition-colors"
               >
                 {cat.name}
               </Link>
@@ -685,21 +761,21 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             <Link
               href="/account?tab=orders"
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-white"
+              className="min-h-[44px] inline-flex items-center py-2 px-1 hover:text-white"
             >
               Track Orders
             </Link>
             <Link
               href="/support"
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-white"
+              className="min-h-[44px] inline-flex items-center py-2 px-1 hover:text-white"
             >
               Customer Service
             </Link>
             <Link
               href="/account?tab=wishlist"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[#FFD814]"
+              className="min-h-[44px] inline-flex items-center py-2 px-1 text-[#FFD814]"
             >
               Wishlist ({activeWishlistCount})
             </Link>
@@ -713,16 +789,18 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby="location-modal-heading"
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setLocationModalOpen(false)}
         >
           <div
+            ref={locationModalRef}
             onClick={(e) => e.stopPropagation()}
             className="bg-white rounded-lg shadow-2xl max-w-md w-full overflow-hidden border border-[#D5D9D9] text-[#0F1111] animate-in zoom-in-95 duration-150"
           >
             {/* Modal Header */}
             <div className="bg-[#F0F2F2] px-5 py-3.5 border-b border-[#D5D9D9] flex items-center justify-between">
-              <h2 className="font-bold text-sm sm:text-base text-[#0F1111] flex items-center gap-2">
+              <h2 id="location-modal-heading" className="font-bold text-sm sm:text-base text-[#0F1111] flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-[#FF9900]" />
                 Choose your location
               </h2>

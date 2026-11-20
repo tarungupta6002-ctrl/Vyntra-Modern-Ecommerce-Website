@@ -135,31 +135,37 @@ export default function AdminShipmentsPage() {
       if (delayedOnly) params.append('delayed', 'true');
       params.append('limit', '50');
 
-      const res = await fetch(`/api/admin/shipments?${params.toString()}`);
-      const json = await res.json();
-      if (res.ok && json.success && json.data) {
+      // Parallelize shipments and notices fetches to eliminate client-side network waterfall
+      const [shipmentsRes, noticesRes] = await Promise.all([
+        fetch(`/api/admin/shipments?${params.toString()}`),
+        fetch('/api/admin/notices').catch(() => null),
+      ]);
+
+      const json = await shipmentsRes.json();
+      if (shipmentsRes.ok && json.success && json.data) {
         setShipments(json.data.shipments || []);
       }
 
-      // Fetch notices map
-      try {
-        const noticesRes = await fetch('/api/admin/notices');
-        const noticesJson = await noticesRes.json();
-        if (noticesJson.success && noticesJson.data?.notices) {
-          const map: Record<string, any> = {};
-          for (const n of noticesJson.data.notices) {
-            if (n.orderNumber) {
-              map[n.orderNumber] = {
-                id: n.id,
-                status: n.status,
-                acknowledgedAt: n.acknowledgedAt,
-              };
+      // Process notices map
+      if (noticesRes && noticesRes.ok) {
+        try {
+          const noticesJson = await noticesRes.json();
+          if (noticesJson.success && noticesJson.data?.notices) {
+            const map: Record<string, any> = {};
+            for (const n of noticesJson.data.notices) {
+              if (n.orderNumber) {
+                map[n.orderNumber] = {
+                  id: n.id,
+                  status: n.status,
+                  acknowledgedAt: n.acknowledgedAt,
+                };
+              }
             }
+            setNoticesMap(map);
           }
-          setNoticesMap(map);
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
     } catch {
       // Offline fallback
