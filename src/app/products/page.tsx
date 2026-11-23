@@ -228,7 +228,7 @@ export default function VyntraProductListingPage() {
     setIsLoading(true);
 
     const params = new URLSearchParams();
-    if (activeCategory && activeCategory !== 'all' && activeCategory !== 'fashion') {
+    if (activeCategory && activeCategory !== 'all') {
       params.set('category', activeCategory);
     }
     if (selectedBrand) {
@@ -402,12 +402,39 @@ export default function VyntraProductListingPage() {
       );
     }
 
-    if (activeCategory !== 'all' && activeCategory !== 'fashion') {
+    if (activeCategory === 'fashion') {
+      // Exclude mobile and electronics products from Fashion catalog
+      result = result.filter((p) => {
+        const cat = (p.category || '').toLowerCase();
+        const sub = (p.subCategory || '').toLowerCase();
+        return (
+          cat !== 'mobiles' &&
+          cat !== 'electronics' &&
+          cat !== 'smartphones' &&
+          sub !== 'mobiles' &&
+          sub !== 'smartphones'
+        );
+      });
+    } else if (activeCategory !== 'all') {
       result = result.filter(
         (p) =>
           p.category?.toLowerCase() === activeCategory.toLowerCase() ||
           (activeCategory === 'ethnic' && p.category?.toLowerCase() === 'ethnic')
       );
+    } else if (!searchParamQuery) {
+      // On default "All Fashion & Lifestyle" catalog without explicit search query,
+      // keep catalog focused on apparel and fashion; mobiles belong to /mobiles
+      result = result.filter((p) => {
+        const cat = (p.category || '').toLowerCase();
+        const sub = (p.subCategory || '').toLowerCase();
+        return (
+          cat !== 'mobiles' &&
+          cat !== 'electronics' &&
+          cat !== 'smartphones' &&
+          sub !== 'mobiles' &&
+          sub !== 'smartphones'
+        );
+      });
     }
 
     if (expressOnly) {
@@ -446,7 +473,11 @@ export default function VyntraProductListingPage() {
         <div className="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 h-[48px] flex items-center justify-between overflow-x-auto whitespace-nowrap">
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <span className="text-xl sm:text-2xl font-bold font-headline text-[#0F1111] tracking-tight mr-4 sm:mr-8">
-              Vyntra Fashion
+              {activeCategory === 'electronics'
+                ? 'Vyntra Electronics'
+                : activeCategory === 'mobiles'
+                ? 'Vyntra Mobiles'
+                : 'Vyntra Fashion'}
             </span>
           </div>
 

@@ -277,10 +277,10 @@ function WomensEthnicWearContent({ params }: PageProps) {
               </ul>
             </div>
 
-            {/* Amazon Prime / Vyntra Prime Filter */}
+            {/* Vyntra Express / Vyntra Prime Filter */}
             <div className="pt-3 border-t border-[#E7E7E7] space-y-2">
               <span className="text-[13px] font-bold text-[#0F1111] block">
-                Amazon Prime
+                Vyntra Express
               </span>
               <label className="flex items-center gap-2 cursor-pointer text-xs group select-none">
                 <input

@@ -528,7 +528,7 @@ export default function VyntraHomepage() {
               badge: 'Phones & Audio',
               badgeColor: 'bg-primary text-[#0F1111] font-bold',
               img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDP2xrfkhe3LslFL7nC-6jsMKgIBZJSi-4_YvbfkNyliZrvns1v5FUwsuuhKAMXBY5OV9UfvBkdsKtFi7Ajg8d6MwS-xLQHMsZvy8WYYdOIIthV5b1UzfIH6PwCMM3dPiSEVo1Gfxr9WYO1yMc2NkFx3PphQf_R_dlrgGjwMTvCh5gDwI8cGuaN3cmQsAetPcWcBtT8WbMgDph4DmP9I5fdHEXP8zIe9f4UlTX-h6U',
-              href: '/category/electronics',
+              href: '/mobiles',
             },
             {
               title: 'Beauty',

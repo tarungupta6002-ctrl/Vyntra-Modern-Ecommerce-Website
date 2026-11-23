@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { getAllProductSlugs } from '@/data/products';
+import { getAllMobileProductSlugs } from '@/data/mobiles-fallback';
+import { getAllElectronicsProductSlugs } from '@/data/electronics-fallback';
 import { getDetailedProductBySlug } from '@/lib/catalog';
 import { prisma } from '@/lib/prisma';
 import ProductDetailView from './product-detail-view';
@@ -27,7 +29,13 @@ export async function generateStaticParams() {
   } catch (err) {
     // Fallback if DB is not reachable during build
   }
-  const slugs = getAllProductSlugs();
+  const slugs = Array.from(
+    new Set([
+      ...getAllProductSlugs(),
+      ...getAllMobileProductSlugs(),
+      ...getAllElectronicsProductSlugs(),
+    ])
+  );
   return slugs.map((slug) => ({ slug }));
 }
 

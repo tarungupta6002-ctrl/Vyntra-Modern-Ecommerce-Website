@@ -27,6 +27,7 @@ interface FormattedProductItem {
   colors: string[];
   stockCount: number;
   inStock: boolean;
+  specs?: Record<string, string>;
   vendor: {
     name: string;
     slug: string;
@@ -76,6 +77,30 @@ function formatProduct(product: any): FormattedProductItem {
     new Set((product.variants || []).map((v: any) => v.color).filter(Boolean))
   ) as string[];
 
+  const specs: Record<string, string> = {};
+  if (product.description && typeof product.description === 'string' && product.description.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(product.description);
+      if (Array.isArray(parsed.specs)) {
+        parsed.specs.forEach((s: any) => {
+          if (s.label && s.value) {
+            specs[s.label.toLowerCase().trim()] = s.value;
+          }
+        });
+      }
+    } catch {}
+  }
+
+  const createdDate = product.createdAt ? new Date(product.createdAt).getTime() : 0;
+  const isWithin30Days = createdDate > 0 && Date.now() - createdDate < 30 * 24 * 60 * 60 * 1000;
+
+  let computedBadge: string | undefined = undefined;
+  if (product.reviewCount > 100 && product.rating >= 4.5) {
+    computedBadge = 'Bestseller';
+  } else if (isWithin30Days) {
+    computedBadge = 'New Launch';
+  }
+
   return {
     id: product.id,
     slug: product.slug,
@@ -89,19 +114,15 @@ function formatProduct(product: any): FormattedProductItem {
     discount: discountStr,
     rating: product.rating,
     reviewCount: product.reviewCount,
-    badge:
-      product.rating >= 4.8
-        ? 'Bestseller'
-        : product.reviewCount > 100
-        ? 'Festive Edit'
-        : undefined,
-    badgeVariant: product.rating >= 4.8 ? 'primary' : 'secondary',
+    badge: computedBadge,
+    badgeVariant: computedBadge === 'Bestseller' ? 'primary' : 'secondary',
     isExpress: true,
     image: imageUrl,
     sizes: sizes.length > 0 ? sizes : ['Standard'],
     colors: colors.length > 0 ? colors : ['Default'],
     stockCount: totalStock,
     inStock: totalStock > 0,
+    specs: Object.keys(specs).length > 0 ? specs : undefined,
     vendor: {
       name: product.vendor?.storeName || 'Vyntra Atelier',
       slug: product.vendor?.storeSlug || 'vyntra-atelier',
@@ -170,16 +191,27 @@ export async function GET(request: NextRequest) {
     // Category navigation: matches leaf category OR any level ancestor up to 6 levels deep
     if (category && category !== 'all') {
       const catLower = category.toLowerCase();
-      andConditions.push({
-        OR: [
-          { category: { slug: { equals: catLower, mode: 'insensitive' } } },
-          { category: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } },
-          { category: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } },
-          { category: { parent: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } } },
-          { category: { parent: { parent: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } } } },
-          { category: { parent: { parent: { parent: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } } } } },
-        ],
-      });
+      if (catLower === 'fashion') {
+        andConditions.push({
+          category: {
+            slug: {
+              notIn: ['mobiles', 'electronics', 'smartphones', 'audio-headphones', 'smartwatches-wearables'],
+              mode: 'insensitive',
+            },
+          },
+        });
+      } else {
+        andConditions.push({
+          OR: [
+            { category: { slug: { equals: catLower, mode: 'insensitive' } } },
+            { category: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } },
+            { category: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } },
+            { category: { parent: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } } },
+            { category: { parent: { parent: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } } } },
+            { category: { parent: { parent: { parent: { parent: { parent: { slug: { equals: catLower, mode: 'insensitive' } } } } } } } },
+          ],
+        });
+      }
     }
 
     // Brand filter (e.g. from brand store link "Visit the Brand Atelier Store")

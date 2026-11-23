@@ -326,9 +326,9 @@ function GirlsClothingContent() {
               </div>
             </div>
 
-            {/* Amazon Prime Filter */}
+            {/* Vyntra Express Filter */}
             <div className="border-t border-[#E7E7E7] pt-4">
-              <h4 className="text-xs font-bold text-[#0F1111] mb-2">Amazon Prime</h4>
+              <h4 className="text-xs font-bold text-[#0F1111] mb-2">Vyntra Express</h4>
               <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
                 <input
                   type="checkbox"
@@ -337,7 +337,7 @@ function GirlsClothingContent() {
                   className="rounded text-[#007185] focus:ring-[#007185] h-3.5 w-3.5"
                 />
                 <span className="font-bold italic text-[#007185] text-sm tracking-tight">
-                  ✓prime
+                  Vyntra Express
                 </span>
               </label>
             </div>
@@ -698,7 +698,7 @@ function GirlsClothingContent() {
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-[#565959]">
                           {product.isPrime && (
                             <span className="font-bold italic text-[#007185] text-xs">
-                              ✓prime
+                              Vyntra Express
                             </span>
                           )}
                           <span className="text-[11px]">Get it by <strong className="text-[#0F1111]">{product.deliveryDate}</strong></span>

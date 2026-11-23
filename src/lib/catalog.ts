@@ -6,7 +6,13 @@ import {
   PRODUCTS_DATABASE,
   getProductBySlug as getFallbackProductBySlug,
   DetailedProduct,
+  ProductColor,
+  ProductSize,
 } from '@/data/products';
+import { getMobileDetailedProductBySlug } from '@/data/mobiles-fallback';
+import { getElectronicsDetailedProductBySlug } from '@/data/electronics-fallback';
+import { getApplianceDetailedProductBySlug } from '@/data/appliances-fallback';
+import { getBooksDetailedProductBySlug } from '@/data/books-fallback';
 import { APlusData, createDefaultAPlusContent } from '@/types/aplus';
 import { resolveBuyBox } from '@/lib/buy-box';
 import { SellerOfferItem, BuyBoxResult } from '@/types/multiseller';
@@ -179,17 +185,150 @@ export function formatDetailedProduct(product: any): DetailedProduct {
   const categorySlug = (product.category?.slug || '').toLowerCase();
   const categoryName = (product.category?.name || '').toLowerCase();
   const titleLower = (product.title || '').toLowerCase();
+  const slugLower = (product.slug || '').toLowerCase();
+
+  const isBook =
+    categorySlug === 'books' ||
+    categorySlug.includes('book') ||
+    categoryName.includes('book') ||
+    categoryName.includes('literature') ||
+    titleLower.includes('hardcover') ||
+    titleLower.includes('paperback') ||
+    titleLower.includes('novel') ||
+    slugLower.includes('book') ||
+    slugLower.includes('habits') ||
+    slugLower.includes('psychology-of-money') ||
+    slugLower.includes('rich-dad') ||
+    slugLower.includes('meluha') ||
+    slugLower.includes('grandma') ||
+    slugLower.includes('ikigai');
+
+  const isAppliance =
+    categorySlug.includes('appliance') ||
+    categoryName.includes('appliance') ||
+    categorySlug.includes('refrigerator') ||
+    categorySlug.includes('washing') ||
+    categorySlug.includes('conditioner') ||
+    titleLower.includes('refrigerator') ||
+    titleLower.includes('fridge') ||
+    titleLower.includes('washing machine') ||
+    titleLower.includes('air conditioner') ||
+    titleLower.includes('split ac') ||
+    titleLower.includes('microwave') ||
+    titleLower.includes('water purifier') ||
+    titleLower.includes('geyser') ||
+    titleLower.includes('cooler') ||
+    slugLower.includes('fridge') ||
+    slugLower.includes('washing') ||
+    slugLower.includes('ac-') ||
+    slugLower.includes('app-');
+
+  const isLaptopOrComputer =
+    categorySlug.includes('laptop') ||
+    categorySlug.includes('computer') ||
+    categoryName.includes('laptop') ||
+    categoryName.includes('computer') ||
+    titleLower.includes('laptop') ||
+    titleLower.includes('macbook') ||
+    titleLower.includes('ultrabook') ||
+    titleLower.includes('notebook') ||
+    titleLower.includes('ai pc') ||
+    titleLower.includes('intel core') ||
+    titleLower.includes('ryzen') ||
+    slugLower.includes('laptop') ||
+    slugLower.includes('macbook') ||
+    slugLower.includes('swift') ||
+    slugLower.includes('xps') ||
+    slugLower.includes('thinkpad');
+
+  const isAudioOrHeadphones =
+    categorySlug.includes('audio') ||
+    categorySlug.includes('headphone') ||
+    categoryName.includes('audio') ||
+    categoryName.includes('headphone') ||
+    titleLower.includes('headphone') ||
+    titleLower.includes('earbud') ||
+    titleLower.includes('airpods') ||
+    titleLower.includes('tws') ||
+    slugLower.includes('headphone') ||
+    slugLower.includes('airpods');
+
+  const isSmartwatch =
+    categorySlug.includes('smartwatch') ||
+    categorySlug.includes('wearable') ||
+    categoryName.includes('smartwatch') ||
+    titleLower.includes('smartwatch') ||
+    titleLower.includes('apple watch') ||
+    titleLower.includes('galaxy watch') ||
+    slugLower.includes('smartwatch') ||
+    slugLower.includes('watch-series');
+
+  const isMobileOrElectronic =
+    !isBook &&
+    (categorySlug === 'mobiles' ||
+      categorySlug === 'electronics' ||
+      categorySlug.includes('electronic') ||
+      categoryName.includes('mobile') ||
+      categoryName.includes('phone') ||
+      categoryName.includes('smartphone') ||
+      categoryName.includes('electronic') ||
+      isLaptopOrComputer ||
+      isAudioOrHeadphones ||
+      isSmartwatch ||
+      isAppliance ||
+      titleLower.includes('phone') ||
+      titleLower.includes('5g') ||
+      slugLower.includes('iphone') ||
+      slugLower.includes('samsung-galaxy') ||
+      slugLower.includes('oneplus') ||
+      slugLower.includes('redmi') ||
+      slugLower.includes('realme') ||
+      slugLower.includes('motorola') ||
+      slugLower.includes('nothing-phone') ||
+      slugLower.includes('vivo') ||
+      slugLower.includes('oppo'));
+
+  const isFashionCategory =
+    !isBook &&
+    !isAppliance &&
+    !isMobileOrElectronic &&
+    !isLaptopOrComputer &&
+    !isAudioOrHeadphones &&
+    !isSmartwatch &&
+    (categorySlug.includes('fashion') ||
+      categorySlug.includes('clothing') ||
+      categorySlug.includes('apparel') ||
+      categorySlug.includes('shoe') ||
+      categorySlug.includes('footwear') ||
+      categorySlug.includes('ethnic') ||
+      categorySlug.includes('western') ||
+      categorySlug.includes('saree') ||
+      categoryName.includes('fashion') ||
+      categoryName.includes('clothing') ||
+      categoryName.includes('apparel') ||
+      categoryName.includes('shoe') ||
+      categoryName.includes('footwear') ||
+      categoryName.includes('ethnic') ||
+      categoryName.includes('western') ||
+      titleLower.includes('shirt') ||
+      titleLower.includes('kurta') ||
+      titleLower.includes('dress') ||
+      titleLower.includes('shoe') ||
+      titleLower.includes('sneaker') ||
+      titleLower.includes('saree'));
+
   const isUnstitchedOrFreeSize =
-    categorySlug.includes('saree') ||
-    categoryName.includes('saree') ||
-    titleLower.includes('saree') ||
-    categorySlug.includes('shawl') ||
-    titleLower.includes('shawl') ||
-    categorySlug.includes('dupatta') ||
-    titleLower.includes('dupatta') ||
-    categorySlug.includes('jewel') ||
-    categorySlug.includes('bag') ||
-    categorySlug.includes('wallet');
+    isFashionCategory &&
+    (categorySlug.includes('saree') ||
+      categoryName.includes('saree') ||
+      titleLower.includes('saree') ||
+      categorySlug.includes('shawl') ||
+      titleLower.includes('shawl') ||
+      categorySlug.includes('dupatta') ||
+      titleLower.includes('dupatta') ||
+      categorySlug.includes('jewel') ||
+      categorySlug.includes('bag') ||
+      categorySlug.includes('wallet'));
 
   // Deduplicate sizes into clean unique size options
   const sizeMap = new Map<string, { size: string; dimension?: string; disabled: boolean }>();
@@ -274,6 +413,122 @@ export function formatDetailedProduct(product: any): DetailedProduct {
       ? cleanDescription
       : '';
 
+  const referenceItem =
+    getFallbackProductBySlug(product.slug) || getMobileDetailedProductBySlug(product.slug);
+
+  // Title-driven dynamic resolution for smartphones & mobile devices
+  let smartphoneSubtitle = '';
+  let detectedStorage: string | null = null;
+  let detectedColor: string | null = null;
+  let detectedProcessor: string | null = null;
+
+  if (isMobileOrElectronic) {
+    // 1. Detect Color from Title (e.g. "; Cosmic Orange", "Onyx Black", "Titanium Gray", etc.)
+    const colorMatch =
+      product.title.match(/(?:;|—|-|\(|\/)\s*([A-Za-z\s]+(?:Orange|Black|Blue|White|Titanium|Gold|Silver|Green|Purple|Violet|Gray|Grey|Pink|Red|Yellow|Bronze|Emerald|Cyan|Burgundy))/i) ||
+      product.title.match(/\b(Cosmic Orange|Desert Titanium|Natural Titanium|Titanium Gray|Titanium Black|Titanium Violet|Titanium Yellow|Phantom Black|Phantom White|Midnight Black|Starlight|Space Gray|Space Black|Alpine Green|Deep Purple|Sierra Blue|Pacific Blue|Onyx Black|Marble Gray|Cobalt Violet|Amber Yellow|Emerald Green|Mint Green|Obsidian|Porcelain|Bay Blue|Hazel|Rose Gold|Coral Pink|Sunset Orange)\b/i) ||
+      product.title.match(/\b(Orange|Black|Blue|White|Gold|Silver|Green|Purple|Violet|Pink|Red|Yellow|Bronze)\b/i);
+    detectedColor = colorMatch ? colorMatch[1].trim() : null;
+
+    // 2. Detect Storage from Title (e.g. "512 GB", "256 GB", "128 GB", "1 TB")
+    const storageMatch = product.title.match(/\b(64\s*GB|128\s*GB|256\s*GB|512\s*GB|1\s*TB)\b/i);
+    detectedStorage = storageMatch ? storageMatch[1].toUpperCase().replace(/\s+/, ' ') : null;
+
+    // 3. Detect Processor from Title (e.g. "A19 Pro Chip", "A18", "Snapdragon 8 Gen 3", "Dimensity 8500", etc.)
+    const procMatch = product.title.match(
+      /\b(A\d+\s*Pro(?:\s*Chip)?|A\d+(?:\s*Bionic)?|Snapdragon\s*[\w\s\d]+|Dimensity\s*[\w\s\d]+|Google\s*Tensor\s*[\w\s\d]+)\b/i
+    );
+    detectedProcessor = procMatch ? procMatch[1].trim() : null;
+
+    // 4. Subtitle generation: if title contains new specifications, avoid obsolete reference subtitle
+    const refSub = referenceItem?.subtitle || '';
+    const hasObsoleteChipInSubtitle =
+      detectedProcessor &&
+      cleanSubtitle &&
+      /\b(A\d+|Snapdragon|Dimensity|Exynos|Tensor)\b/i.test(cleanSubtitle) &&
+      !cleanSubtitle.toLowerCase().includes(detectedProcessor.toLowerCase());
+
+    const isObsoleteRef =
+      Boolean(hasObsoleteChipInSubtitle) ||
+      Boolean(detectedProcessor && refSub.toLowerCase().includes('bionic') && !detectedProcessor.toLowerCase().includes('bionic')) ||
+      Boolean(referenceItem?.title && !product.title.toLowerCase().includes(referenceItem.title.toLowerCase().slice(0, 15)));
+
+    if (isObsoleteRef || !cleanSubtitle) {
+      const features: string[] = ['Dynamic Island'];
+      if (product.title.includes('120Hz') || product.title.includes('Promotion') || product.title.includes('ProMotion')) {
+        features.push('120Hz ProMotion Display');
+      } else if (product.title.includes('AMOLED') || product.title.includes('OLED')) {
+        features.push('Fluid AMOLED Display');
+      }
+      if (product.title.includes('Pro Fusion Camera') || product.title.includes('Camera')) {
+        features.push('Pro Fusion Camera System');
+      } else {
+        features.push('48MP Main Camera');
+      }
+      if (detectedProcessor) {
+        features.push(detectedProcessor);
+      }
+      if (product.title.includes('Breakthrough Battery') || product.title.includes('Battery')) {
+        features.push('Breakthrough Battery Life');
+      } else {
+        features.push('USB-C with All-Day Battery');
+      }
+      smartphoneSubtitle = features.join(' • ');
+    }
+  }
+
+  // Variant Resolution: NEVER inject ghost/fallback variants into a specific product
+  let smartphoneColors: ProductColor[] = [];
+  if (colors.length > 0) {
+    smartphoneColors = [...colors];
+    if (detectedColor) {
+      const idx = smartphoneColors.findIndex(
+        (c) =>
+          c.name.toLowerCase() === detectedColor!.toLowerCase() ||
+          detectedColor!.toLowerCase().includes(c.name.toLowerCase()) ||
+          c.name.toLowerCase().includes(detectedColor!.toLowerCase())
+      );
+      if (idx > -1) {
+        const found = smartphoneColors[idx];
+        smartphoneColors = [found, ...smartphoneColors.filter((_, i) => i !== idx)];
+      }
+    }
+  } else if (detectedColor) {
+    smartphoneColors = [
+      {
+        name: detectedColor,
+        hex: getColorHex(detectedColor),
+        imageUrl: images[0]?.src,
+      },
+    ];
+  } else if (referenceItem?.colors && referenceItem.colors.length > 0) {
+    smartphoneColors = [...referenceItem.colors];
+  }
+
+  let smartphoneSizes: ProductSize[] = [];
+  if (sizes.length > 0) {
+    smartphoneSizes = [...sizes];
+    if (detectedStorage) {
+      const idx = smartphoneSizes.findIndex(
+        (s) => s.size.toLowerCase() === detectedStorage!.toLowerCase()
+      );
+      if (idx > -1) {
+        const found = { ...smartphoneSizes[idx], disabled: false };
+        smartphoneSizes = [found, ...smartphoneSizes.filter((_, i) => i !== idx)];
+      }
+    }
+  } else if (detectedStorage) {
+    smartphoneSizes = [
+      {
+        size: detectedStorage,
+        dimension: `${detectedStorage} ROM`,
+        disabled: false,
+      },
+    ];
+  } else if (referenceItem?.sizes && referenceItem.sizes.length > 0) {
+    smartphoneSizes = [...referenceItem.sizes];
+  }
+
   const reviewsList = (product.reviews || []).map((r: any) => ({
     id: r.id,
     author: r.user?.name || 'Verified Patron',
@@ -294,8 +549,6 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     text: r.comment || '',
     helpfulCount: 12,
   }));
-
-  const referenceItem = getFallbackProductBySlug(product.slug);
 
   // Multi-Seller Offers and Buy Box resolution
   let allOffers: SellerOfferItem[] = [];
@@ -425,7 +678,7 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     slug: product.slug,
     sku: product.variants?.[0]?.sku || `VYN-${product.id.slice(-6).toUpperCase()}`,
     title: product.title,
-    subtitle: cleanSubtitle,
+    subtitle: isMobileOrElectronic && smartphoneSubtitle ? smartphoneSubtitle : cleanSubtitle,
     brand: product.brand,
     vendorName: product.vendor?.storeName || 'Vyntra Royal Guild',
     originalVendorId: product.vendor?.id,
@@ -453,23 +706,71 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     isExpress: true,
     isCustomized: Boolean(product.isCustomized),
     stockCount: totalStock,
-    rawVariants: (product.variants || []).map((v: any) => {
-      const vStock = (v.inventories || []).reduce(
-        (acc: number, inv: any) =>
-          acc + Math.max(0, (inv.quantity || 0) - (inv.reservedQuantity || 0)),
-        0
-      );
-      return {
-        id: v.id,
-        sku: v.sku,
-        size: v.size,
-        color: v.color,
-        price: Number(v.price),
-        originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
-        stock: vStock,
-        imageUrl: v.imageUrl,
-      };
-    }),
+    rawVariants: (() => {
+      const dbVariants = (product.variants || []).map((v: any) => {
+        const vStock = (v.inventories || []).reduce(
+          (acc: number, inv: any) =>
+            acc + Math.max(0, (inv.quantity || 0) - (inv.reservedQuantity || 0)),
+          0
+        );
+        return {
+          id: v.id,
+          sku: v.sku,
+          size: v.size,
+          color: v.color,
+          price: Number(v.price),
+          originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+          stock: vStock,
+          imageUrl: v.imageUrl,
+        };
+      });
+
+      if (isMobileOrElectronic) {
+        const activeColor = detectedColor || smartphoneColors[0]?.name || 'Standard Edition';
+        const activeSize = detectedStorage || smartphoneSizes[0]?.size || '128 GB';
+
+        const hasActiveVariant = dbVariants.some(
+          (v: any) =>
+            (!v.size || v.size.toLowerCase() === activeSize.toLowerCase()) &&
+            (!v.color || v.color.toLowerCase() === activeColor.toLowerCase())
+        );
+
+        if (!hasActiveVariant) {
+          dbVariants.unshift({
+            id: `variant-dynamic-${product.id}`,
+            sku: product.variants?.[0]?.sku || `VYN-${product.id.slice(-6).toUpperCase()}`,
+            size: activeSize,
+            color: activeColor,
+            price: sellingPrice,
+            originalPrice: originalPrice > sellingPrice ? originalPrice : null,
+            stock: totalStock > 0 ? totalStock : 15,
+            imageUrl: images[0]?.src,
+          });
+        }
+
+        smartphoneSizes.forEach((s) => {
+          const match = dbVariants.find(
+            (v: any) =>
+              v.size?.toLowerCase() === s.size.toLowerCase() &&
+              (!v.color || v.color.toLowerCase() === activeColor.toLowerCase())
+          );
+          if (!match && !s.disabled) {
+            dbVariants.push({
+              id: `variant-auto-${product.id}-${s.size.replace(/\s+/g, '')}`,
+              sku: `VYN-${product.id.slice(-4)}-${s.size.replace(/\s+/g, '')}`,
+              size: s.size,
+              color: activeColor,
+              price: sellingPrice,
+              originalPrice: originalPrice > sellingPrice ? originalPrice : null,
+              stock: 15,
+              imageUrl: images[0]?.src,
+            });
+          }
+        });
+      }
+
+      return dbVariants;
+    })(),
     highlights:
       customHighlights && customHighlights.length > 0
         ? customHighlights
@@ -484,26 +785,47 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     customSpecs,
     images,
     colors:
-      colors.length > 0
+      isMobileOrElectronic
+        ? smartphoneColors.length > 0
+          ? smartphoneColors
+          : [{ name: 'Standard Edition', hex: '#111827' }]
+        : colors.length > 0
         ? colors
         : referenceItem?.colors || [{ name: 'Standard Edition', hex: '#111827' }],
-    sizeLabel: isUnstitchedOrFreeSize ? 'Size' : 'Select Size / Dimension',
+    sizeLabel: isMobileOrElectronic
+      ? 'Storage / Variant'
+      : isUnstitchedOrFreeSize
+      ? 'Size'
+      : 'Select Size / Dimension',
     sizes: isUnstitchedOrFreeSize
       ? [{ size: 'Free Size', dimension: 'Length: 5.5m + 0.8m Blouse Piece', disabled: totalStock <= 0 }]
+      : isMobileOrElectronic
+      ? smartphoneSizes.length > 0
+        ? smartphoneSizes
+        : [{ size: 'Standard Edition', disabled: false }]
       : sizes.length > 0
       ? sizes
-      : referenceItem?.sizes || [{ size: 'Free Size', disabled: false }],
-    sizeGuide: isUnstitchedOrFreeSize ? undefined : referenceItem?.sizeGuide,
+      : referenceItem?.sizes || [
+          {
+            size: 'Free Size',
+            disabled: false,
+          },
+        ],
+    sizeGuide: isFashionCategory && !isUnstitchedOrFreeSize ? referenceItem?.sizeGuide : undefined,
     modelInfo:
       referenceItem?.modelInfo ||
-      'Crafted with premium materials and quality engineering.',
+      (isMobileOrElectronic
+        ? 'Flagship precision engineering with verified manufacturer warranty.'
+        : 'Crafted with premium materials and quality engineering.'),
     tabs: referenceItem?.tabs || {
       story: {
-        badge: 'Product Overview',
-        title: 'Specifications & Quality Assurance',
+        badge: isMobileOrElectronic ? 'Device Overview' : 'Product Overview',
+        title: isMobileOrElectronic ? 'Technical Specifications & Quality Assurance' : 'Specifications & Quality Assurance',
         description: [
           cleanDescription ||
-            'Genuine brand product verified under Vyntra quality and authenticity standards.',
+            (isMobileOrElectronic
+              ? 'Authentic 100% genuine smartphone with official brand warranty and verified IMEI registry.'
+              : 'Genuine brand product verified under Vyntra quality and authenticity standards.'),
         ],
         stats: [
           { label: 'Quality Check', value: '100% Passed' },
@@ -516,18 +838,33 @@ export function formatDetailedProduct(product: any): DetailedProduct {
         { label: 'Seller', val: product.vendor?.storeName || 'Vyntra Seller' },
         { label: 'Origin', val: 'India' },
       ],
-      care: [
-        {
-          iconName: 'sparkles',
-          title: 'Gentle Care',
-          desc: 'Dry clean recommended for longevity.',
-        },
-      ],
+      care: isMobileOrElectronic
+        ? [
+            {
+              iconName: 'shield',
+              title: 'Brand Warranty',
+              desc: '1 Year Manufacturer Warranty on device and 6 Months on accessories.',
+            },
+            {
+              iconName: 'zap',
+              title: 'Express Delivery',
+              desc: 'Dispatched via Vyntra Express in shock-absorbent tamper-evident packaging.',
+            },
+          ]
+        : [
+            {
+              iconName: 'sparkles',
+              title: 'Gentle Care',
+              desc: 'Dry clean recommended for longevity.',
+            },
+          ],
       guarantee: [
         {
           iconName: 'shieldCheck',
-          title: 'Vyntra Authenticity',
-          desc: '100% genuine guaranteed.',
+          title: isMobileOrElectronic ? '100% Genuine Device' : 'Vyntra Authenticity',
+          desc: isMobileOrElectronic
+            ? 'Official brand IMEI registered Indian stock guaranteed.'
+            : '100% genuine guaranteed.',
         },
       ],
     },
@@ -648,7 +985,12 @@ export const getDetailedProductBySlug = cache(
     }
 
     // Fallback to static reference database
-    const fallback = getFallbackProductBySlug(slug);
+    const fallback =
+      getFallbackProductBySlug(slug) ||
+      getMobileDetailedProductBySlug(slug) ||
+      getElectronicsDetailedProductBySlug(slug) ||
+      getApplianceDetailedProductBySlug(slug) ||
+      getBooksDetailedProductBySlug(slug);
   if (fallback) {
     if (fallback.colors && fallback.colors.length > 0) {
       fallback.colors = fallback.colors.map((c, i) => ({

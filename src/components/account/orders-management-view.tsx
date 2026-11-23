@@ -858,7 +858,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                         <button
                           type="button"
                           onClick={() => setReturnItemModal({ order, item: order.items[0] })}
-                          className="text-xs font-medium text-[#0F1111] hover:bg-[#F7FAFA] bg-white border border-[#D5D9D9] px-3.5 py-2 rounded-md transition-colors flex items-center gap-1.5"
+                          className="text-xs font-medium text-[#0F1111] hover:bg-[#F7FAFA] bg-white border border-[#D5D9D9] px-3.5 py-2 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
                         >
                           <RotateCcw className="h-3 w-3 text-gray-500" />
                           <span>Return / Exchange</span>
@@ -875,7 +875,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                       <button
                         type="button"
                         onClick={() => handleReorder(order.items[0])}
-                        className="text-xs font-bold text-[#0F1111] bg-[#FF9900] hover:bg-[#FA8900] border border-[#FF8F00] px-4 py-2 rounded-md shadow-sm transition-all flex items-center gap-1.5"
+                        className="text-xs font-bold text-[#0F1111] bg-[#FF9900] hover:bg-[#FA8900] border border-[#FF8F00] px-4 py-2 rounded-md shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
                         <span>Buy It Again</span>

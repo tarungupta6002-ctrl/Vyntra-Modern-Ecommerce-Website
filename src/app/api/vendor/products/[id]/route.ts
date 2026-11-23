@@ -328,6 +328,23 @@ export async function PUT(request: Request, context: RouteContext) {
             },
           });
         }
+
+        // Automatically prune orphaned variants that the vendor explicitly excluded / removed
+        const submittedVariantIds = new Set(variantsInput.map((v: any) => v.id).filter(Boolean));
+        const submittedSkus = new Set(variantsInput.map((v: any) => (v.sku?.trim() || '').toUpperCase()));
+        const orphanedVariants = existingVariants.filter(
+          (ev) => !submittedVariantIds.has(ev.id) && !submittedSkus.has(ev.sku.toUpperCase())
+        );
+        if (orphanedVariants.length > 0) {
+          const orphanIds = orphanedVariants.map((ov) => ov.id);
+          const orderedCount = await tx.orderItem.count({
+            where: { variantId: { in: orphanIds } },
+          });
+          if (orderedCount === 0) {
+            await tx.productInventory.deleteMany({ where: { variantId: { in: orphanIds } } });
+            await tx.productVariant.deleteMany({ where: { id: { in: orphanIds } } });
+          }
+        }
       } else if (typeof body.stock === 'number' || typeof body.stock === 'string') {
         // Fallback: single primary variant stock update
         const primaryVariant = await tx.productVariant.findFirst({

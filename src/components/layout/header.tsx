@@ -21,6 +21,7 @@ import {
   Headphones,
   Zap,
   Home,
+  Check,
 } from 'lucide-react';
 import { BrandLogo } from './brand-logo';
 import { useCartStore } from '@/store/cart-store';
@@ -38,25 +39,28 @@ const CATEGORIES: {
 }[] = [
   { name: 'All', href: '/products', isAll: true },
   { name: 'Fashion', href: '/products?category=fashion' },
-  { name: 'Mobiles', href: '/products?category=electronics' },
+  { name: 'Mobiles', href: '/mobiles' },
   { name: "Today's Deals", href: '/products?deals=true', isDeal: true },
-  { name: 'Electronics', href: '/products?category=electronics' },
+  { name: 'Electronics', href: '/electronics' },
   { name: 'Beauty', href: '/products?category=beauty-wellness' },
   { name: 'Home', href: '/products?category=home-living' },
-  { name: 'Appliances', href: '/products?category=electronics' },
-  { name: 'Books', href: '/products' },
+  { name: 'Appliances', href: '/appliances' },
+  { name: 'Books', href: '/books' },
   { name: 'New Releases', href: '/products?sort=newest' },
   { name: 'Best Sellers', href: '/products?sort=curated' },
 ];
 
 const SEARCH_CATEGORIES = [
   'All Categories',
-  'Fashion & Apparel',
+  'Books & Literature',
+  'Mobiles & Smartphones',
   'Electronics & Gadgets',
-  'Beauty & Fragrances',
-  'Home & Decor',
+  'Major & Home Appliances',
+  'Fashion & Apparel',
   'Footwear',
-  'Accessories',
+  'Accessories & Watches',
+  'Beauty & Fragrances',
+  'Home & Living',
   'Artisanal Crafts',
 ];
 
@@ -73,6 +77,22 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep "All Categories" as default so search works globally across the entire store
+  // Users can still explicitly select a specific category from the dropdown if they wish.
+
+  // Click outside to close category dropdown
+  useEffect(() => {
+    if (!categoryDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [categoryDropdownOpen]);
 
   const { toggleCart, getTotalItems, getSubtotal } = useCartStore();
   const { getTotalItems: getWishlistTotal } = useWishlistStore();
@@ -311,12 +331,123 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
     return null;
   }
 
+  const getSearchPlaceholder = () => {
+    switch (selectedCategory) {
+      case 'Mobiles & Smartphones':
+        return 'Search Mobiles, iPhones, 5G smartphones...';
+      case 'Electronics & Gadgets':
+        return 'Search Laptops, Audio, Headphones, Cameras...';
+      case 'Fashion & Apparel':
+        return 'Search Sarees, Kurtas, Western wear, Denim...';
+      case 'Footwear':
+        return 'Search Sneakers, Formal Shoes, Heels, Boots...';
+      case 'Accessories & Watches':
+        return 'Search Luxury Watches, Smartwatches, Bags...';
+      case 'Beauty & Fragrances':
+        return 'Search Skincare, Perfumes, Makeup, Wellness...';
+      case 'Home & Living':
+        return 'Search Home Decor, Bedding, Kitchen & Living...';
+      default:
+        return 'Search Vyntra: fashion, electronics, artisanal couture...';
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push('/products');
+    const q = searchQuery.trim();
+    const encoded = encodeURIComponent(q);
+    const qLower = q.toLowerCase();
+
+    // 1. High-priority keyword intent detection (Amazon-style smart search routing)
+    // If user searches for laptops, computers, cameras, or audio gear, always route to /electronics
+    const isElectronicsKeyword = /laptop|macbook|notebook|pc|computer|camera|dslr|mirrorless|headphone|earphone|earbud|soundbar|audio|speaker|tablet|ipad|intel|ryzen|gaming pc/i.test(qLower);
+    const isMobileKeyword = /phone|mobile|smartphone|iphone|galaxy\s*s|oneplus|redmi|realme|vivo|oppo|pixel/i.test(qLower);
+    const isAppliancesKeyword = /refrigerator|fridge|washing\s*machine|washer|dryer|air\s*conditioner|\bac\b|split\s*ac|inverter\s*ac|microwave|convection|chimney|dishwasher|geyser|water\s*purifier|vacuum\s*cleaner|air\s*fryer|induction\s*cooktop|appliance/i.test(qLower);
+    const isBookKeyword = /\b(book|books|novel|novels|paperback|hardcover|author|biography|autobiography|manga|comic|comics|atomic\s*habits|psychology\s*of\s*money|rich\s*dad|ikigai|ncert|upsc|shiva\s*trilogy|sudha\s*murty)\b/i.test(qLower);
+    const isFootwearKeyword = /shoe|sneaker|footwear|sandal|boot|heel|loafer/i.test(qLower);
+    const isWatchKeyword = /watch|smartwatch|chronograph|rolex|casio|fossil/i.test(qLower);
+    const isBeautyKeyword = /perfume|fragrance|lipstick|makeup|skincare|serum|shampoo|cologne/i.test(qLower);
+
+    if (isBookKeyword) {
+      router.push(q ? `/books?q=${encoded}` : '/books');
+      return;
+    }
+
+    if (isAppliancesKeyword) {
+      router.push(q ? `/appliances?q=${encoded}` : '/appliances');
+      return;
+    }
+
+    if (isElectronicsKeyword) {
+      router.push(q ? `/electronics?q=${encoded}` : '/electronics');
+      return;
+    }
+
+    if (isMobileKeyword) {
+      router.push(q ? `/mobiles?q=${encoded}` : '/mobiles');
+      return;
+    }
+
+    if (isFootwearKeyword) {
+      router.push(q ? `/category/mens-footwear?q=${encoded}` : '/category/mens-footwear');
+      return;
+    }
+
+    if (isWatchKeyword) {
+      router.push(q ? `/category/watches?q=${encoded}` : '/category/watches');
+      return;
+    }
+
+    if (isBeautyKeyword) {
+      router.push(q ? `/products?category=beauty-wellness&search=${encoded}` : '/products?category=beauty-wellness');
+      return;
+    }
+
+    // 2. Department-based fallback if user specifically selected a category
+    switch (selectedCategory) {
+      case 'Mobiles & Smartphones':
+        router.push(q ? `/mobiles?q=${encoded}` : '/mobiles');
+        break;
+
+      case 'Books & Literature':
+        router.push(q ? `/books?q=${encoded}` : '/books');
+        break;
+
+      case 'Electronics & Gadgets':
+        router.push(q ? `/electronics?q=${encoded}` : '/electronics');
+        break;
+
+      case 'Major & Home Appliances':
+        router.push(q ? `/appliances?q=${encoded}` : '/appliances');
+        break;
+
+      case 'Fashion & Apparel':
+        router.push(q ? `/products?category=apparel&search=${encoded}` : '/category/ethnic');
+        break;
+
+      case 'Footwear':
+        router.push(q ? `/category/mens-footwear?q=${encoded}` : '/category/mens-footwear');
+        break;
+
+      case 'Accessories & Watches':
+        router.push(q ? `/category/watches?q=${encoded}` : '/category/watches');
+        break;
+
+      case 'Beauty & Fragrances':
+        router.push(q ? `/products?category=beauty-wellness&search=${encoded}` : '/products?category=beauty-wellness');
+        break;
+
+      case 'Home & Living':
+        router.push(q ? `/products?category=home-living&search=${encoded}` : '/products?category=home-living');
+        break;
+
+      default:
+        if (q) {
+          router.push(`/products?search=${encoded}`);
+        } else {
+          router.push('/products');
+        }
+        break;
     }
   };
 
@@ -377,7 +508,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             className="flex-1 max-w-3xl hidden md:flex items-center h-10 rounded-[6px] overflow-hidden focus-within:ring-2 focus-within:ring-[#FF9900] bg-white border border-transparent"
           >
             {/* Category Dropdown */}
-            <div className="relative shrink-0">
+            <div ref={categoryDropdownRef} className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
@@ -388,7 +519,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
               </button>
 
               {categoryDropdownOpen && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-white rounded-md shadow-xl border border-[#D5D9D9] py-1.5 z-50 text-xs text-[#0F1111]">
+                <div className="absolute left-0 top-full mt-1 w-56 bg-white rounded-md shadow-xl border border-[#D5D9D9] py-1.5 z-50 text-xs text-[#0F1111]">
                   {SEARCH_CATEGORIES.map((cat) => (
                     <button
                       key={cat}
@@ -397,11 +528,12 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
                         setSelectedCategory(cat);
                         setCategoryDropdownOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-1.5 hover:bg-[#007185] hover:text-white transition-colors ${
+                      className={`w-full text-left px-3 py-2 hover:bg-[#007185] hover:text-white transition-colors flex items-center justify-between ${
                         selectedCategory === cat ? 'bg-[#F2F2F2] font-bold text-[#007185]' : ''
                       }`}
                     >
-                      {cat}
+                      <span>{cat}</span>
+                      {selectedCategory === cat && <Check className="w-3.5 h-3.5 text-[#007185]" />}
                     </button>
                   ))}
                 </div>
@@ -413,7 +545,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Vyntra: fashion, electronics, artisanal couture..."
+              placeholder={getSearchPlaceholder()}
               className="flex-1 h-full px-3 text-sm text-[#0F1111] placeholder:text-[#565959] focus:outline-none bg-white"
             />
 
@@ -708,7 +840,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Vyntra..."
+            placeholder={getSearchPlaceholder()}
             className="flex-1 h-full px-3 text-xs text-[#0F1111] placeholder:text-[#565959] focus:outline-none"
           />
           <button

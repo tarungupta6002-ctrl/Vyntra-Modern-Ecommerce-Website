@@ -13,6 +13,8 @@ export type CategoryMeasurementType =
   | 'jewelry-accessories'
   | 'bags-leather'
   | 'electronics'
+  | 'appliances'
+  | 'books'
   | 'home-living'
   | 'beauty-wellness'
   | 'innerwear'
@@ -91,11 +93,41 @@ export const BAGS_LEATHER_SLUGS = new Set([
   'wallets-belts-accessories',      // Subcategory
 ]);
 
-// 7. Electronics & Smart Gadgets
+// 7. Electronics, Mobiles & Computing Gadgets
 export const ELECTRONICS_SLUGS = new Set([
   'electronics',                    // Parent
+  'mobiles',                        // Mobiles & Smartphones
+  'smartphones',
+  'laptops',
+  'computers',
   'audio-headphones',               // Subcategory
   'smartwatches-wearables',         // Subcategory
+]);
+
+// 8. Large & Small Home Appliances
+export const APPLIANCES_SLUGS = new Set([
+  'appliances',                     // Parent
+  'refrigerators',
+  'washing-machines',
+  'air-conditioners',
+  'coolers',
+  'microwaves',
+  'geysers',
+  'water-purifiers',
+  'vacuum-cleaners',
+  'dishwashers',
+  'kitchen-appliances',
+]);
+
+// 9. Books & Literature
+export const BOOKS_SLUGS = new Set([
+  'books',                          // Parent
+  'literature-fiction',
+  'non-fiction',
+  'business-investing',
+  'self-help',
+  'children-books',
+  'academic-textbooks',
 ]);
 
 // 8. Home, Kitchen & Living
@@ -211,16 +243,62 @@ export function getCategoryMeasurementProfile(
   }
 
   // 6. Electronics & Smart Gadgets
-  if (ELECTRONICS_SLUGS.has(normalizedSlug) || ELECTRONICS_SLUGS.has(normalizedParentSlug)) {
+  if (
+    ELECTRONICS_SLUGS.has(normalizedSlug) ||
+    ELECTRONICS_SLUGS.has(normalizedParentSlug) ||
+    normalizedSlug.includes('electronic') ||
+    normalizedSlug.includes('laptop') ||
+    normalizedSlug.includes('computer')
+  ) {
     return {
       showApparelChart: false,
       type: 'electronics',
-      badge: 'Electronics & Smart Gadgets',
+      badge: 'Electronics & Computing',
       title: 'Apparel Chart Not Applicable for Electronics',
       description:
-        'Audio earbuds, headphones, and smart wearables do not use apparel sizing.',
+        'Computers, laptops, audio devices, and smart wearables do not use apparel sizing.',
       recommendation:
-        'Specify technical parameters, battery life, and compatibility under Specifications above.',
+        'Specify technical parameters, processor, RAM, and storage under Specifications above.',
+    };
+  }
+
+  // 6.5 Large & Small Home Appliances
+  if (
+    APPLIANCES_SLUGS.has(normalizedSlug) ||
+    APPLIANCES_SLUGS.has(normalizedParentSlug) ||
+    normalizedSlug.includes('appliance') ||
+    normalizedSlug.includes('refrigerator') ||
+    normalizedSlug.includes('washing') ||
+    normalizedSlug.includes('conditioner')
+  ) {
+    return {
+      showApparelChart: false,
+      type: 'appliances',
+      badge: 'Home Appliances',
+      title: 'Apparel Chart Not Applicable for Appliances',
+      description:
+        'Refrigerators, washing machines, and ACs do not use clothing measurements.',
+      recommendation:
+        'Specify capacity, energy star rating, wattage, and dimensions under Specifications above.',
+    };
+  }
+
+  // 6.7 Books & Literature
+  if (
+    BOOKS_SLUGS.has(normalizedSlug) ||
+    BOOKS_SLUGS.has(normalizedParentSlug) ||
+    normalizedSlug.includes('book') ||
+    normalizedSlug.includes('literature')
+  ) {
+    return {
+      showApparelChart: false,
+      type: 'books',
+      badge: 'Books & Literature',
+      title: 'Apparel Chart Not Applicable for Books',
+      description:
+        'Books and literature items do not use clothing measurements.',
+      recommendation:
+        'Specify author, publisher, ISBN, and page count under Specifications above.',
     };
   }
 

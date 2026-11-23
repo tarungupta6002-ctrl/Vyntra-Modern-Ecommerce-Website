@@ -31,6 +31,7 @@ import {
   Search,
   ChevronRight,
   RotateCcw,
+  X,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { APlusData, createDefaultAPlusContent } from '@/types/aplus';
@@ -63,6 +64,30 @@ export interface ProductFormProps {
   mode: 'create' | 'edit';
   productId?: string;
   initialData?: any;
+}
+
+const DRAFT_STORAGE_KEY = 'vyntra_vendor_product_draft';
+
+interface ProductDraft {
+  savedAt: string;
+  title: string;
+  subtitle: string;
+  brand: string;
+  categoryId: string;
+  selectedPath: string[];
+  isCustomized: boolean;
+  price: string;
+  originalPrice: string;
+  images: Array<{ id: string; url: string; isPrimary: boolean }>;
+  hasVariants: boolean;
+  standardStock: string;
+  variants: ProductVariantItem[];
+  selectedSizes: string[];
+  customAddedSizes: string[];
+  description: string;
+  highlights: string[];
+  specs: Array<{ label: string; value: string }>;
+  aplusData?: APlusData;
 }
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size'];
@@ -149,6 +174,13 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   const [builderColor, setBuilderColor] = useState('');
   const [selectedSizes, setSelectedSizes] = useState<string[]>(['S', 'M', 'L', 'XL', '2XL']);
 
+  // Dynamic Appliance & Universal Custom Variant State
+  const [customCapacityValue, setCustomCapacityValue] = useState('');
+  const [customStarRating, setCustomStarRating] = useState('3 Star');
+  const [customExtraSpec, setCustomExtraSpec] = useState('');
+  const [universalCustomVariant, setUniversalCustomVariant] = useState('');
+  const [customAddedSizes, setCustomAddedSizes] = useState<string[]>([]);
+
   // Description & Highlights
   const [description, setDescription] = useState(initialData?.description || '');
   const [highlights, setHighlights] = useState<string[]>(
@@ -215,6 +247,149 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     }
     loadCategories();
   }, []);
+
+  // Auto-Save Draft & Crash Recovery State
+  const [existingDraft, setExistingDraft] = useState<ProductDraft | null>(null);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
+
+  const isFormDirty = Boolean(
+    title.trim() ||
+    brand.trim() ||
+    price.trim() ||
+    categoryId ||
+    images.length > 0 ||
+    variants.length > 0 ||
+    description.trim() ||
+    highlights.length > 0 ||
+    (specs && specs.length > 1)
+  );
+
+  // Level 1: Accidental window close or refresh warning (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (mode === 'create' && isFormDirty && !isSubmitting) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [mode, isFormDirty, isSubmitting]);
+
+  // Level 2: Check for existing draft on mount (only in create mode)
+  useEffect(() => {
+    if (mode !== 'create') return;
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed: ProductDraft = JSON.parse(saved);
+        if (parsed && (parsed.title || parsed.brand || parsed.price || (parsed.images && parsed.images.length > 0))) {
+          setExistingDraft(parsed);
+          setShowDraftModal(true);
+        }
+      }
+    } catch (err) {
+      console.warn('[ProductDraft Parse Warning]', err);
+    }
+  }, [mode]);
+
+  // Level 2: Debounced background auto-save to localStorage
+  useEffect(() => {
+    if (mode !== 'create') return;
+    if (!isFormDirty || isSubmitting) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const draft: ProductDraft = {
+          savedAt: new Date().toISOString(),
+          title,
+          subtitle,
+          brand,
+          categoryId,
+          selectedPath,
+          isCustomized,
+          price,
+          originalPrice,
+          images,
+          hasVariants,
+          standardStock,
+          variants,
+          selectedSizes,
+          customAddedSizes,
+          description,
+          highlights,
+          specs,
+          aplusData,
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        const now = new Date();
+        setLastAutoSavedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      } catch (err) {
+        console.warn('[Auto-save Draft Warning]', err);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [
+    mode,
+    isFormDirty,
+    isSubmitting,
+    title,
+    subtitle,
+    brand,
+    categoryId,
+    selectedPath,
+    isCustomized,
+    price,
+    originalPrice,
+    images,
+    hasVariants,
+    standardStock,
+    variants,
+    selectedSizes,
+    customAddedSizes,
+    description,
+    highlights,
+    specs,
+    aplusData,
+  ]);
+
+  const handleRestoreDraft = () => {
+    if (!existingDraft) return;
+    if (existingDraft.title !== undefined) setTitle(existingDraft.title);
+    if (existingDraft.subtitle !== undefined) setSubtitle(existingDraft.subtitle);
+    if (existingDraft.brand !== undefined) setBrand(existingDraft.brand);
+    if (existingDraft.categoryId !== undefined) setCategoryId(existingDraft.categoryId);
+    if (existingDraft.selectedPath !== undefined) setSelectedPath(existingDraft.selectedPath);
+    if (existingDraft.isCustomized !== undefined) setIsCustomized(existingDraft.isCustomized);
+    if (existingDraft.price !== undefined) setPrice(existingDraft.price);
+    if (existingDraft.originalPrice !== undefined) setOriginalPrice(existingDraft.originalPrice);
+    if (existingDraft.images !== undefined) setImages(existingDraft.images);
+    if (existingDraft.hasVariants !== undefined) setHasVariants(existingDraft.hasVariants);
+    if (existingDraft.standardStock !== undefined) setStandardStock(existingDraft.standardStock);
+    if (existingDraft.variants !== undefined) setVariants(existingDraft.variants);
+    if (existingDraft.selectedSizes !== undefined) setSelectedSizes(existingDraft.selectedSizes);
+    if (existingDraft.customAddedSizes !== undefined) setCustomAddedSizes(existingDraft.customAddedSizes);
+    if (existingDraft.description !== undefined) setDescription(existingDraft.description);
+    if (existingDraft.highlights !== undefined) setHighlights(existingDraft.highlights);
+    if (existingDraft.specs !== undefined) setSpecs(existingDraft.specs);
+    if (existingDraft.aplusData !== undefined) setAplusData(existingDraft.aplusData);
+
+    setShowDraftModal(false);
+    setSuccessMessage('Restored your unsaved product draft successfully!');
+    setTimeout(() => setSuccessMessage(''), 4000);
+  };
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {}
+    setExistingDraft(null);
+    setShowDraftModal(false);
+  };
 
   // Category quick filter state
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
@@ -433,6 +608,400 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     );
   }, [activeCategory, selectedPath, title]);
 
+  const isAudioCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('headphone') ||
+      slug.includes('earphone') ||
+      slug.includes('earbud') ||
+      slug.includes('audio') ||
+      slug.includes('speaker') ||
+      slug.includes('soundbar') ||
+      name.includes('headphone') ||
+      name.includes('earphone') ||
+      name.includes('audio') ||
+      name.includes('speaker') ||
+      pathStr.includes('audio') ||
+      pathStr.includes('headphone') ||
+      titleLower.includes('headphone') ||
+      titleLower.includes('earphone') ||
+      titleLower.includes('earbud') ||
+      titleLower.includes('speaker') ||
+      titleLower.includes('soundbar') ||
+      titleLower.includes('tws') ||
+      titleLower.includes('airpods') ||
+      titleLower.includes('tune 7') ||
+      titleLower.includes('tune 5') ||
+      titleLower.includes('over ear') ||
+      titleLower.includes('in-ear')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isLaptopCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('laptop') ||
+      slug.includes('notebook') ||
+      slug.includes('macbook') ||
+      name.includes('laptop') ||
+      pathStr.includes('laptop') ||
+      titleLower.includes('laptop') ||
+      titleLower.includes('macbook') ||
+      titleLower.includes('ultrabook') ||
+      titleLower.includes('ai pc') ||
+      titleLower.includes('intel core') ||
+      titleLower.includes('ryzen')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isSmartwatchCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('smartwatch') ||
+      slug.includes('wearable') ||
+      name.includes('smartwatch') ||
+      titleLower.includes('smartwatch') ||
+      titleLower.includes('smart watch') ||
+      titleLower.includes('apple watch') ||
+      titleLower.includes('galaxy watch')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isTabletCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('tablet') ||
+      slug.includes('ipad') ||
+      name.includes('tablet') ||
+      titleLower.includes('tablet') ||
+      titleLower.includes('ipad')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isCameraCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('camera') ||
+      slug.includes('photography') ||
+      slug.includes('dslr') ||
+      slug.includes('mirrorless') ||
+      name.includes('camera') ||
+      name.includes('photography') ||
+      pathStr.includes('camera') ||
+      pathStr.includes('photography') ||
+      titleLower.includes('camera') ||
+      titleLower.includes('dslr') ||
+      titleLower.includes('mirrorless') ||
+      titleLower.includes('alpha ilce') ||
+      titleLower.includes('eos r') ||
+      titleLower.includes('gopro') ||
+      titleLower.includes('action cam') ||
+      titleLower.includes('lens kit')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isRefrigeratorCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('refrigerator') ||
+      name.includes('refrigerator') ||
+      pathStr.includes('refrigerator') ||
+      titleLower.includes('refrigerator') ||
+      titleLower.includes('fridge')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isWashingMachineCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('washing-machine') ||
+      name.includes('washing') ||
+      pathStr.includes('washing') ||
+      titleLower.includes('washing machine') ||
+      titleLower.includes('washer')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isAirConditionerCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('air-conditioner') ||
+      name.includes('conditioner') ||
+      pathStr.includes('conditioner') ||
+      titleLower.includes('air conditioner') ||
+      titleLower.includes('split ac') ||
+      titleLower.includes('inverter ac') ||
+      /\bac\b/i.test(titleLower)
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isAirCoolerCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('cooler') ||
+      name.includes('cooler') ||
+      pathStr.includes('cooler') ||
+      titleLower.includes('cooler')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isWaterPurifierCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('purifier') ||
+      name.includes('purifier') ||
+      pathStr.includes('purifier') ||
+      titleLower.includes('water purifier') ||
+      titleLower.includes('purifier')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isGeyserCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('geyser') ||
+      slug.includes('water-heater') ||
+      name.includes('geyser') ||
+      name.includes('heater') ||
+      pathStr.includes('geyser') ||
+      titleLower.includes('geyser') ||
+      titleLower.includes('water heater')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isDryerCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('dryer') ||
+      name.includes('dryer') ||
+      pathStr.includes('dryer') ||
+      titleLower.includes('hair dryer') ||
+      titleLower.includes('dryer')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isMicrowaveCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('microwave') ||
+      slug.includes('oven') ||
+      name.includes('microwave') ||
+      name.includes('oven') ||
+      pathStr.includes('microwave') ||
+      titleLower.includes('microwave') ||
+      titleLower.includes('convection')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isAirFryerCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('fryer') ||
+      name.includes('fryer') ||
+      pathStr.includes('fryer') ||
+      titleLower.includes('air fryer') ||
+      titleLower.includes('fryer')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isChimneyCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('chimney') ||
+      name.includes('chimney') ||
+      pathStr.includes('chimney') ||
+      titleLower.includes('chimney') ||
+      titleLower.includes('exhaust hood')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isMixerInductionCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('mixer') ||
+      slug.includes('grinder') ||
+      slug.includes('induction') ||
+      slug.includes('cooktop') ||
+      name.includes('mixer') ||
+      name.includes('induction') ||
+      pathStr.includes('mixer') ||
+      titleLower.includes('mixer grinder') ||
+      titleLower.includes('induction') ||
+      titleLower.includes('cooktop')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isDishwasherCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('dishwasher') ||
+      name.includes('dishwasher') ||
+      pathStr.includes('dishwasher') ||
+      titleLower.includes('dishwasher')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isVacuumCleanerCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('vacuum') ||
+      name.includes('vacuum') ||
+      pathStr.includes('vacuum') ||
+      titleLower.includes('vacuum cleaner') ||
+      titleLower.includes('vacuum')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isApplianceCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    return (
+      isRefrigeratorCategory ||
+      isWashingMachineCategory ||
+      isAirConditionerCategory ||
+      isAirCoolerCategory ||
+      isWaterPurifierCategory ||
+      isGeyserCategory ||
+      isDryerCategory ||
+      isMicrowaveCategory ||
+      isAirFryerCategory ||
+      isChimneyCategory ||
+      isMixerInductionCategory ||
+      isDishwasherCategory ||
+      isVacuumCleanerCategory ||
+      slug.includes('appliance') ||
+      name.includes('appliance') ||
+      pathStr.includes('appliance')
+    );
+  }, [
+    isRefrigeratorCategory,
+    isWashingMachineCategory,
+    isAirConditionerCategory,
+    isAirCoolerCategory,
+    isWaterPurifierCategory,
+    isGeyserCategory,
+    isDryerCategory,
+    isMicrowaveCategory,
+    isAirFryerCategory,
+    isChimneyCategory,
+    isMixerInductionCategory,
+    isDishwasherCategory,
+    isVacuumCleanerCategory,
+    activeCategory,
+    selectedPath,
+  ]);
+
+  const isBookCategory = React.useMemo(() => {
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug.includes('book') ||
+      slug.includes('literature') ||
+      name.includes('book') ||
+      name.includes('literature') ||
+      pathStr.includes('book') ||
+      pathStr.includes('literature') ||
+      titleLower.includes('book') ||
+      titleLower.includes('novel') ||
+      titleLower.includes('paperback') ||
+      titleLower.includes('hardcover') ||
+      titleLower.includes('author') ||
+      titleLower.includes('isbn') ||
+      titleLower.includes('reading')
+    );
+  }, [activeCategory, selectedPath, title]);
+
+  const isMobileCategory = React.useMemo(() => {
+    // Audio, Laptops, Smartwatches, Tablets, Cameras, Appliances, Books are NEVER mobile phones
+    if (isAudioCategory || isLaptopCategory || isSmartwatchCategory || isTabletCategory || isCameraCategory || isApplianceCategory || isBookCategory) return false;
+    const slug = (activeCategory?.slug || '').toLowerCase();
+    const name = (activeCategory?.name || '').toLowerCase();
+    const pathStr = selectedPath.join(' ').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    return (
+      slug === 'mobiles' ||
+      slug === 'smartphones' ||
+      name.includes('mobile') ||
+      name.includes('smartphone') ||
+      pathStr.includes('mobile') ||
+      pathStr.includes('smartphone') ||
+      titleLower.includes('smartphone') ||
+      titleLower.includes('iphone') ||
+      titleLower.includes('galaxy s') ||
+      /\b(phone|mobile|5g phone)\b/i.test(titleLower)
+    );
+  }, [isAudioCategory, isLaptopCategory, isSmartwatchCategory, isTabletCategory, isCameraCategory, isApplianceCategory, isBookCategory, activeCategory, selectedPath, title]);
+
+  const isElectronicsCategory = React.useMemo(() => {
+    return (
+      isMobileCategory ||
+      isLaptopCategory ||
+      isAudioCategory ||
+      isSmartwatchCategory ||
+      isTabletCategory ||
+      isCameraCategory ||
+      (activeCategory?.slug || '').toLowerCase().includes('electronic') ||
+      (activeCategory?.name || '').toLowerCase().includes('electronic')
+    );
+  }, [isMobileCategory, isLaptopCategory, isAudioCategory, isSmartwatchCategory, isTabletCategory, isCameraCategory, activeCategory]);
+
   const isWomenFootwear = React.useMemo(() => {
     if (!isFootwearCategory) return false;
     const combined = `${activeCategory?.slug || ''} ${activeCategory?.name || ''} ${title || ''} ${selectedPath.join(' ')}`.toLowerCase();
@@ -445,20 +1014,232 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   }, [isFootwearCategory, activeCategory, title, selectedPath]);
 
   const AVAILABLE_SIZES = React.useMemo(() => {
-    if (isFreeSizeCategory) {
-      return ['Free Size'];
-    }
-    if (isFootwearCategory) {
+    let base: string[] = [];
+    if (isMobileCategory) {
+      base = [
+        '128 GB',
+        '256 GB',
+        '512 GB',
+        '1 TB',
+        '6GB + 128GB',
+        '8GB + 128GB',
+        '8GB + 256GB',
+        '12GB + 256GB',
+        '12GB + 512GB',
+        '16GB + 512GB',
+      ];
+    } else if (isCameraCategory) {
+      base = [
+        'Body Only',
+        'With 16-50mm Lens',
+        'With 18-135mm Lens',
+        'Dual Lens Kit',
+        'Creator Kit',
+        'Standard Edition',
+      ];
+    } else if (isRefrigeratorCategory) {
+      base = [
+        '185 L (2 Star)',
+        '215 L (3 Star)',
+        '242 L (3 Star)',
+        '251 L (1 Star)',
+        '260 L (3 Star)',
+        '343 L (3 Star)',
+        '653 L (Side by Side)',
+      ];
+    } else if (isWashingMachineCategory) {
+      base = [
+        '6.5 kg (5 Star)',
+        '7.0 kg (5 Star)',
+        '7.5 kg (5 Star)',
+        '8.0 kg (5 Star)',
+        '9.0 kg (5 Star)',
+      ];
+    } else if (isAirConditionerCategory) {
+      base = [
+        '1.0 Ton (3 Star)',
+        '1.5 Ton (3 Star)',
+        '1.5 Ton (5 Star)',
+        '2.0 Ton (5 Star)',
+      ];
+    } else if (isAirCoolerCategory) {
+      base = [
+        '40 L Personal',
+        '55 L Desert',
+        '70 L Desert',
+        '85 L Desert',
+        '100 L Heavy Duty',
+      ];
+    } else if (isWaterPurifierCategory) {
+      base = [
+        '7 L (RO+UV)',
+        '8 L (RO+UV+UF)',
+        '10 L (RO+UV+Copper)',
+        '12 L Heavy Storage',
+      ];
+    } else if (isGeyserCategory) {
+      base = [
+        '3 L Instant (3000W)',
+        '15 L (2000W, 5 Star)',
+        '25 L (2000W, 5 Star)',
+      ];
+    } else if (isDryerCategory) {
+      base = [
+        '1200 W Compact',
+        '1600 W Fast Dry',
+        '2000 W Professional',
+        '2200 W Salon Grade',
+      ];
+    } else if (isMicrowaveCategory) {
+      base = [
+        '20 L Solo',
+        '23 L Grill',
+        '28 L Convection',
+        '32 L Convection',
+      ];
+    } else if (isAirFryerCategory) {
+      base = [
+        '4.0 L (1400W)',
+        '5.5 L (1800W)',
+        '6.5 L (1800W)',
+        '8.0 L Dual Basket',
+      ];
+    } else if (isChimneyCategory) {
+      base = [
+        '1100 m³/hr (60cm)',
+        '1200 m³/hr (60cm)',
+        '1350 m³/hr (90cm)',
+        '1500 m³/hr Auto-Clean',
+      ];
+    } else if (isMixerInductionCategory) {
+      base = [
+        '500 W (3 Jars)',
+        '750 W (3 Jars)',
+        '1000 W (4 Jars)',
+        '2000 W Induction',
+      ];
+    } else if (isDishwasherCategory) {
+      base = [
+        '12 Place Settings',
+        '14 Place Settings',
+        '16 Place Settings',
+      ];
+    } else if (isVacuumCleanerCategory) {
+      base = [
+        '1600 W Canister',
+        '2000 W Wet & Dry',
+        '150 AW Cordless Stick',
+        'Robotic Auto-Mop',
+      ];
+    } else if (isApplianceCategory) {
+      base = ['Standard Edition', 'Pro Edition'];
+    } else if (isAudioCategory) {
+      base = ['Standard Edition', 'Wireless', 'Wired', 'Active ANC Edition'];
+    } else if (isLaptopCategory) {
+      base = [
+        '8GB + 512GB',
+        '16GB + 512GB',
+        '16GB + 1TB',
+        '32GB + 1TB',
+        '8GB + 256GB',
+        '32GB + 2TB',
+      ];
+    } else if (isSmartwatchCategory) {
+      base = ['40mm', '41mm', '42mm', '44mm', '45mm', '46mm', '49mm'];
+    } else if (isTabletCategory) {
+      base = ['128 GB', '256 GB', '512 GB', '1 TB', '64 GB'];
+    } else if (isElectronicsCategory) {
+      base = ['Standard Edition', 'Pro Edition', 'Wireless', '128 GB', '256 GB', '512 GB', '1 TB'];
+    } else if (isBookCategory) {
+      base = ['Paperback', 'Hardcover', 'Deluxe Edition', 'Box Set'];
+    } else if (isFreeSizeCategory) {
+      base = ['Free Size'];
+    } else if (isFootwearCategory) {
       if (isWomenFootwear) {
-        return ['3 UK', '4 UK', '5 UK', '6 UK', '7 UK', '8 UK', '9 UK'];
+        base = ['3 UK', '4 UK', '5 UK', '6 UK', '7 UK', '8 UK', '9 UK'];
+      } else {
+        base = ['5 UK', '6 UK', '7 UK', '8 UK', '9 UK', '10 UK', '11 UK', '12 UK'];
       }
-      return ['5 UK', '6 UK', '7 UK', '8 UK', '9 UK', '10 UK', '11 UK', '12 UK'];
+    } else {
+      base = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
     }
-    return ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'Free Size'];
-  }, [isFreeSizeCategory, isFootwearCategory, isWomenFootwear]);
+
+    return Array.from(new Set([...customAddedSizes, ...base]));
+  }, [
+    isMobileCategory,
+    isCameraCategory,
+    isRefrigeratorCategory,
+    isWashingMachineCategory,
+    isAirConditionerCategory,
+    isAirCoolerCategory,
+    isWaterPurifierCategory,
+    isGeyserCategory,
+    isDryerCategory,
+    isMicrowaveCategory,
+    isAirFryerCategory,
+    isChimneyCategory,
+    isMixerInductionCategory,
+    isDishwasherCategory,
+    isVacuumCleanerCategory,
+    isApplianceCategory,
+    isAudioCategory,
+    isLaptopCategory,
+    isSmartwatchCategory,
+    isTabletCategory,
+    isElectronicsCategory,
+    isBookCategory,
+    isFreeSizeCategory,
+    isFootwearCategory,
+    isWomenFootwear,
+    customAddedSizes,
+  ]);
 
   useEffect(() => {
-    if (isFreeSizeCategory) {
+    if (isMobileCategory) {
+      setSelectedSizes(['128 GB', '256 GB']);
+    } else if (isCameraCategory) {
+      setSelectedSizes(['Body Only', 'With 18-135mm Lens']);
+    } else if (isRefrigeratorCategory) {
+      setSelectedSizes(['251 L (1 Star)']);
+    } else if (isWashingMachineCategory) {
+      setSelectedSizes(['7.0 kg (5 Star)']);
+    } else if (isAirConditionerCategory) {
+      setSelectedSizes(['1.5 Ton (5 Star)']);
+    } else if (isAirCoolerCategory) {
+      setSelectedSizes(['70 L Desert']);
+    } else if (isWaterPurifierCategory) {
+      setSelectedSizes(['8 L (RO+UV+UF)']);
+    } else if (isGeyserCategory) {
+      setSelectedSizes(['15 L (2000W, 5 Star)']);
+    } else if (isDryerCategory) {
+      setSelectedSizes(['2000 W Professional']);
+    } else if (isMicrowaveCategory) {
+      setSelectedSizes(['28 L Convection']);
+    } else if (isAirFryerCategory) {
+      setSelectedSizes(['5.5 L (1800W)']);
+    } else if (isChimneyCategory) {
+      setSelectedSizes(['1200 m³/hr (60cm)']);
+    } else if (isMixerInductionCategory) {
+      setSelectedSizes(['750 W (3 Jars)']);
+    } else if (isDishwasherCategory) {
+      setSelectedSizes(['14 Place Settings']);
+    } else if (isVacuumCleanerCategory) {
+      setSelectedSizes(['2000 W Wet & Dry']);
+    } else if (isApplianceCategory) {
+      setSelectedSizes(['Standard Edition']);
+    } else if (isAudioCategory) {
+      setSelectedSizes(['Standard Edition']);
+    } else if (isLaptopCategory) {
+      setSelectedSizes(['16GB + 512GB', '16GB + 1TB']);
+    } else if (isSmartwatchCategory) {
+      setSelectedSizes(['41mm', '45mm']);
+    } else if (isTabletCategory) {
+      setSelectedSizes(['128 GB', '256 GB']);
+    } else if (isBookCategory) {
+      setSelectedSizes(['Paperback', 'Hardcover']);
+    } else if (isElectronicsCategory) {
+      setSelectedSizes(['Standard Edition']);
+    } else if (isFreeSizeCategory) {
       setSelectedSizes(['Free Size']);
     } else if (isFootwearCategory) {
       if (isWomenFootwear) {
@@ -469,13 +1250,27 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     } else {
       setSelectedSizes((prev) => {
         const hasShoeSizes = prev.some((s) => s.includes('UK'));
-        if (hasShoeSizes || prev.includes('Free Size')) {
+        const hasMobileSizes = prev.some((s) => s.includes('GB') || s.includes('TB'));
+        if (hasShoeSizes || hasMobileSizes || prev.includes('Free Size')) {
           return ['S', 'M', 'L', 'XL', '2XL'];
         }
         return prev;
       });
     }
-  }, [isFreeSizeCategory, isFootwearCategory, isWomenFootwear]);
+  }, [
+    isMobileCategory,
+    isCameraCategory,
+    isApplianceCategory,
+    isAudioCategory,
+    isLaptopCategory,
+    isSmartwatchCategory,
+    isTabletCategory,
+    isElectronicsCategory,
+    isBookCategory,
+    isFreeSizeCategory,
+    isFootwearCategory,
+    isWomenFootwear,
+  ]);
 
   // Reset manual override whenever category changes so category defaults apply immediately
   useEffect(() => {
@@ -626,6 +1421,72 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     );
   };
 
+  // Add custom capacity or tailored metric for Appliances
+  const handleAddCustomApplianceVariant = () => {
+    const num = customCapacityValue.trim();
+    let constructed = '';
+    if (isRefrigeratorCategory) {
+      if (!num) return;
+      constructed = `${num} L (${customStarRating || '3 Star'})`;
+      if (customExtraSpec) constructed += ` ${customExtraSpec}`;
+    } else if (isWashingMachineCategory) {
+      if (!num) return;
+      constructed = `${num} kg (${customStarRating || '5 Star'})`;
+      if (customExtraSpec) constructed += ` ${customExtraSpec}`;
+    } else if (isAirConditionerCategory) {
+      if (!num) return;
+      constructed = `${num} Ton (${customStarRating || '5 Star'})`;
+      if (customExtraSpec) constructed += ` ${customExtraSpec}`;
+    } else if (isAirCoolerCategory) {
+      if (!num) return;
+      constructed = `${num} L ${customExtraSpec || 'Desert Cooler'}`.trim();
+    } else if (isWaterPurifierCategory) {
+      if (!num) return;
+      constructed = `${num} L (${customExtraSpec || 'RO+UV+UF'})`;
+    } else if (isGeyserCategory) {
+      if (!num) return;
+      constructed = `${num} L (${customExtraSpec || '2000W, 5 Star'})`;
+    } else if (isDryerCategory) {
+      if (!num) return;
+      constructed = `${num} W ${customExtraSpec || 'Professional'}`.trim();
+    } else if (isMicrowaveCategory) {
+      if (!num) return;
+      constructed = `${num} L (${customExtraSpec || 'Convection'})`;
+    } else if (isAirFryerCategory) {
+      if (!num) return;
+      constructed = `${num} L ${customExtraSpec || '(1800W)'}`.trim();
+    } else if (isMixerInductionCategory) {
+      if (!num) return;
+      constructed = `${num} W ${customExtraSpec || '(3 Jars)'}`.trim();
+    } else if (isChimneyCategory) {
+      if (!num) return;
+      constructed = `${num} m³/hr (${customExtraSpec || '60 cm'})`;
+    } else if (isDishwasherCategory) {
+      if (!num) return;
+      constructed = `${num} Place Settings ${customExtraSpec || ''}`.trim();
+    } else if (isVacuumCleanerCategory) {
+      if (!num) return;
+      constructed = `${num} W ${customExtraSpec || 'Canister'}`.trim();
+    } else if (num) {
+      constructed = `${num} ${customExtraSpec || ''}`.trim();
+    }
+
+    if (constructed) {
+      setCustomAddedSizes((prev) => Array.from(new Set([constructed, ...prev])));
+      setSelectedSizes((prev) => Array.from(new Set([...prev, constructed])));
+      setCustomCapacityValue('');
+    }
+  };
+
+  // Add universal custom variant tag for any category
+  const handleAddUniversalCustomVariant = () => {
+    const val = universalCustomVariant.trim();
+    if (!val) return;
+    setCustomAddedSizes((prev) => Array.from(new Set([val, ...prev])));
+    setSelectedSizes((prev) => Array.from(new Set([...prev, val])));
+    setUniversalCustomVariant('');
+  };
+
   // Amazon-style: Generate variants from Color + Selected Sizes
   const handleGenerateAmazonVariants = () => {
     const rawColor = builderColor.trim();
@@ -633,12 +1494,19 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       alert('Please enter a Color Name (e.g. Green, Royal Blue, Black).');
       return;
     }
-    if (selectedSizes.length === 0) {
-      alert('Please select at least one size.');
-      return;
+    let effectiveSizes = [...selectedSizes];
+    if (effectiveSizes.length === 0) {
+      if (isAudioCategory) {
+        effectiveSizes = ['Standard Edition'];
+      } else if (isCameraCategory) {
+        effectiveSizes = ['Body Only'];
+      } else {
+        alert(isFootwearCategory ? 'Please select at least one UK shoe size.' : 'Please select at least one size.');
+        return;
+      }
     }
     const cleanTag = rawColor.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'COL';
-    const newItems: ProductVariantItem[] = selectedSizes.map((sz) => ({
+    const newItems: ProductVariantItem[] = effectiveSizes.map((sz) => ({
       size: sz,
       color: rawColor,
       sku: `${skuPrefix}-${cleanTag}-${sz}`,
@@ -836,6 +1704,9 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       const json = await res.json();
 
       if (res.ok && json.success) {
+        try {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+        } catch {}
         setSuccessMessage(
           publishIntent
             ? 'Listing request submitted successfully for Admin review!'
@@ -1579,7 +2450,51 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 <div className="lg:col-span-5 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-[#0F1111]">
-                      {isFootwearCategory ? (
+                      {isBookCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Book Binding / Format</span>
+                      ) : isMobileCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Storage / RAM Capacity</span>
+                      ) : isCameraCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Camera Kit / Lens Configuration</span>
+                      ) : isRefrigeratorCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Refrigerator Capacity & BEE Star Rating</span>
+                      ) : isWashingMachineCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Washing Machine Load Capacity & Star Rating</span>
+                      ) : isAirConditionerCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. AC Tonnage & BEE Energy Star Rating</span>
+                      ) : isAirCoolerCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Air Cooler Water Tank Capacity & Type</span>
+                      ) : isWaterPurifierCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Water Purifier Storage Tank & Tech</span>
+                      ) : isGeyserCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Geyser Tank Capacity & Wattage</span>
+                      ) : isDryerCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Dryer Power Wattage & Settings</span>
+                      ) : isMicrowaveCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Microwave Cavity Capacity & Type</span>
+                      ) : isAirFryerCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Air Fryer Basket Capacity</span>
+                      ) : isChimneyCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Chimney Suction Power & Width</span>
+                      ) : isMixerInductionCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Motor / Heating Wattage</span>
+                      ) : isDishwasherCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Dishwasher Place Settings</span>
+                      ) : isVacuumCleanerCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Vacuum Cleaner Suction Power</span>
+                      ) : isApplianceCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Capacity / Energy Star Rating</span>
+                      ) : isAudioCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Headphone Variation (Color-Only / Edition)</span>
+                      ) : isLaptopCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose RAM + SSD Configuration</span>
+                      ) : isSmartwatchCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Dial / Case Size</span>
+                      ) : isTabletCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Storage Capacity</span>
+                      ) : isElectronicsCategory ? (
+                        <span className="text-[#007185] font-extrabold">2. Choose Configuration / Storage / Spec</span>
+                      ) : isFootwearCategory ? (
                         <span className="text-[#007185] font-extrabold">2. Choose UK Shoe Sizes (India Standard)</span>
                       ) : (
                         <span>2. Choose Sizes</span>
@@ -1597,6 +2512,366 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       {selectedSizes.length === AVAILABLE_SIZES.length ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
+
+                  {/* Dynamic Custom Capacity / Metric Creator for Appliances */}
+                  {isApplianceCategory && (
+                    <div className="bg-[#F0F8FF] border border-[#BCE1EB] rounded-xl p-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[#007185] flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-[#007185]" />
+                          {isRefrigeratorCategory
+                            ? 'Specify Custom Refrigerator Capacity & Star Rating:'
+                            : isWashingMachineCategory
+                            ? 'Specify Custom Washing Machine Load Capacity & Rating:'
+                            : isAirConditionerCategory
+                            ? 'Specify Custom AC Tonnage & Star Rating:'
+                            : isAirCoolerCategory
+                            ? 'Specify Custom Cooler Tank Capacity & Type:'
+                            : isWaterPurifierCategory
+                            ? 'Specify Custom Water Purifier Tank Capacity:'
+                            : isGeyserCategory
+                            ? 'Specify Custom Geyser Tank Capacity:'
+                            : isDryerCategory
+                            ? 'Specify Custom Dryer Wattage:'
+                            : isMicrowaveCategory
+                            ? 'Specify Custom Microwave Capacity:'
+                            : isAirFryerCategory
+                            ? 'Specify Custom Air Fryer Capacity:'
+                            : isChimneyCategory
+                            ? 'Specify Custom Chimney Suction Power:'
+                            : isMixerInductionCategory
+                            ? 'Specify Custom Motor / Heating Wattage:'
+                            : isDishwasherCategory
+                            ? 'Specify Custom Dishwasher Place Settings:'
+                            : 'Specify Custom Capacity / Spec:'}
+                        </span>
+                        <span className="text-[10px] text-[#565959] italic">Direct custom spec</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Numeric input with unit badge */}
+                        <div className="flex items-center bg-white border border-[#D5D9D9] rounded-lg overflow-hidden shadow-2xs">
+                          <input
+                            type="text"
+                            value={customCapacityValue}
+                            onChange={(e) => setCustomCapacityValue(e.target.value)}
+                            placeholder={
+                              isRefrigeratorCategory
+                                ? 'e.g. 251'
+                                : isWashingMachineCategory
+                                ? 'e.g. 7.5'
+                                : isAirConditionerCategory
+                                ? 'e.g. 1.5'
+                                : isAirCoolerCategory
+                                ? 'e.g. 55'
+                                : isWaterPurifierCategory
+                                ? 'e.g. 8'
+                                : isGeyserCategory
+                                ? 'e.g. 15'
+                                : isDryerCategory
+                                ? 'e.g. 2000'
+                                : isMicrowaveCategory
+                                ? 'e.g. 28'
+                                : isAirFryerCategory
+                                ? 'e.g. 5.5'
+                                : isChimneyCategory
+                                ? 'e.g. 1350'
+                                : isMixerInductionCategory
+                                ? 'e.g. 750'
+                                : isDishwasherCategory
+                                ? 'e.g. 14'
+                                : 'e.g. 250'
+                            }
+                            className="w-20 px-2.5 py-1 text-xs font-bold text-[#0F1111] focus:outline-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomApplianceVariant();
+                              }
+                            }}
+                          />
+                          <span className="bg-stone-100 px-2 py-1 text-xs font-bold text-[#565959] border-l border-[#D5D9D9]">
+                            {isRefrigeratorCategory || isAirCoolerCategory || isWaterPurifierCategory || isGeyserCategory || isMicrowaveCategory || isAirFryerCategory
+                              ? 'Litres (L)'
+                              : isWashingMachineCategory
+                              ? 'kg'
+                              : isAirConditionerCategory
+                              ? 'Ton'
+                              : isDryerCategory || isMixerInductionCategory
+                              ? 'Watts (W)'
+                              : isChimneyCategory
+                              ? 'm³/hr'
+                              : isDishwasherCategory
+                              ? 'Places'
+                              : 'Units'}
+                          </span>
+                        </div>
+
+                        {/* BEE Star Rating Selector */}
+                        {(isRefrigeratorCategory || isWashingMachineCategory || isAirConditionerCategory) && (
+                          <div className="flex items-center gap-1 bg-white border border-[#D5D9D9] p-0.5 rounded-lg shadow-2xs">
+                            <span className="text-[10px] font-bold text-[#565959] px-1.5">BEE Star:</span>
+                            {(isRefrigeratorCategory
+                              ? ['1 Star', '2 Star', '3 Star', '4 Star', '5 Star']
+                              : isWashingMachineCategory
+                              ? ['3 Star', '4 Star', '5 Star']
+                              : ['3 Star', '5 Star']
+                            ).map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setCustomStarRating(star)}
+                                className={`px-2 py-0.5 text-[10px] font-bold rounded transition-all ${
+                                  customStarRating === star
+                                    ? 'bg-[#FF9900] text-white shadow-2xs'
+                                    : 'text-[#0F1111] hover:bg-stone-100'
+                                }`}
+                              >
+                                {star}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Extra Feature / Type Pills */}
+                        {isAirCoolerCategory && (
+                          <div className="flex items-center gap-1 bg-white border border-[#D5D9D9] p-0.5 rounded-lg">
+                            {['Desert Cooler', 'Personal Cooler', 'Tower Cooler', 'Window Cooler'].map((type) => (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => setCustomExtraSpec(type)}
+                                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                                  customExtraSpec === type ? 'bg-[#007185] text-white' : 'text-[#0F1111] hover:bg-stone-100'
+                                }`}
+                              >
+                                {type}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {isWaterPurifierCategory && (
+                          <div className="flex items-center gap-1 bg-white border border-[#D5D9D9] p-0.5 rounded-lg">
+                            {['RO+UV', 'RO+UV+UF', 'RO+UV+Copper', 'Alkaline+TDS'].map((tech) => (
+                              <button
+                                key={tech}
+                                type="button"
+                                onClick={() => setCustomExtraSpec(tech)}
+                                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                                  customExtraSpec === tech ? 'bg-[#007185] text-white' : 'text-[#0F1111] hover:bg-stone-100'
+                                }`}
+                              >
+                                {tech}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {isDryerCategory && (
+                          <div className="flex items-center gap-1 bg-white border border-[#D5D9D9] p-0.5 rounded-lg">
+                            {['Professional', 'Ionic Care', 'Fast Dry', 'Salon AC Motor'].map((dr) => (
+                              <button
+                                key={dr}
+                                type="button"
+                                onClick={() => setCustomExtraSpec(dr)}
+                                className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                                  customExtraSpec === dr ? 'bg-[#007185] text-white' : 'text-[#0F1111] hover:bg-stone-100'
+                                }`}
+                              >
+                                {dr}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Button */}
+                        <button
+                          type="button"
+                          onClick={handleAddCustomApplianceVariant}
+                          className="px-3 py-1.5 rounded-lg bg-[#007185] hover:bg-[#005a6a] text-white text-xs font-bold shadow-xs flex items-center gap-1 transition-all"
+                        >
+                          <Plus className="h-3 w-3" />
+                          <span>Add Capacity</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Book Quick Presets */}
+                  {isBookCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Binding Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Paperback'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Paperback
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Paperback', 'Hardcover'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Paperback + Hardcover
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Paperback', 'Hardcover', 'Box Set'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Collector / Box Set
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Camera / Lens Kit Presets */}
+                  {isCameraCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Camera Lens Kits:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Body Only'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Body Only
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Body Only', 'With 16-50mm Lens', 'With 18-135mm Lens'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Body + Zoom Kits
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Single Lens Kit', 'Dual Lens Kit'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Single vs Dual Lens
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Appliance Quick Presets */}
+                  {isApplianceCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Quick Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['242 L (3 Star)', '260 L (3 Star)', '343 L (3 Star)'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Refrigerators (242L - 343L)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['7 kg (5 Star)', '8 kg (5 Star)'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Washing Machines (7-8 kg)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['1.5 Ton (5 Star)', '1.0 Ton (5 Star)'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Air Conditioners (1.5 Ton)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Audio / Headphone Presets */}
+                  {isAudioCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Headphone Variations:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Standard Edition'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Color-Only (Standard Edition)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['Wireless', 'Wired'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Wireless vs Wired
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Laptop Quick Presets */}
+                  {isLaptopCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Laptop Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['8GB + 512GB', '16GB + 512GB'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Standard (8GB / 16GB + 512GB)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['16GB + 512GB', '16GB + 1TB'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Performance (16GB + 512GB / 1TB)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Smartwatch Quick Presets */}
+                  {isSmartwatchCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Dial Sizes:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['41mm', '45mm'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Standard (41mm / 45mm)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['40mm', '44mm'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Compact / Large (40mm / 44mm)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Mobile Quick Storage Presets */}
+                  {isMobileCategory && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                      <span className="text-[#565959] font-medium">Quick Storage Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['128 GB', '256 GB'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Standard (128GB / 256GB)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['128 GB', '256 GB', '512 GB'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        Flagship (128GB / 256GB / 512GB)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSizes(['8GB + 128GB', '8GB + 256GB', '12GB + 256GB'])}
+                        className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[#0F1111] font-semibold border border-stone-200"
+                      >
+                        RAM + ROM Combos
+                      </button>
+                    </div>
+                  )}
 
                   {/* Footwear Quick Range Presets */}
                   {isFootwearCategory && (
@@ -1645,6 +2920,33 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       );
                     })}
                   </div>
+
+                  {/* Universal Custom Variant Tag Input */}
+                  <div className="pt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-[#565959] font-medium whitespace-nowrap">Can&apos;t find your variant?</span>
+                    <div className="flex items-center flex-1 min-w-[200px] max-w-sm bg-white border border-[#D5D9D9] rounded-lg overflow-hidden shadow-2xs">
+                      <input
+                        type="text"
+                        value={universalCustomVariant}
+                        onChange={(e) => setUniversalCustomVariant(e.target.value)}
+                        placeholder="Type any custom variant (e.g. 251 L, 1 Star)..."
+                        className="flex-1 px-2.5 py-1 text-xs text-[#0F1111] focus:outline-none font-medium"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddUniversalCustomVariant();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddUniversalCustomVariant}
+                        className="bg-stone-100 hover:bg-stone-200 px-2.5 py-1 text-xs font-bold text-[#0F1111] border-l border-[#D5D9D9] transition-all"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Step 3: Button */}
@@ -1675,7 +2977,25 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   <table className="w-full text-left text-xs">
                     <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
                       <tr>
-                        <th className="py-2.5 px-3 font-bold">Size</th>
+                        <th className="py-2.5 px-3 font-bold">
+                          {isBookCategory
+                            ? 'Binding / Format'
+                            : isMobileCategory
+                            ? 'Storage / Variant'
+                            : isCameraCategory
+                            ? 'Kit / Configuration'
+                            : isAudioCategory
+                            ? 'Edition / Model'
+                            : isLaptopCategory
+                            ? 'RAM + SSD'
+                            : isSmartwatchCategory
+                            ? 'Dial Size'
+                            : isApplianceCategory
+                            ? 'Capacity / Star Rating'
+                            : isElectronicsCategory
+                            ? 'Configuration / Spec'
+                            : 'Size'}
+                        </th>
                         <th className="py-2.5 px-3 font-bold">Color Name</th>
                         <th className="py-2.5 px-3 font-bold">Image Swatch (Amazon-Style)</th>
                         <th className="py-2.5 px-3 font-bold">Variant SKU</th>
@@ -1693,7 +3013,19 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           type="text"
                           value={v.size}
                           onChange={(e) => handleUpdateVariant(idx, 'size', e.target.value)}
-                          placeholder="e.g. S, M, Free Size"
+                          placeholder={
+                            isBookCategory
+                              ? 'e.g. Paperback, Hardcover'
+                              : isCameraCategory
+                              ? 'e.g. Body Only, With 18-135mm Lens'
+                              : isAudioCategory
+                              ? 'e.g. Standard Edition'
+                              : isMobileCategory
+                              ? 'e.g. 128 GB, 256 GB'
+                              : isLaptopCategory
+                              ? 'e.g. 16GB + 512GB'
+                              : 'e.g. S, M, Free Size'
+                          }
                           className="w-24 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white font-semibold"
                         />
                       </td>
@@ -1704,7 +3036,19 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           type="text"
                           value={v.color}
                           onChange={(e) => handleUpdateVariant(idx, 'color', e.target.value)}
-                          placeholder="e.g. Royal Navy"
+                          placeholder={
+                            isBookCategory
+                              ? 'e.g. Paperback, Hardcover'
+                              : isCameraCategory
+                              ? 'e.g. Black, Silver'
+                              : isAudioCategory
+                              ? 'e.g. Black, Blue, Sand, White'
+                              : isMobileCategory
+                              ? 'e.g. Titanium Black'
+                              : isFootwearCategory
+                              ? 'e.g. Black White, Grey'
+                              : 'e.g. Royal Navy'
+                          }
                           className="w-32 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white"
                         />
                       </td>
@@ -1864,18 +3208,269 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
         {/* Specifications Grid */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
               Technical Specifications Table
             </span>
-            <button
-              type="button"
-              onClick={handleAddSpec}
-              className="text-xs font-bold text-[#007185] hover:underline flex items-center gap-1"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Add Specification</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {isBookCategory ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSpecs([
+                      { label: 'Author', value: brand || 'James Clear' },
+                      { label: 'Publisher', value: 'Penguin Random House' },
+                      { label: 'Language', value: 'English' },
+                      { label: 'Print Length', value: '320 pages' },
+                      { label: 'Binding', value: variants[0]?.size || 'Paperback' },
+                      { label: 'ISBN-10', value: '935302484X' },
+                      { label: 'ISBN-13', value: '978-9353024840' },
+                      { label: 'Reading Age', value: '13 years and up' },
+                      { label: 'Country of Origin', value: 'India' },
+                    ])
+                  }
+                  className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-md hover:bg-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles className="h-3 w-3 text-amber-700" />
+                  <span>Pre-fill Book Specs Template</span>
+                </button>
+              ) : isCameraCategory ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSpecs([
+                      { label: 'Brand', value: brand || 'Sony' },
+                      { label: 'Model Name', value: title ? title.slice(0, 40) : 'ILCE-6700M' },
+                      { label: 'Compatible Mountings', value: 'Sony E' },
+                      { label: 'Aspect Ratio', value: '1:1, 3:2, 4:3, 16:9' },
+                      { label: 'Photo Sensor Technology', value: 'APS-C Exmor R CMOS' },
+                      { label: 'Supported File Format', value: 'HEIF, JPEG, RAW' },
+                      { label: 'Image Stabilisation', value: '5-Axis In-Body Sensor-shift' },
+                      { label: 'Maximum Focal Length', value: '135 Millimeters' },
+                      { label: 'Maximum Aperture', value: '2.8 f' },
+                      { label: 'Expanded ISO Minimum', value: '50' },
+                      { label: 'Metering Description', value: 'Center Weighted / Multi / Spot' },
+                      { label: 'Video Capture Resolution', value: '4K 120p, 4K 60p, 10-bit 4:2:2' },
+                      { label: 'Warranty', value: '2 Years Manufacturer Warranty' },
+                    ])
+                  }
+                  className="text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-300 px-2.5 py-1 rounded-md hover:bg-indigo-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles className="h-3 w-3 text-indigo-600" />
+                  <span>Pre-fill Camera Specs Template</span>
+                </button>
+              ) : isApplianceCategory ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const primaryVariantStr = variants[0]?.size || selectedSizes[0] || '';
+                    const capMatch = primaryVariantStr.match(/(\d+(?:\.\d+)?)\s*(L|kg|Ton|W|m³\/hr)/i) || 
+                                     title.match(/(\d+(?:\.\d+)?)\s*(L|Litres?|kg|Ton|W|m³\/hr)/i);
+                    const capNum = capMatch ? capMatch[1] : '';
+                    const starMatch = primaryVariantStr.match(/([1-5])\s*Star/i) || title.match(/([1-5])\s*Star/i);
+                    const starValue = starMatch ? `${starMatch[1]} Star BEE Certified` : '5 Star BEE Certified';
+
+                    if (isRefrigeratorCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'LG' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Smart Inverter Refrigerator' },
+                        { label: 'Energy Star Rating', value: starValue },
+                        { label: 'Capacity', value: capNum ? `${capNum} Litres` : '251 Litres' },
+                        { label: 'Configuration', value: 'Double Door Frost Free' },
+                        { label: 'Compressor Type', value: 'Smart Inverter Compressor with 10 Year Warranty' },
+                        { label: 'Annual Energy Consumption', value: '232 Kilowatt Hours Per Year' },
+                        { label: 'Installation Type', value: 'Free Scheduled Standard Installation Included' },
+                        { label: 'Warranty Summary', value: '10 Years on Compressor + 1 Year Comprehensive' },
+                      ]);
+                    } else if (isWashingMachineCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'LG' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Smart Inverter Washing Machine' },
+                        { label: 'Energy Star Rating', value: starValue },
+                        { label: 'Capacity', value: capNum ? `${capNum} Kilograms` : '7.5 Kilograms' },
+                        { label: 'Operation Type', value: 'Fully-Automatic Front Load' },
+                        { label: 'Motor Type', value: 'Smart Inverter Direct Drive Motor with 10-Yr Warranty' },
+                        { label: 'Maximum Rotational Speed', value: '1200 RPM' },
+                        { label: 'Installation Type', value: 'Free Certified Doorstep Installation with Demo' },
+                        { label: 'Warranty Summary', value: '10 Years on Motor + 2 Years Comprehensive Warranty' },
+                      ]);
+                    } else if (isAirCoolerCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'Symphony' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Heavy Duty Desert Air Cooler' },
+                        { label: 'Tank Capacity', value: capNum ? `${capNum} Litres` : '70 Litres' },
+                        { label: 'Cooling Media', value: 'High Density Honeycomb Pads' },
+                        { label: 'Air Throw Distance', value: '45 Feet Powerful Air Throw' },
+                        { label: 'Blower / Fan Type', value: '3-Speed Rust-Proof Heavy Duty Aerodynamic Fan' },
+                        { label: 'Special Features', value: 'Ice Chamber, Inverter Compatible, Dura-Pump Tech' },
+                        { label: 'Warranty Summary', value: '1 Year Brand Manufacturer Warranty' },
+                      ]);
+                    } else if (isWaterPurifierCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'Kent' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Mineral RO Water Purifier' },
+                        { label: 'Storage Tank Capacity', value: capNum ? `${capNum} Litres` : '8 Litres' },
+                        { label: 'Purification Technology', value: 'RO + UV + UF + Alkaline TDS Controller' },
+                        { label: 'Purification Stages', value: '8 Stage Advanced Multi-Barrier Purification' },
+                        { label: 'Filtration Capacity', value: 'Up to 20 Litres Per Hour' },
+                        { label: 'Material', value: '100% Food Grade Non-Toxic ABS Plastic' },
+                        { label: 'Installation Type', value: 'Wall Mountable / Counter Top' },
+                        { label: 'Warranty Summary', value: '1 Year Comprehensive + 3 Years Service Warranty' },
+                      ]);
+                    } else if (isDryerCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'Philips' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Professional Hair Dryer with Ionic Care' },
+                        { label: 'Power Wattage', value: capNum ? `${capNum} Watts` : '2000 Watts' },
+                        { label: 'Heat & Speed Settings', value: '3 Heat Settings + 2 Speed Settings with Cool Shot' },
+                        { label: 'Motor Type', value: 'Long-Life Heavy Duty AC Motor' },
+                        { label: 'Special Features', value: 'Ionic Conditioning for Frizz-Free Shiny Hair' },
+                        { label: 'Cord Length', value: '1.8 Metres Salon Swivel Cord' },
+                        { label: 'In-The-Box', value: 'Hair Dryer Unit, Styling Concentrator Nozzle, User Manual' },
+                        { label: 'Warranty Summary', value: '2 Years Worldwide Brand Warranty' },
+                      ]);
+                    } else if (isAirConditionerCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'Daikin' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Dual Inverter Split Air Conditioner' },
+                        { label: 'Energy Star Rating', value: starValue },
+                        { label: 'Capacity', value: capNum ? `${capNum} Ton` : '1.5 Ton' },
+                        { label: 'Cooling Capacity', value: '5000 Watts' },
+                        { label: 'Compressor Type', value: 'Dual Inverter Rotary Compressor with 10-Yr Warranty' },
+                        { label: 'Condenser Coil', value: '100% Grooved Copper Tubes with Anti-Corrosion Coating' },
+                        { label: 'Installation Type', value: 'Standard Copper Pipe Installation by Brand Technician' },
+                        { label: 'Warranty Summary', value: '10 Years on Compressor + 5 Years on PCB + 1 Year Machine' },
+                      ]);
+                    } else if (isMicrowaveCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'Samsung' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Convection Microwave Oven' },
+                        { label: 'Cavity Capacity', value: capNum ? `${capNum} Litres` : '28 Litres' },
+                        { label: 'Type', value: 'Convection with Grill and Solo Baking Modes' },
+                        { label: 'Auto Cook Menus', value: 'Over 200 Indian Recipes Pre-Programmed' },
+                        { label: 'Cavity Material', value: 'Ceramic Enamel Cavity with 99.9% Anti-Bacterial Protection' },
+                        { label: 'Warranty Summary', value: '10 Years on Ceramic Enamel Cavity + 1 Year Machine' },
+                      ]);
+                    } else if (isChimneyCategory) {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'Faber' },
+                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Auto-Clean Kitchen Chimney' },
+                        { label: 'Suction Capacity', value: capNum ? `${capNum} m³/hr` : '1350 m³/hr' },
+                        { label: 'Size', value: '60 cm (Ideal for 2-4 Burner Stoves)' },
+                        { label: 'Filter Type', value: 'Filterless with Thermal Auto-Clean Technology' },
+                        { label: 'Control Type', value: 'Touch & Motion Gesture Sensor Controls' },
+                        { label: 'Warranty Summary', value: '12 Years on Motor + 2 Years Comprehensive Warranty' },
+                      ]);
+                    } else {
+                      setSpecs([
+                        { label: 'Brand', value: brand || 'LG' },
+                        { label: 'Model Name', value: title ? title.slice(0, 40) : 'Premium Smart Home Appliance' },
+                        { label: 'Energy Star Rating', value: starValue },
+                        { label: 'Capacity', value: capNum ? `${capNum}` : 'Standard Capacity' },
+                        { label: 'Motor / Compressor', value: 'Smart Digital Inverter Technology' },
+                        { label: 'Installation Type', value: 'Free Scheduled Doorstep Installation Included' },
+                        { label: 'Warranty Summary', value: '10 Years on Motor/Compressor + 1 Year Machine Warranty' },
+                      ]);
+                    }
+                  }}
+                  className="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-300 px-2.5 py-1 rounded-md hover:bg-teal-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles className="h-3 w-3 text-teal-600" />
+                  <span>
+                    {isRefrigeratorCategory
+                      ? 'Pre-fill Refrigerator Specs'
+                      : isWashingMachineCategory
+                      ? 'Pre-fill Washing Machine Specs'
+                      : isAirConditionerCategory
+                      ? 'Pre-fill AC Specs'
+                      : isAirCoolerCategory
+                      ? 'Pre-fill Cooler Specs'
+                      : isWaterPurifierCategory
+                      ? 'Pre-fill Purifier Specs'
+                      : isDryerCategory
+                      ? 'Pre-fill Dryer Specs'
+                      : isMicrowaveCategory
+                      ? 'Pre-fill Microwave Specs'
+                      : isChimneyCategory
+                      ? 'Pre-fill Chimney Specs'
+                      : 'Pre-fill Appliance Specs'}
+                  </span>
+                </button>
+              ) : isAudioCategory ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSpecs([
+                      { label: 'Brand', value: brand || 'JBL' },
+                      { label: 'Colour', value: variants[0]?.color || 'Black' },
+                      { label: 'Ear Placement', value: 'Over Ear' },
+                      { label: 'Form Factor', value: 'Over Ear' },
+                      { label: 'Impedance', value: '32 Ohms' },
+                      { label: 'Noise Cancellation', value: 'Adaptive Noise Cancelling with Smart Ambient' },
+                      { label: 'Battery Life', value: 'Up to 76 hours of battery life' },
+                      { label: 'Connectivity', value: 'Bluetooth 5.3 Wireless' },
+                      { label: 'Microphone', value: 'Built-in Beamforming Mics' },
+                      { label: 'Warranty', value: '1 Year Brand Warranty' },
+                    ])
+                  }
+                  className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-md hover:bg-amber-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles className="h-3 w-3 text-amber-600" />
+                  <span>Pre-fill Headphone / Audio Specs Template</span>
+                </button>
+              ) : isMobileCategory ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSpecs([
+                      { label: 'Processor', value: '' },
+                      { label: 'Display', value: '' },
+                      { label: 'RAM', value: '' },
+                      { label: 'Storage', value: '' },
+                      { label: 'Primary Camera', value: '' },
+                      { label: 'Front Camera', value: '' },
+                      { label: 'Battery', value: '' },
+                      { label: 'Network', value: '5G' },
+                      { label: 'Operating System', value: 'Android / iOS' },
+                      { label: 'Warranty', value: '1 Year Manufacturer Warranty' },
+                    ])
+                  }
+                  className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-md hover:bg-emerald-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles className="h-3 w-3 text-emerald-600" />
+                  <span>Pre-fill Mobile Specs Template</span>
+                </button>
+              ) : isElectronicsCategory ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSpecs([
+                      { label: 'Processor / Chipset', value: '' },
+                      { label: 'Display / Resolution', value: '' },
+                      { label: 'RAM / Memory', value: '' },
+                      { label: 'Storage / SSD', value: '' },
+                      { label: 'Graphics / GPU', value: '' },
+                      { label: 'Battery / Playtime', value: '' },
+                      { label: 'Connectivity', value: 'Bluetooth & Wi-Fi' },
+                      { label: 'Operating System', value: 'Windows / macOS' },
+                      { label: 'Warranty', value: '1 Year Brand Warranty' },
+                    ])
+                  }
+                  className="text-xs font-bold text-sky-800 bg-sky-50 border border-sky-300 px-2.5 py-1 rounded-md hover:bg-sky-100 flex items-center gap-1 transition-all"
+                >
+                  <Sparkles className="h-3 w-3 text-sky-600" />
+                  <span>Pre-fill Electronics Specs Template</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleAddSpec}
+                className="text-xs font-bold text-[#007185] hover:underline flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Add Specification</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1915,8 +3510,9 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           </div>
         </div>
 
-        {/* Dynamic Category-Aware Measurement Chart & Explanatory Guidance */}
-        <div className="space-y-3 pt-4 border-t border-[#D5D9D9]">
+        {/* Dynamic Category-Aware Measurement Chart & Explanatory Guidance (Fashion & Footwear only) */}
+        {!isElectronicsCategory && !isApplianceCategory && !isBookCategory && (
+          <div className="space-y-3 pt-4 border-t border-[#D5D9D9]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Ruler className="h-4 w-4 text-[#007185]" />
@@ -2082,6 +3678,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
             </div>
           )}
         </div>
+        )}
       </section>
 
       {/* ===================================================================== */}
@@ -2207,6 +3804,12 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 Made to Order
               </span>
             )}
+            {lastAutoSavedTime && (
+              <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold whitespace-nowrap">
+                <Check className="h-2.5 w-2.5 text-emerald-600" />
+                Auto-saved ({lastAutoSavedTime})
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -2237,6 +3840,89 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           </div>
         </div>
       </div>
+
+      {/* ===================================================================== */}
+      {/* RESTORE DRAFT RECOVERY MODAL                                         */}
+      {/* ===================================================================== */}
+      {showDraftModal && existingDraft && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#232F3E] to-[#131921] text-white p-5 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FF9900]/20 border border-[#FF9900]/40 flex items-center justify-center shrink-0">
+                  <RotateCcw className="w-5 h-5 text-[#FF9900]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white leading-tight">Restore Unsaved Draft?</h3>
+                  <p className="text-xs text-stone-300 mt-0.5">We recovered your progress from an earlier session</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-[#565959] leading-relaxed">
+                You were working on a product before the window was closed or refreshed. Would you like to restore your details or discard and start fresh?
+              </p>
+
+              {/* Draft snapshot card */}
+              <div className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 space-y-2 text-xs">
+                <div className="flex items-baseline justify-between gap-2 border-b border-stone-200/80 pb-2">
+                  <span className="font-bold text-[#0F1111] line-clamp-1">
+                    {existingDraft.title || 'Untitled Product'}
+                  </span>
+                  <span className="font-mono font-bold text-[#007185] whitespace-nowrap">
+                    {existingDraft.price ? `₹${Number(existingDraft.price).toLocaleString('en-IN')}` : 'Price TBD'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-[#565959]">
+                  <div>
+                    Brand: <strong className="text-[#0F1111]">{existingDraft.brand || 'None'}</strong>
+                  </div>
+                  <div>
+                    Variants: <strong className="text-[#0F1111]">{existingDraft.variants?.length || 0} configured</strong>
+                  </div>
+                  <div>
+                    Images: <strong className="text-[#0F1111]">{existingDraft.images?.length || 0} uploaded</strong>
+                  </div>
+                  <div>
+                    Saved: <strong className="text-[#0F1111]">{existingDraft.savedAt ? new Date(existingDraft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleRestoreDraft}
+                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] font-bold text-xs shadow-sm transition-all border border-[#FCD200] flex items-center justify-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Restore My Draft</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardDraft}
+                  className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-white hover:bg-stone-100 text-[#565959] hover:text-rose-600 font-semibold text-xs border border-stone-200 transition-all text-center"
+                >
+                  Discard & Start Fresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Central Media Manager Picker Modal */}
       <MediaPickerModal

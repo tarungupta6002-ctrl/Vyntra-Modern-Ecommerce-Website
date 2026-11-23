@@ -353,9 +353,9 @@ function HandbagsContent() {
             </div>
             )}
 
-            {/* Amazon Prime */}
+            {/* Vyntra Express */}
             <div className="border-t border-zinc-200 pt-3">
-              <div className="font-bold text-zinc-900 text-[13px] mb-1.5">Amazon Prime</div>
+              <div className="font-bold text-zinc-900 text-[13px] mb-1.5">Vyntra Express</div>
               <label className="flex items-center gap-2 cursor-pointer hover:text-amber-700">
                 <input
                   type="checkbox"
@@ -364,7 +364,7 @@ function HandbagsContent() {
                   className="rounded border-zinc-300 text-amber-600 focus:ring-amber-500 h-3.5 w-3.5"
                 />
                 <span className="text-[#00a8e1] font-bold text-[13px] italic flex items-center">
-                  ✓prime
+                  Vyntra Express
                 </span>
               </label>
             </div>
@@ -601,7 +601,7 @@ function HandbagsContent() {
                     {product.isPrime && (
                       <div className="mt-1 flex items-center">
                         <span className="text-[#00a8e1] font-bold text-[11px] italic">
-                          ✓prime
+                          Vyntra Express
                         </span>
                       </div>
                     )}

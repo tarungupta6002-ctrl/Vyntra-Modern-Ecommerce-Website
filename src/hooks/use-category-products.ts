@@ -37,6 +37,7 @@ export interface CategoryProductItem {
   metalType?: string;
   gemstoneType?: string;
   isQualityVerified?: boolean;
+  specs?: Record<string, string>;
   [key: string]: any;
 }
 
@@ -48,6 +49,28 @@ export interface UseCategoryProductsOptions {
 }
 
 const CATEGORY_ALIASES: Record<string, string[]> = {
+  'mobiles': ['mobile', 'smartphone', 'phone', '5g', 'iphone', 'galaxy', 'oneplus', 'redmi', 'realme', 'motorola', 'nothing', 'xiaomi', 'vivo', 'oppo'],
+  'smartphones': ['mobile', 'smartphone', 'phone', '5g', 'iphone', 'galaxy', 'oneplus', 'redmi', 'realme', 'motorola', 'nothing', 'xiaomi', 'vivo', 'oppo'],
+  'electronics': ['electronic', 'laptop', 'macbook', 'audio', 'headphone', 'earbud', 'speaker', 'tablet', 'ipad', 'gaming', 'camera', 'gadget'],
+  'laptops': ['laptop', 'macbook', 'ultrabook', 'notebook', 'thinkpad', 'zenbook', 'pc', 'gaming laptop'],
+  'audio-headphones': ['audio', 'headphone', 'earphone', 'earbud', 'tws', 'speaker', 'soundbar', 'bluetooth speaker', 'airpods'],
+  'smartwatches-wearables': ['smartwatch', 'apple watch', 'galaxy watch', 'fitness tracker', 'smart band', 'wearable'],
+  'tablets-ipads': ['tablet', 'ipad', 'tab', 'galaxy tab'],
+  'gaming-accessories': ['gaming', 'console', 'playstation', 'xbox', 'keyboard', 'mouse', 'controller', 'headset'],
+  'cameras-photography': ['camera', 'dslr', 'mirrorless', 'lens', 'gopro', 'action camera'],
+  'appliances': ['appliance', 'refrigerator', 'fridge', 'washing machine', 'air conditioner', 'ac', 'microwave', 'chimney', 'dishwasher', 'water purifier', 'geyser', 'vacuum cleaner', 'oven'],
+  'refrigerators': ['refrigerator', 'fridge', 'double door', 'side by side', 'single door', 'frost free'],
+  'washing-machines': ['washing machine', 'front load', 'top load', 'washer', 'dryer', 'inverter motor'],
+  'air-conditioners': ['air conditioner', 'ac', 'split ac', 'inverter ac', 'window ac', '1.5 ton', '1 ton', '2 ton'],
+  'kitchen-appliances': ['microwave', 'oven', 'chimney', 'air fryer', 'induction', 'cooktop', 'mixer grinder', 'dishwasher'],
+  'home-appliances': ['water purifier', 'geyser', 'vacuum cleaner', 'iron', 'air purifier'],
+  'books': ['book', 'novel', 'paperback', 'hardcover', 'author', 'reading', 'isbn', 'biography', 'fiction', 'self-help', 'manga'],
+  'self-help-books': ['self-help', 'habits', 'psychology', 'mindset', 'atomic habits', 'ikigai', 'motivation'],
+  'business-finance-books': ['business', 'finance', 'investing', 'money', 'rich dad', 'stock market', 'wealth'],
+  'fiction-literature-books': ['fiction', 'literature', 'novel', 'thriller', 'mystery', 'classic', 'fantasy', 'story'],
+  'indian-literature-books': ['indian author', 'shiva trilogy', 'amish', 'sudha murty', 'hindi sahitya', 'premchand', 'chetan bhagat'],
+  'exam-prep-books': ['exam', 'upsc', 'jee', 'neet', 'ncert', 'textbook', 'syllabus', 'study guide'],
+  'comics-manga-books': ['comic', 'manga', 'children book', 'bedtime story', 'graphic novel', 'kids story'],
   'sarees': ['saree', 'sari', 'kanjivaram', 'banarasi', 'chanderi', 'silk saree', 'cotton saree', 'georgette'],
   'western-wear': ['western', 'dress', 'top', 'tunic', 'jumpsuit', 'skirt', 'jeans', 'trouser', 'blazer', 'co-ord', 't-shirt'],
   'womens-western-wear': ['western', 'dress', 'top', 'tunic', 'jumpsuit', 'skirt', 'jeans', 'trouser', 'blazer'],
@@ -101,6 +124,36 @@ export function matchesCategory(
       cat.includes('lingerie') || sub.includes('lingerie') || title.includes('lingerie') ||
       cat.includes('lehenga') || sub.includes('lehenga') || title.includes('lehenga') ||
       cat.includes('bra') || cat.includes('panty')
+    ) {
+      return false;
+    }
+  }
+
+  // Electronics / Mobiles separation guard:
+  // 1. If target is 'electronics', strictly EXCLUDE mobile phones / smartphones (they belong in /mobiles)
+  if (key === 'electronics') {
+    if (
+      cat === 'mobiles' ||
+      cat === 'smartphones' ||
+      sub === 'mobiles' ||
+      sub === 'smartphones' ||
+      title.includes('phone') ||
+      title.includes('smartphone') ||
+      title.includes('iphone') ||
+      title.includes('galaxy s')
+    ) {
+      return false;
+    }
+  }
+
+  // 2. If target category is NOT mobiles or smartphones, reject mobile & smartphone products
+  const isTargetingMobiles = key === 'mobiles' || key === 'smartphones';
+  if (!isTargetingMobiles) {
+    if (
+      cat === 'mobiles' ||
+      cat === 'smartphones' ||
+      sub === 'mobiles' ||
+      sub === 'smartphones'
     ) {
       return false;
     }
@@ -209,6 +262,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
                 metalType: 'Gold Plated',
                 gemstoneType: 'Pearl',
                 isQualityVerified: true,
+                specs: p.specs,
               }));
             setDbProducts(matched);
           } else {

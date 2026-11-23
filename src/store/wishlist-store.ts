@@ -625,6 +625,10 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: 'vyntra-wishlist',
+      partialize: (state) => ({
+        items: state.items,
+        boards: state.boards,
+      }),
     }
   )
 );

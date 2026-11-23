@@ -112,7 +112,7 @@ export interface DetailedProduct {
   vendorName: string;
   originalVendorId?: string;
   originalVendorName?: string;
-  category: 'ethnic' | 'apparel' | 'footwear' | 'accessories' | 'watches' | 'bags';
+  category: 'ethnic' | 'apparel' | 'footwear' | 'accessories' | 'watches' | 'bags' | 'mobiles' | 'electronics' | string;
   subCategory: string;
   breadcrumb: { label: string; href: string }[];
   price: number;

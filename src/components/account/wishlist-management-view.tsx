@@ -106,6 +106,8 @@ export function WishlistManagementView({
   useEffect(() => {
     setMounted(true);
     useWishlistStore.getState().syncWithDatabase();
+    useWishlistStore.getState().setFilterPriceDrops(false);
+    useWishlistStore.getState().setFilterInStock(false);
   }, []);
 
   // Filtered Items Logic
@@ -113,7 +115,7 @@ export function WishlistManagementView({
     return items.filter((item) => {
       // 1. Board Filter
       if (activeBoardId !== 'all') {
-        if (!item.boardIds.includes(activeBoardId)) {
+        if (!item.boardIds || !item.boardIds.includes(activeBoardId)) {
           return false;
         }
       }

@@ -311,9 +311,9 @@ function LingerieContent() {
               </ul>
             </div>
 
-            {/* Amazon Prime Filter */}
+            {/* Vyntra Express Filter */}
             <div className="border-t border-[#E7E7E7] pt-4">
-              <h4 className="text-xs font-bold text-[#0F1111] mb-2">Amazon Prime</h4>
+              <h4 className="text-xs font-bold text-[#0F1111] mb-2">Vyntra Express</h4>
               <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
                 <input
                   type="checkbox"
