@@ -389,15 +389,72 @@ function VyntraProductListingContent() {
     }, 2000);
   };
 
+  // Helper to strictly guard Fashion catalog from electronics, laptops, appliances and books
+  const isNonFashionProduct = (p: ProductItem) => {
+    const cat = (p.category || '').toLowerCase();
+    const sub = (p.subCategory || '').toLowerCase();
+    const title = (p.title || '').toLowerCase();
+    const brand = (p.brand || '').toLowerCase();
+    const slug = (p.slug || '').toLowerCase();
+
+    return (
+      cat === 'mobiles' ||
+      cat === 'electronics' ||
+      cat === 'appliances' ||
+      cat === 'books' ||
+      cat.includes('laptop') ||
+      cat.includes('computer') ||
+      cat.includes('smartphone') ||
+      cat.includes('gadget') ||
+      sub.includes('mobile') ||
+      sub.includes('smartphone') ||
+      sub.includes('laptop') ||
+      sub.includes('computer') ||
+      sub.includes('audio') ||
+      sub.includes('headphone') ||
+      sub.includes('smartwatch') ||
+      sub.includes('appliance') ||
+      sub.includes('refrigerator') ||
+      sub.includes('washing') ||
+      sub.includes('conditioner') ||
+      sub.includes('book') ||
+      title.includes('laptop') ||
+      title.includes('notebook') ||
+      title.includes('intel core') ||
+      title.includes('macbook') ||
+      title.includes('ai pc') ||
+      title.includes('smartphone') ||
+      (title.includes('phone') && !title.includes('headphone')) ||
+      title.includes('refrigerator') ||
+      title.includes('washing machine') ||
+      title.includes('air conditioner') ||
+      slug.includes('laptop') ||
+      slug.includes('swift') ||
+      slug.includes('iphone') ||
+      slug.includes('galaxy') ||
+      brand === 'acer' ||
+      brand === 'asus' ||
+      brand === 'lenovo' ||
+      brand === 'hp' ||
+      brand === 'dell' ||
+      (brand === 'apple' && (title.includes('iphone') || title.includes('macbook')))
+    );
+  };
+
   // Dynamic brand list strictly from live verified products
   const availableBrands = useMemo(() => {
-    const liveBrands = products
+    const isFashionView = activeCategory === 'fashion' || (!searchParamQuery && activeCategory === 'all');
+    const eligibleProducts = isFashionView
+      ? products.filter((p) => !isNonFashionProduct(p))
+      : products;
+
+    const liveBrands = eligibleProducts
       .map((p) => p.brand?.trim())
       .filter((b): b is string => Boolean(b));
 
     const set = new Set([...liveBrands]);
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [products]);
+  }, [products, activeCategory, searchParamQuery]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -409,39 +466,14 @@ function VyntraProductListingContent() {
       );
     }
 
-    if (activeCategory === 'fashion') {
-      // Exclude mobile and electronics products from Fashion catalog
-      result = result.filter((p) => {
-        const cat = (p.category || '').toLowerCase();
-        const sub = (p.subCategory || '').toLowerCase();
-        return (
-          cat !== 'mobiles' &&
-          cat !== 'electronics' &&
-          cat !== 'smartphones' &&
-          sub !== 'mobiles' &&
-          sub !== 'smartphones'
-        );
-      });
+    if (activeCategory === 'fashion' || (!searchParamQuery && activeCategory === 'all')) {
+      result = result.filter((p) => !isNonFashionProduct(p));
     } else if (activeCategory !== 'all') {
       result = result.filter(
         (p) =>
           p.category?.toLowerCase() === activeCategory.toLowerCase() ||
           (activeCategory === 'ethnic' && p.category?.toLowerCase() === 'ethnic')
       );
-    } else if (!searchParamQuery) {
-      // On default "All Fashion & Lifestyle" catalog without explicit search query,
-      // keep catalog focused on apparel and fashion; mobiles belong to /mobiles
-      result = result.filter((p) => {
-        const cat = (p.category || '').toLowerCase();
-        const sub = (p.subCategory || '').toLowerCase();
-        return (
-          cat !== 'mobiles' &&
-          cat !== 'electronics' &&
-          cat !== 'smartphones' &&
-          sub !== 'mobiles' &&
-          sub !== 'smartphones'
-        );
-      });
     }
 
     if (expressOnly) {

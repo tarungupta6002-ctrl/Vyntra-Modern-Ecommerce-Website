@@ -194,12 +194,19 @@ export async function GET(request: NextRequest) {
       const catLower = category.toLowerCase();
       if (catLower === 'fashion') {
         andConditions.push({
-          category: {
-            slug: {
-              notIn: ['mobiles', 'electronics', 'smartphones', 'audio-headphones', 'smartwatches-wearables'],
-              mode: 'insensitive',
-            },
-          },
+          OR: [
+            { category: { slug: { equals: 'fashion', mode: 'insensitive' } } },
+            { category: { parent: { slug: { equals: 'fashion', mode: 'insensitive' } } } },
+            { category: { parent: { parent: { slug: { equals: 'fashion', mode: 'insensitive' } } } } },
+            { category: { parent: { parent: { parent: { slug: { equals: 'fashion', mode: 'insensitive' } } } } } },
+            { category: { parent: { parent: { parent: { parent: { slug: { equals: 'fashion', mode: 'insensitive' } } } } } } },
+            { category: { parent: { parent: { parent: { parent: { parent: { slug: { equals: 'fashion', mode: 'insensitive' } } } } } } } },
+          ],
+          NOT: [
+            { category: { slug: { in: ['electronics', 'appliances', 'books', 'laptops', 'mobiles', 'smartphones'] } } },
+            { category: { parent: { slug: { in: ['electronics', 'appliances', 'books'] } } } },
+            { category: { parent: { parent: { slug: { in: ['electronics', 'appliances', 'books'] } } } } },
+          ],
         });
       } else {
         andConditions.push({
