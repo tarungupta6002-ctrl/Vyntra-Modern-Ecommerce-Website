@@ -29,7 +29,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
-import { useWishlistStore } from '@/store/wishlist-store';
+import { useWishlistStore, WishlistAuthError } from '@/store/wishlist-store';
 import { useAddressStore } from '@/store/address-store';
 import { formatINR } from '@/lib/utils';
 import { HeroBannerCarousel } from '@/components/home/hero-banner-carousel';
@@ -327,12 +327,15 @@ function VyntraProductListingContent() {
   };
 
   // Wishlist toggle
-  const toggleWishlist = (id: string, title: string) => {
+  // Waits for the server before changing the heart or showing a toast. Guests get the global
+  // sign-in dialog (opened by the wishlist store) instead of a fake "Saved" message.
+  const toggleWishlist = async (id: string, title: string) => {
     const prod = products.find((p) => p.id === id);
     const nextState = !wishlist[id];
-    if (nextState) {
-      if (prod) {
-        addWishlistItem({
+    try {
+      if (nextState) {
+        if (!prod) return;
+        await addWishlistItem({
           id: prod.id,
           productId: prod.id,
           slug: prod.slug,
@@ -349,13 +352,17 @@ function VyntraProductListingContent() {
           inStock: true,
           boardIds: ['all'],
         });
+        showToast(`Saved "${title}" to your Wishlist!`, 'heart', false);
+      } else {
+        await removeWishlistItem(id);
+        showToast(`Removed "${title}" from Wishlist`, 'heart-off', false);
       }
-      showToast(`Saved "${title}" to your Wishlist!`, 'heart', false);
-    } else {
-      removeWishlistItem(id);
-      showToast(`Removed "${title}" from Wishlist`, 'heart-off', false);
+      setWishlist((prev) => ({ ...prev, [id]: nextState }));
+    } catch (err) {
+      if (!(err instanceof WishlistAuthError)) {
+        showToast('Could not update Wishlist. Please try again.', 'x', false);
+      }
     }
-    setWishlist((prev) => ({ ...prev, [id]: nextState }));
   };
 
   // Size toggle
@@ -466,7 +473,9 @@ function VyntraProductListingContent() {
       );
     }
 
-    if (activeCategory === 'fashion' || (!searchParamQuery && activeCategory === 'all')) {
+    // Default catalog is fashion-only, but an explicit search or brand (e.g. ?brand=Samsung)
+    // must show what was asked for.
+    if (activeCategory === 'fashion' || (!searchParamQuery && !selectedBrand && activeCategory === 'all')) {
       result = result.filter((p) => !isNonFashionProduct(p));
     } else if (activeCategory !== 'all') {
       result = result.filter(
@@ -503,7 +512,7 @@ function VyntraProductListingContent() {
     }
 
     return result;
-  }, [products, selectedBrand, activeCategory, expressOnly, maxPrice, selectedRating, sortOption]);
+  }, [products, selectedBrand, searchParamQuery, activeCategory, expressOnly, maxPrice, selectedRating, sortOption]);
 
   return (
     <div className="w-full bg-surface min-h-screen text-on-surface">
@@ -1183,16 +1192,11 @@ function VyntraProductListingContent() {
                   <span className="inline-block w-48 h-3.5 bg-stone-200 rounded animate-pulse" />
                 ) : (
                   <>
-                    <strong className="text-[#0F1111] text-sm">
-                      1-{filteredProducts.length}
-                    </strong>{' '}
-                    of over{' '}
-                    <strong className="text-[#0F1111]">
-                      {products.length > 0 ? products.length * 12 + 48 : 5000}
-                    </strong>{' '}
-                    results for{' '}
+                    {/* Real count of what's shown (was "1-0 of over 5000" when empty) */}
+                    <strong className="text-[#0F1111] text-sm">{filteredProducts.length}</strong>{' '}
+                    {filteredProducts.length === 1 ? 'result' : 'results'} for{' '}
                     <span className="text-[#C45500] font-bold">
-                      &quot;{selectedBrand || activeCategoryTitle || 'Clothing & Fashion'}&quot;
+                      &quot;{searchParamQuery || selectedBrand || activeCategoryTitle || 'Clothing & Fashion'}&quot;
                     </span>
                   </>
                 )}
@@ -1290,7 +1294,7 @@ function VyntraProductListingContent() {
                             : 'text-[#565959] hover:text-red-500'
                         }`}
                         title={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                        aria-label="Add to Wishlist"
+                        aria-label={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
                       >
                         <Heart
                           className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`}

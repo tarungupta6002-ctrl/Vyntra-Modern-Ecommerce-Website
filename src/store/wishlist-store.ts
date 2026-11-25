@@ -357,6 +357,9 @@ interface WishlistState {
   filterPriceDrops: boolean;
   filterInStock: boolean;
   isLoading: boolean;
+  /** Global "sign in to save" dialog, opened whenever a guest tries to change the wishlist. */
+  signInPromptOpen: boolean;
+  setSignInPromptOpen: (open: boolean) => void;
 
   syncWithDatabase: () => Promise<void>;
   addItem: (item: WishlistItem) => Promise<void>;
@@ -384,6 +387,8 @@ export const useWishlistStore = create<WishlistState>()(
       filterPriceDrops: false,
       filterInStock: false,
       isLoading: false,
+      signInPromptOpen: false,
+      setSignInPromptOpen: (open) => set({ signInPromptOpen: open }),
 
       syncWithDatabase: async () => {
         try {
@@ -439,7 +444,10 @@ export const useWishlistStore = create<WishlistState>()(
         if (exists) return;
 
         // Guests can't save: fail before touching state so the heart never flickers on.
-        if (!(await hasClientSession())) throw new WishlistAuthError();
+        if (!(await hasClientSession())) {
+          set({ signInPromptOpen: true });
+          throw new WishlistAuthError();
+        }
 
         const previousItems = get().items;
         // Optimistic UI update
@@ -478,7 +486,9 @@ export const useWishlistStore = create<WishlistState>()(
         } catch (err: any) {
           // Revert optimistic addition on network error
           set({ items: previousItems });
-          if (!(err instanceof WishlistAuthError)) {
+          if (err instanceof WishlistAuthError) {
+            set({ signInPromptOpen: true }); // session expired: server answered 401
+          } else {
             console.warn('[Wishlist Add Network Failure - Reverted]:', err?.message);
           }
           throw err;
@@ -487,7 +497,10 @@ export const useWishlistStore = create<WishlistState>()(
 
       removeItem: async (id) => {
         // Guests can't change the server wishlist: never optimistically remove for them.
-        if (!(await hasClientSession())) throw new WishlistAuthError();
+        if (!(await hasClientSession())) {
+          set({ signInPromptOpen: true });
+          throw new WishlistAuthError();
+        }
 
         const previousItems = get().items;
 
@@ -516,7 +529,9 @@ export const useWishlistStore = create<WishlistState>()(
         } catch (err: any) {
           // Rollback optimistic removal on network error
           set({ items: previousItems });
-          if (!(err instanceof WishlistAuthError)) {
+          if (err instanceof WishlistAuthError) {
+            set({ signInPromptOpen: true }); // session expired: server answered 401
+          } else {
             console.warn('[Wishlist Remove Network Failure - Reverted]:', err?.message);
           }
           throw err;

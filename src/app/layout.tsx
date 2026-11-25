@@ -3,6 +3,7 @@ import './globals.css';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { CartDrawer } from '@/components/cart/cart-drawer';
+import { WishlistSignInPromptHost } from '@/components/products/wishlist-sign-in-prompt-host';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="bg-surface font-body text-on-surface min-h-screen flex flex-col antialiased">
         <Header />
         <CartDrawer />
+        <WishlistSignInPromptHost />
         <main className="flex-1 w-full pt-[108px] lg:pt-[100px] print:pt-0 print:p-0">{children}</main>
         <Footer />
       </body>
