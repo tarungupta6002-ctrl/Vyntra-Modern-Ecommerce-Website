@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError } from '@/lib/api-response';
 import { Prisma } from '@prisma/client';
 import { PRODUCTS_DATABASE } from '@/data/products';
+import { buildProductSearchWhere } from '@/lib/search';
 
 export const dynamic = 'force-dynamic';
 
@@ -221,16 +222,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Keyword search across title, brand, subtitle, description
+    // Keyword search: every word must match title, brand, subtitle, category or description
     if (search) {
-      andConditions.push({
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { brand: { contains: search, mode: 'insensitive' } },
-          { subtitle: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-        ],
-      });
+      const searchWhere = buildProductSearchWhere(search);
+      if (searchWhere) andConditions.push(searchWhere);
     }
 
     const where: Prisma.ProductWhereInput = {

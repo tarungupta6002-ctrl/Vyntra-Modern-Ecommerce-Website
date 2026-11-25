@@ -30,6 +30,7 @@ import { useAddressStore } from '@/store/address-store';
 import { formatINR } from '@/lib/utils';
 import { useUserProfileStore } from '@/store/user-profile-store';
 import { createClient } from '@/lib/supabase/client';
+import { SearchSuggestionsPanel, saveRecentSearch, useSearchAutocomplete } from './search-suggestions';
 
 const CATEGORIES: {
   name: string;
@@ -322,6 +323,18 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
   const subtotal = mounted ? getSubtotal() : 0;
   const activeWishlistCount = mounted ? getWishlistTotal() : (wishlistCount ?? 0);
 
+  // Typeahead for the desktop and mobile search bars (only one is visible at a time).
+  const searchAutocompleteOptions = {
+    query: searchQuery,
+    onNavigate: (href: string) => router.push(href),
+    onSearch: (q: string) => {
+      setSearchQuery(q);
+      runSearch(q);
+    },
+  };
+  const desktopSearch = useSearchAutocomplete(searchAutocompleteOptions);
+  const mobileSearch = useSearchAutocomplete(searchAutocompleteOptions);
+
   if (
     pathname === '/login' ||
     pathname === '/signup' ||
@@ -354,7 +367,14 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const q = searchQuery.trim();
+    runSearch(searchQuery);
+  };
+
+  function runSearch(rawQuery: string) {
+    desktopSearch.close();
+    mobileSearch.close();
+    const q = rawQuery.trim();
+    saveRecentSearch(q);
     const encoded = encodeURIComponent(q);
     const qLower = q.toLowerCase();
 
@@ -389,12 +409,12 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
     }
 
     if (isFootwearKeyword) {
-      router.push(q ? `/category/mens-footwear?q=${encoded}` : '/category/mens-footwear');
+      router.push(q ? `/products?search=${encoded}` : '/category/mens-footwear');
       return;
     }
 
     if (isWatchKeyword) {
-      router.push(q ? `/category/watches?q=${encoded}` : '/category/watches');
+      router.push(q ? `/products?search=${encoded}` : '/category/watches');
       return;
     }
 
@@ -426,11 +446,11 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
         break;
 
       case 'Footwear':
-        router.push(q ? `/category/mens-footwear?q=${encoded}` : '/category/mens-footwear');
+        router.push(q ? `/products?search=${encoded}` : '/category/mens-footwear');
         break;
 
       case 'Accessories & Watches':
-        router.push(q ? `/category/watches?q=${encoded}` : '/category/watches');
+        router.push(q ? `/products?search=${encoded}` : '/category/watches');
         break;
 
       case 'Beauty & Fragrances':
@@ -449,7 +469,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
         }
         break;
     }
-  };
+  }
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 shadow-md print:hidden">
@@ -503,9 +523,11 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
           {/* ========================================================================= */}
           {/* Center: Search Bar with Category Dropdown & Yellow Search Button */}
           {/* ========================================================================= */}
+          <div ref={desktopSearch.containerRef} className="relative flex-1 max-w-3xl hidden md:block">
           <form
             onSubmit={handleSearchSubmit}
-            className="flex-1 max-w-3xl hidden md:flex items-center h-10 rounded-[6px] overflow-hidden focus-within:ring-2 focus-within:ring-[#FF9900] bg-white border border-transparent"
+            role="search"
+            className="flex items-center h-10 rounded-[6px] overflow-hidden focus-within:ring-2 focus-within:ring-[#FF9900] bg-white border border-transparent"
           >
             {/* Category Dropdown */}
             <div ref={categoryDropdownRef} className="relative shrink-0">
@@ -546,6 +568,8 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={getSearchPlaceholder()}
+              aria-label="Search Vyntra"
+              {...desktopSearch.inputProps}
               className="flex-1 h-full px-3 text-sm text-[#0F1111] placeholder:text-[#565959] focus:outline-none bg-white"
             />
 
@@ -576,6 +600,8 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
               </button>
             </div>
           </form>
+          <SearchSuggestionsPanel {...desktopSearch.panelProps} />
+          </div>
 
           {/* ========================================================================= */}
           {/* Right Section: Account, Orders, Wishlist, Cart */}
@@ -831,9 +857,10 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
       {/* ========================================================================= */}
       {/* 3. MOBILE SEARCH ROW (visible only on mobile) */}
       {/* ========================================================================= */}
-      <div className="md:hidden bg-[#131921] px-3 pb-2.5">
+      <div ref={mobileSearch.containerRef} className="relative md:hidden bg-[#131921] px-3 pb-2.5">
         <form
           onSubmit={handleSearchSubmit}
+          role="search"
           className="flex items-center h-9 rounded-[6px] overflow-hidden bg-white w-full border border-transparent focus-within:ring-2 focus-within:ring-[#FF9900]"
         >
           <input
@@ -841,6 +868,8 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={getSearchPlaceholder()}
+            aria-label="Search Vyntra"
+            {...mobileSearch.inputProps}
             className="flex-1 h-full px-3 text-xs text-[#0F1111] placeholder:text-[#565959] focus:outline-none"
           />
           <button
@@ -850,6 +879,9 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             <Search className="h-4 w-4" />
           </button>
         </form>
+        <div className="relative">
+          <SearchSuggestionsPanel {...mobileSearch.panelProps} />
+        </div>
       </div>
 
       {/* ========================================================================= */}

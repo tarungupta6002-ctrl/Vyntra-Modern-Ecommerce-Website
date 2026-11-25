@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
   Sparkles,
@@ -81,7 +82,22 @@ const COLOR_SWATCHES = [
   { name: 'Midnight Obsidian', hex: '#131b2e' },
 ];
 
+// useSearchParams requires a Suspense boundary in Next 14 (same pattern as /electronics).
 export default function VyntraProductListingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-220px)] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007185]" />
+        </div>
+      }
+    >
+      <VyntraProductListingContent />
+    </Suspense>
+  );
+}
+
+function VyntraProductListingContent() {
   const { addItem, openCart } = useCartStore();
   const { addItem: addWishlistItem, removeItem: removeWishlistItem } = useWishlistStore();
 
@@ -209,18 +225,14 @@ export default function VyntraProductListingPage() {
     return found ? found.name : activeCategory;
   }, [activeCategory]);
 
-  // Sync search/category query from URL
+  // Sync search/category/brand from the URL on every URL change, not just on mount:
+  // a second header search while already on /products must replace the previous one.
+  const urlSearchParams = useSearchParams();
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const sp = new URLSearchParams(window.location.search);
-      const q = sp.get('search') || sp.get('q') || '';
-      const cat = sp.get('category') || '';
-      const brand = sp.get('brand') || '';
-      if (q) setSearchParamQuery(q);
-      if (cat) setActiveCategory(cat);
-      if (brand) setSelectedBrand(brand);
-    }
-  }, []);
+    setSearchParamQuery(urlSearchParams.get('search') || urlSearchParams.get('q') || '');
+    setActiveCategory(urlSearchParams.get('category') || 'all');
+    setSelectedBrand(urlSearchParams.get('brand') || '');
+  }, [urlSearchParams]);
 
   // Fetch from real Prisma API route
   useEffect(() => {

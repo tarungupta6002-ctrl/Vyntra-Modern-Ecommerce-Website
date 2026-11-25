@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { matchesSearchQuery, DEPARTMENT_WORDS } from '@/lib/search';
 import {
   Laptop,
   Headphones,
@@ -379,12 +380,12 @@ function ElectronicsContent() {
 
     // Search Query
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.brand?.toLowerCase().includes(q) ||
-          p.subcategory?.toLowerCase().includes(q)
+      list = list.filter((p) =>
+        matchesSearchQuery(
+          searchQuery,
+          [p.title, p.brand, p.subcategory, p.subCategory, ...Object.values(p.specs || {}).map(String)],
+          DEPARTMENT_WORDS.electronics
+        )
       );
     }
 

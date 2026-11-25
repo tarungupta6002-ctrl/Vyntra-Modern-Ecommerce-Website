@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { matchesSearchQuery, DEPARTMENT_WORDS } from '@/lib/search';
 import {
   Smartphone,
   Star,
@@ -284,7 +285,8 @@ function MobilesPageContent() {
     if (priceParam) setPriceRange(priceParam);
     if (ramParam) setSelectedRams(ramParam.split(','));
     if (storageParam) setSelectedStorages(storageParam.split(','));
-    if (qParam) setSearchQuery(qParam);
+    // Always sync (including clearing) so a plain /mobiles link drops a previous search.
+    setSearchQuery(qParam || '');
   }, [searchParams]);
 
   // Handle Add to Cart
@@ -448,13 +450,15 @@ function MobilesPageContent() {
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
       // 1. Text Search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesText =
-          item.title.toLowerCase().includes(q) ||
-          item.brand.toLowerCase().includes(q) ||
-          (item.specs?.processor || '').toLowerCase().includes(q);
-        if (!matchesText) return false;
+      if (
+        searchQuery.trim() &&
+        !matchesSearchQuery(
+          searchQuery,
+          [item.title, item.brand, item.subCategory, ...Object.values(item.specs || {}).map(String)],
+          DEPARTMENT_WORDS.mobiles
+        )
+      ) {
+        return false;
       }
 
       // 2. Brand Filter
