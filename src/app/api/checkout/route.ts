@@ -7,6 +7,7 @@ import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { verifyRazorpaySignature, getRazorpayClient } from '@/lib/razorpay';
 import { PaymentMethod, OrderStatus, PaymentStatus, PayoutStatus, ShipmentStatus } from '@prisma/client';
 import { invalidateProduct } from '@/lib/cache-invalidation';
+import { sendOrderEmail } from '@/lib/email/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -891,6 +892,10 @@ export async function POST(request: Request) {
     } catch (cacheErr) {
       console.warn('[Checkout Cache Invalidation Warning]:', cacheErr);
     }
+
+    // Order confirmation email. Runs once per created order: duplicate submissions and
+    // replayed payments return earlier above. Never throws.
+    await sendOrderEmail(createdOrder.id, 'confirmed');
 
     if (idempotencyKey) {
       idempotencyCache.set(`${userId}:${idempotencyKey}`, {

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 import { OrderStatus, OrderItemStatus } from '@prisma/client';
+import { sendOrderEmail } from '@/lib/email/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,6 +128,9 @@ export async function POST(request: Request, context: RouteContext) {
         timeout: 10000,
       }
     );
+
+    // Cancellation email to the customer. Never throws.
+    await sendOrderEmail(order.id, 'cancelled');
 
     return apiSuccess({
       message: `Order #${order.orderNumber} has been successfully cancelled and inventory has been restored.`,

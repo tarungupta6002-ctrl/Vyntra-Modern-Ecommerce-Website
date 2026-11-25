@@ -3,6 +3,7 @@ import { requireAdmin, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OrderStatus, OrderItemStatus, PaymentStatus, ShipmentStatus } from '@prisma/client';
+import { notifyOrderStatusChange } from '@/lib/email/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,6 +150,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         },
       });
     });
+
+    // Customer email when the admin changed the status (shipped / delivered / cancelled). Never throws.
+    if (status) {
+      await notifyOrderStatusChange(order.id, order.status, status);
+    }
 
     return apiSuccess({
       order: updated,

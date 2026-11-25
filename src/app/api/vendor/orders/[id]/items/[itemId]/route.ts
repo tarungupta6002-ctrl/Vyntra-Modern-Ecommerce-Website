@@ -3,6 +3,7 @@ import { requireVendor, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OrderItemStatus, OrderStatus } from '@prisma/client';
+import { notifyOrderStatusChange } from '@/lib/email/order-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -298,6 +299,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         trackingNumber: finalTracking || item.order.trackingNumber,
       };
     });
+
+    // Customer email when the order-level status changed (shipped / delivered / cancelled). Never throws.
+    await notifyOrderStatusChange(item.order.id, item.order.status, result.parentOrderStatus);
 
     return apiSuccess({
       itemId: result.item.id,
