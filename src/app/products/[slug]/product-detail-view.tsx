@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -46,7 +46,8 @@ import {
   Globe,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
-import { useWishlistStore } from '@/store/wishlist-store';
+import { useWishlistStore, WishlistAuthError } from '@/store/wishlist-store';
+import { WishlistSignInPrompt } from '@/components/products/wishlist-sign-in-prompt';
 import { useAddressStore } from '@/store/address-store';
 import { formatINR } from '@/lib/utils';
 import { APlusContentDisplay } from '@/components/products/aplus-content-display';
@@ -501,6 +502,10 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
     message: '',
   });
 
+  const [wishlistBusy, setWishlistBusy] = useState(false);
+  const [showWishlistSignIn, setShowWishlistSignIn] = useState(false);
+  const closeWishlistSignIn = useCallback(() => setShowWishlistSignIn(false), []);
+
   const showToast = (message: string, type: 'success' | 'info' = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => {
@@ -714,8 +719,10 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
   // Wishlist toggle
   const toggleWishlist = async () => {
+    if (wishlistBusy) return;
+    setWishlistBusy(true);
     try {
-      const isAdded = await useWishlistStore.getState().toggleItem({
+      const result = await useWishlistStore.getState().toggleItemResult({
         id: product.id,
         productId: product.id,
         slug: product.slug,
@@ -732,13 +739,19 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
         inStock: !isOutOfStock,
         boardIds: ['all'],
       });
-      if (isAdded) {
+      if (result === 'added') {
         showToast('Saved to your Wishlist!');
       } else {
         showToast('Removed from Wishlist', 'info');
       }
     } catch (err: any) {
-      showToast(err?.message || 'Could not update Wishlist.', 'info');
+      if (err instanceof WishlistAuthError) {
+        setShowWishlistSignIn(true);
+      } else {
+        showToast(err?.message || 'Could not update Wishlist.', 'info');
+      }
+    } finally {
+      setWishlistBusy(false);
     }
   };
 
@@ -751,6 +764,8 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
   return (
     <div className="w-full bg-[#FFFFFF] min-h-screen text-[#0F1111] font-sans antialiased">
+      <WishlistSignInPrompt open={showWishlistSignIn} onClose={closeWishlistSignIn} />
+
       {/* Toast Notification */}
       {toast.show && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl bg-[#0F1111] text-white text-xs font-bold flex items-center gap-2.5 animate-in slide-in-from-bottom-5">

@@ -1,6 +1,32 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useCartStore } from './cart-store';
+import { createClient } from '@/lib/supabase/client';
+
+/** Thrown when a wishlist change needs a signed-in user (no session, or the API returned 401). */
+export class WishlistAuthError extends Error {
+  constructor(message = 'Please sign in to save items to your Wishlist.') {
+    super(message);
+    this.name = 'WishlistAuthError';
+  }
+}
+
+/** Local session check (no network): lets us skip optimistic updates for guests entirely. */
+async function hasClientSession(): Promise<boolean> {
+  try {
+    const { data } = await createClient().auth.getSession();
+    return Boolean(data.session);
+  } catch {
+    return false;
+  }
+}
+
+/** Turns a failed wishlist API response into the right error type. */
+function wishlistApiError(res: Response, json: any, fallback: string): Error {
+  if (res.status === 401 || json?.error?.code === 'UNAUTHORIZED') return new WishlistAuthError();
+  const message = typeof json?.error === 'string' ? json.error : json?.error?.message;
+  return new Error(message || fallback);
+}
 
 export interface WishlistItem {
   id: string;
@@ -336,6 +362,8 @@ interface WishlistState {
   addItem: (item: WishlistItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   toggleItem: (item: WishlistItem) => Promise<boolean>;
+  /** Like toggleItem, but reports what happened and throws (WishlistAuthError for guests). */
+  toggleItemResult: (item: WishlistItem) => Promise<'added' | 'removed'>;
   isInWishlist: (idOrProductId: string) => boolean;
   createBoard: (title: string, theme: string, isPublic?: boolean) => Promise<CuratedBoard>;
   setActiveBoardId: (boardId: string) => void;
@@ -410,6 +438,9 @@ export const useWishlistStore = create<WishlistState>()(
         );
         if (exists) return;
 
+        // Guests can't save: fail before touching state so the heart never flickers on.
+        if (!(await hasClientSession())) throw new WishlistAuthError();
+
         const previousItems = get().items;
         // Optimistic UI update
         const updatedList = [item, ...previousItems];
@@ -440,19 +471,24 @@ export const useWishlistStore = create<WishlistState>()(
           } else {
             // Revert optimistic addition if rejected by server (e.g. unauthenticated or invalid product)
             set({ items: previousItems });
-            const errorMsg = json.error || 'Failed to save to Wishlist.';
-            console.warn('[Wishlist Add Error - Reverted]:', errorMsg);
-            throw new Error(errorMsg);
+            const error = wishlistApiError(res, json, 'Failed to save to Wishlist.');
+            console.warn('[Wishlist Add Error - Reverted]:', error.message);
+            throw error;
           }
         } catch (err: any) {
           // Revert optimistic addition on network error
           set({ items: previousItems });
-          console.warn('[Wishlist Add Network Failure - Reverted]:', err?.message);
+          if (!(err instanceof WishlistAuthError)) {
+            console.warn('[Wishlist Add Network Failure - Reverted]:', err?.message);
+          }
           throw err;
         }
       },
 
       removeItem: async (id) => {
+        // Guests can't change the server wishlist: never optimistically remove for them.
+        if (!(await hasClientSession())) throw new WishlistAuthError();
+
         const previousItems = get().items;
 
         // Optimistic removal
@@ -473,34 +509,37 @@ export const useWishlistStore = create<WishlistState>()(
           if (!json.success) {
             // Rollback optimistic removal on server rejection
             set({ items: previousItems });
-            const errorMsg = json.error || 'Failed to remove from Wishlist.';
-            console.warn('[Wishlist Remove Error - Reverted]:', errorMsg);
-            throw new Error(errorMsg);
+            const error = wishlistApiError(res, json, 'Failed to remove from Wishlist.');
+            console.warn('[Wishlist Remove Error - Reverted]:', error.message);
+            throw error;
           }
         } catch (err: any) {
           // Rollback optimistic removal on network error
           set({ items: previousItems });
-          console.warn('[Wishlist Remove Network Failure - Reverted]:', err?.message);
+          if (!(err instanceof WishlistAuthError)) {
+            console.warn('[Wishlist Remove Network Failure - Reverted]:', err?.message);
+          }
           throw err;
         }
       },
 
-      toggleItem: async (item) => {
+      toggleItemResult: async (item) => {
         const exists = get().isInWishlist(item.productId || item.id || item.slug || '');
         if (exists) {
-          try {
-            await get().removeItem(item.id || item.productId || item.slug || '');
-            return false;
-          } catch {
-            return true;
-          }
-        } else {
-          try {
-            await get().addItem(item);
-            return true;
-          } catch {
-            return false;
-          }
+          await get().removeItem(item.id || item.productId || item.slug || '');
+          return 'removed';
+        }
+        await get().addItem(item);
+        return 'added';
+      },
+
+      // Legacy boolean API used by listing pages: returns whether the item is in the
+      // wishlist afterwards, and never throws (a failed change leaves the state as it was).
+      toggleItem: async (item) => {
+        try {
+          return (await get().toggleItemResult(item)) === 'added';
+        } catch {
+          return get().isInWishlist(item.productId || item.id || item.slug || '');
         }
       },
 
