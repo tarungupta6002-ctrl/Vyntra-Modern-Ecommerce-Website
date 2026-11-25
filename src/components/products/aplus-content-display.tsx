@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
-  Sparkles,
   Award,
   ShieldCheck,
   CheckCircle2,
@@ -21,14 +21,13 @@ import { APlusData, APlusModule } from '@/types/aplus';
 interface APlusContentDisplayProps {
   aplus: APlusData;
   brandName?: string;
+  /** Link to the brand's products; shows a "Visit the … Store" button in the brand header. */
+  brandStoreHref?: string;
 }
 
-export function APlusContentDisplay({ aplus, brandName = 'Vyntra Artisan' }: APlusContentDisplayProps) {
-  if (!aplus || !aplus.modules || aplus.modules.length === 0) {
-    return null;
-  }
-
-  // Smart validation & cleanup filter: strips unconfigured/blank/duplicate/foreign-sample modules
+export function APlusContentDisplay({ aplus, brandName = 'Vyntra Artisan', brandStoreHref }: APlusContentDisplayProps) {
+  // Smart validation & cleanup filter: strips unconfigured/blank/duplicate/foreign-sample modules.
+  // (Runs before any early return: hooks must be called in the same order on every render.)
   const validModules = React.useMemo(() => {
     if (!aplus?.modules || !Array.isArray(aplus.modules)) return [];
 
@@ -114,87 +113,101 @@ export function APlusContentDisplay({ aplus, brandName = 'Vyntra Artisan' }: APl
 
       return true;
     });
-  }, [aplus.modules, brandName]);
+  }, [aplus?.modules, brandName]);
 
-  if (validModules.length === 0) {
-    return null;
-  }
-
-  // Header background style generator
+  // Header theme (vendor-chosen). Gradients keep white text at >= 4.5:1 contrast.
   const getHeaderTheme = (style: string) => {
     switch (style) {
       case 'gold_heritage':
         return {
-          bg: 'bg-gradient-to-r from-[#975A16] via-[#D69E2E] to-[#744210]',
+          bg: 'bg-gradient-to-r from-[#7A4510] via-[#9A6418] to-[#5E3409]',
           text: 'text-white',
-          badge: 'bg-[#FFD814] text-[#0F1111]',
-          subtext: 'text-amber-100',
+          subtext: 'text-amber-50/90',
+          monogram: 'bg-white/15 text-white ring-white/40',
+          cta: 'bg-white text-[#5E3409] hover:bg-amber-50',
         };
       case 'midnight_navy':
         return {
           bg: 'bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0B1120]',
           text: 'text-white',
-          badge: 'bg-[#007185] text-white',
           subtext: 'text-slate-300',
+          monogram: 'bg-white/10 text-white ring-white/30',
+          cta: 'bg-white text-[#0F172A] hover:bg-slate-100',
         };
       case 'emerald_artisanal':
         return {
           bg: 'bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#022C22]',
           text: 'text-white',
-          badge: 'bg-emerald-300 text-emerald-950',
-          subtext: 'text-emerald-100',
+          subtext: 'text-emerald-50/90',
+          monogram: 'bg-white/15 text-white ring-white/40',
+          cta: 'bg-white text-[#064E3B] hover:bg-emerald-50',
         };
       case 'clean_minimal':
         return {
-          bg: 'bg-[#F7F8F8] border-b border-[#D5D9D9]',
+          bg: 'bg-[#F7F8F8] border border-[#D5D9D9]',
           text: 'text-[#0F1111]',
-          badge: 'bg-[#007185] text-white',
           subtext: 'text-[#565959]',
+          monogram: 'bg-white text-[#0F1111] ring-[#D5D9D9]',
+          cta: 'bg-[#FFD814] text-[#0F1111] hover:bg-[#F7CA00] border border-[#FCD200]',
         };
       case 'maroon_luxury':
       default:
         return {
           bg: 'bg-gradient-to-r from-[#5C0017] via-[#800020] to-[#36000E]',
           text: 'text-white',
-          badge: 'bg-[#FFD814] text-[#0F1111]',
-          subtext: 'text-rose-100',
+          subtext: 'text-rose-50/90',
+          monogram: 'bg-white/15 text-white ring-white/40',
+          cta: 'bg-white text-[#800020] hover:bg-rose-50',
         };
     }
   };
 
-  const theme = getHeaderTheme(aplus.headerStyle);
+  if (validModules.length === 0) {
+    return null;
+  }
 
+  const theme = getHeaderTheme(aplus.headerStyle);
   const showHeader = Boolean(aplus.headerTitle || aplus.headerSubtitle);
+  const monogram = brandName.trim().charAt(0).toUpperCase() || 'V';
 
   return (
-    <section className="w-full space-y-10 my-8 animate-in fade-in duration-300">
-      {/* 1. Optional Section Header Banner */}
+    <section className="w-full space-y-10 animate-in fade-in duration-300">
+      {/* 1. Brand header: identity on the left, link to the brand's store on the right */}
       {showHeader && (
-        <div className={`rounded-2xl p-6 sm:p-8 shadow-md relative overflow-hidden ${theme.bg}`}>
-          <div className="relative z-10 max-w-4xl mx-auto text-center space-y-2">
-            {aplus.headerTitle && (
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-headline font-black uppercase tracking-widest shadow-sm ${theme.badge}`}
+        <div className={`rounded-2xl shadow-sm ${theme.bg}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 px-5 py-5 sm:px-8 sm:py-6">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
+              <div
+                aria-hidden="true"
+                className={`h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full ring-2 flex items-center justify-center text-2xl sm:text-3xl font-headline font-extrabold ${theme.monogram}`}
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>{aplus.headerTitle}</span>
-              </span>
+                {monogram}
+              </div>
+              <div className="min-w-0">
+                <p className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] ${theme.subtext}`}>
+                  {aplus.headerTitle || 'From the brand'}
+                </p>
+                <h2 className={`text-xl sm:text-2xl font-headline font-extrabold tracking-tight truncate ${theme.text}`}>
+                  {brandName}
+                </h2>
+                {aplus.headerSubtitle && (
+                  <p className={`mt-0.5 text-xs sm:text-sm font-medium leading-relaxed line-clamp-2 ${theme.subtext}`}>
+                    {aplus.headerSubtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {brandStoreHref && (
+              <Link
+                href={brandStoreHref}
+                className={`self-start sm:self-center shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-bold shadow-sm transition-colors ${theme.cta}`}
+              >
+                <Store className="h-4 w-4" />
+                <span>Visit the {brandName} Store</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
             )}
-
-            <h2 className={`text-2xl sm:text-3xl font-headline font-extrabold tracking-tight ${theme.text}`}>
-              {brandName}
-            </h2>
-
-            {aplus.headerSubtitle && (
-              <p className={`text-xs sm:text-sm max-w-2xl mx-auto font-medium leading-relaxed ${theme.subtext}`}>
-                {aplus.headerSubtitle}
-              </p>
-            )}
-          </div>
-
-          {/* Decorative background watermark */}
-          <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none text-white">
-            <Store className="w-56 h-56" />
           </div>
         </div>
       )}

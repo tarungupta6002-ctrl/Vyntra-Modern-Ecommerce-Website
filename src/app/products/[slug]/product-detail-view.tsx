@@ -314,6 +314,15 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
     );
   }, [product, isLaptopOrComputer, isAudioOrHeadphones, isSmartwatch, isCamera, isAppliance, isBook]);
 
+  // Brand's store page, shared by the "Visit the … Store" link and the A+ brand header.
+  const brandStoreHref = isBook
+    ? `/books?author=${encodeURIComponent(product.brand)}`
+    : isAppliance
+    ? `/appliances?brand=${encodeURIComponent(product.brand)}`
+    : isMobilePhone
+    ? `/mobiles?brand=${encodeURIComponent(product.brand)}`
+    : `/products?brand=${encodeURIComponent(product.brand)}`;
+
   const isMobileOrElectronic = useMemo(() => {
     if (isBook) return false;
     const cat = (product.category || '').toLowerCase();
@@ -910,15 +919,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
             {/* Brand Store Link */}
             <div>
               <Link
-                href={
-                  isBook
-                    ? `/books?author=${encodeURIComponent(product.brand)}`
-                    : isAppliance
-                    ? `/appliances?brand=${encodeURIComponent(product.brand)}`
-                    : isMobilePhone
-                    ? `/mobiles?brand=${encodeURIComponent(product.brand)}`
-                    : `/products?brand=${encodeURIComponent(product.brand)}`
-                }
+                href={brandStoreHref}
                 className="text-xs font-bold text-[#007185] hover:underline"
               >
                 {isBook
@@ -1593,6 +1594,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
           <APlusContentDisplay
             aplus={product.aplusContent}
             brandName={product.brand}
+            brandStoreHref={brandStoreHref}
           />
         ) : !isMobileOrElectronic && product.category === 'ethnic' ? (
           /* Fallback Atelier Narrative for Ethnic products */
