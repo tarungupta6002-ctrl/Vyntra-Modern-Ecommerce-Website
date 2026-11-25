@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { PageLoader } from '@/components/ui/loading-spinner';
 import Image from 'next/image';
 import {
   Sparkles,
@@ -85,13 +86,7 @@ const COLOR_SWATCHES = [
 // useSearchParams requires a Suspense boundary in Next 14 (same pattern as /electronics).
 export default function VyntraProductListingPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-[calc(100vh-220px)] flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007185]" />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoader minHeight="min-h-[calc(100vh-220px)]" />}>
       <VyntraProductListingContent />
     </Suspense>
   );
