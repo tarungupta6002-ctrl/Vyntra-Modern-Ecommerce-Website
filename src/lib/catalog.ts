@@ -123,7 +123,7 @@ export function formatCatalogProduct(product: any): FormattedCatalogProduct {
         ? 'Festive Edit'
         : undefined,
     badgeVariant: product.rating >= 4.8 ? 'primary' : 'secondary',
-    isExpress: true,
+    isExpress: false, // no real express-delivery data yet
     image: imageUrl,
     sizes: sizes.length > 0 ? sizes : ['Standard'],
     colors: colors.length > 0 ? colors : ['Default'],
@@ -703,7 +703,7 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     badge: (product.rating ?? 0) >= 4.8 && (product.reviewCount ?? 0) > 0 ? 'HERITAGE BESTSELLER' : undefined,
     badgeVariant: 'secondary',
     giCertified: true,
-    isExpress: true,
+    isExpress: false, // no real express-delivery data yet
     isCustomized: Boolean(product.isCustomized),
     stockCount: totalStock,
     rawVariants: (() => {
@@ -844,11 +844,6 @@ export function formatDetailedProduct(product: any): DetailedProduct {
               iconName: 'shield',
               title: 'Brand Warranty',
               desc: '1 Year Manufacturer Warranty on device and 6 Months on accessories.',
-            },
-            {
-              iconName: 'zap',
-              title: 'Express Delivery',
-              desc: 'Dispatched via Vyntra Express in shock-absorbent tamper-evident packaging.',
             },
           ]
         : [

@@ -338,22 +338,6 @@ function MensWalletsContent() {
               </ul>
             </div>
 
-            {/* Vyntra Express Filter (Exact from screenshot) */}
-            <div className="border-t border-[#E7E7E7] pt-4">
-              <h4 className="text-xs font-bold text-[#0F1111] mb-2">Vyntra Express</h4>
-              <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
-                <input
-                  type="checkbox"
-                  checked={primeOnly}
-                  onChange={(e) => setPrimeOnly(e.target.checked)}
-                  className="rounded text-[#007185] focus:ring-[#007185] h-3.5 w-3.5"
-                />
-                <span className="font-bold italic text-[#007185] text-sm tracking-tight">
-                  Vyntra Express
-                </span>
-              </label>
-            </div>
-
             {/* Brands Filter (Exact list from screenshot) */}
             {dynamicBrands.length > 0 && (
 <div className="border-t border-[#E7E7E7] pt-4">

@@ -16,7 +16,6 @@ import {
   ChevronRight,
   ChevronDown,
   Star,
-  Zap,
   Search,
   PackageOpen,
 } from 'lucide-react';
@@ -25,6 +24,12 @@ import { CategoryProductItem, useCategoryProducts } from '@/hooks/use-category-p
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { formatINR } from '@/lib/utils';
+import {
+  getTemplateForCategoryPath,
+  bucketFor,
+  type AttributeDef,
+  type AttributeTemplate,
+} from '@/lib/catalog/attributes';
 
 /* ------------------------------------------------------------------ */
 /* Taxonomy helpers                                                    */
@@ -46,8 +51,12 @@ const APPLIANCE_TYPES: Array<{ slug: 'all' | ApplianceType; name: string; icon: 
   { slug: 'home-appliances', name: 'Home essentials', icon: Home },
 ];
 
-/** Which appliance group a product belongs to, from its category slug, category name and title. */
+const TYPE_SLUGS: ApplianceType[] = ['refrigerators', 'washing-machines', 'air-conditioners', 'kitchen-appliances', 'home-appliances'];
+
+/** Which appliance group a product belongs to: from its category path, else from its text. */
 function applianceTypeOf(p: CategoryProductItem): ApplianceType | null {
+  const fromTree = (p.categoryPath || []).find((slug): slug is ApplianceType => TYPE_SLUGS.includes(slug as ApplianceType));
+  if (fromTree) return fromTree;
   const text = `${(p.category || '').replace(/-/g, ' ')} ${p.subCategory || ''} ${p.title || ''}`.toLowerCase();
   if (/\b(refrigerators?|fridges?)\b/.test(text)) return 'refrigerators';
   if (/\b(washing machines?|washers?|dryers?)\b/.test(text)) return 'washing-machines';
@@ -61,10 +70,27 @@ function applianceTypeOf(p: CategoryProductItem): ApplianceType | null {
 
 /** BEE star rating (1-5) from the specs or title, or null when the product doesn't state one. */
 function energyStarsOf(p: CategoryProductItem): number | null {
+  const attr = p.attributes?.energy_rating;
+  if (typeof attr === 'string') {
+    const a = attr.match(/^([1-5])\s*star/i);
+    return a ? Number(a[1]) : null;
+  }
   const specs = p.specs || {};
   const specValue = Object.entries(specs).find(([k]) => /energy|bee|star rating/i.test(k))?.[1];
   const m = String(specValue ?? '').match(/([1-5])\s*star/i) || (p.title || '').match(/\b([1-5])\s*star\b/i);
   return m ? Number(m[1]) : null;
+}
+
+/** The product's attribute template (AC, refrigerator, ...), from its category path. */
+const templateOf = (p: CategoryProductItem) => getTemplateForCategoryPath(p.categoryPath || [p.category]);
+
+/** Filter option a product falls into for an attribute: the enum value or the number's range label. */
+function attributeOptionOf(p: CategoryProductItem, def: AttributeDef): string | null {
+  const v = p.attributes?.[def.key];
+  if (v === undefined || v === null || v === '') return null;
+  if (def.type === 'enum') return String(v);
+  const n = Number(v);
+  return Number.isFinite(n) ? bucketFor(def, n)?.label ?? null : null;
 }
 
 const PRICE_BUCKETS = [
@@ -162,12 +188,13 @@ function AppliancesContent() {
   const [type, setType] = useState<'all' | ApplianceType>('all');
   const [brands, setBrands] = useState<string[]>([]);
   const [stars, setStars] = useState<number[]>([]);
+  // Category-specific filters: attribute key -> selected options (enum values or range labels).
+  const [attrFilters, setAttrFilters] = useState<Record<string, string[]>>({});
   const [priceBucket, setPriceBucket] = useState<string | null>(null);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [minRating, setMinRating] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [expressOnly, setExpressOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortId>('relevance');
   const [searchQuery, setSearchQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -184,6 +211,7 @@ function AppliancesContent() {
   useEffect(() => setSearchQuery(qParam), [qParam]);
   useEffect(() => {
     setType(APPLIANCE_TYPES.some((t) => t.slug === subParam) ? (subParam as 'all' | ApplianceType) : 'all');
+    setAttrFilters({});
   }, [subParam]);
   useEffect(() => {
     if (brandParam) setBrands((prev) => (prev.includes(brandParam) ? prev : [...prev, brandParam]));
@@ -232,15 +260,49 @@ function AppliancesContent() {
   const max = maxPrice && Number(maxPrice) > 0 ? Number(maxPrice) : null;
   const priceRangeInvalid = min !== null && max !== null && min > max;
 
+  // Attribute facets appear once a type is chosen (like Amazon): the fields of the templates its products use.
+  // Each facet belongs to one template, so a product only matches facets of its own template.
+  type Facet = { id: string; tpl: AttributeTemplate; def: AttributeDef; title: string };
+  const attributeDefs: Facet[] = (() => {
+    if (type === 'all') return [];
+    const templates: AttributeTemplate[] = [];
+    products
+      .filter((p) => applianceTypeOf(p) === type)
+      .forEach((p) => {
+        const t = templateOf(p);
+        if (t && !templates.some((x) => x.id === t.id)) templates.push(t);
+      });
+    const several = templates.length > 1;
+    return templates.flatMap((tpl) =>
+      tpl.attributes
+        // Energy rating has its own facet (it also reads specs for older listings).
+        .filter((def) => def.key !== 'energy_rating')
+        .map((def) => {
+          const label = def.type === 'number' ? `${def.label} (${def.unit})` : def.label;
+          return { id: `${tpl.id}:${def.key}`, tpl, def, title: several ? `${tpl.name} · ${label}` : label };
+        })
+    );
+  })();
+  const facetById = new Map(attributeDefs.map((f) => [f.id, f]));
+  const facetOptionOf = (p: CategoryProductItem, f: Facet) =>
+    templateOf(p)?.id === f.tpl.id ? attributeOptionOf(p, f.def) : null;
+
   // Every filter except the one named, so facet counts show what each option would return.
-  const applyFilters = (list: CategoryProductItem[], skip?: 'brand' | 'stars' | 'price') => {
+  const applyFilters = (list: CategoryProductItem[], skip?: string) => {
     let out = list;
     if (type !== 'all') out = out.filter((p) => applianceTypeOf(p) === type);
     if (searchQuery.trim()) {
       out = out.filter((p) =>
         matchesSearchQuery(
           searchQuery,
-          [p.title, p.brand, p.subCategory, p.category, ...Object.values(p.specs || {}).map(String)],
+          [
+            p.title,
+            p.brand,
+            p.subCategory,
+            p.category,
+            ...Object.values(p.specs || {}).map(String),
+            ...Object.values(p.attributes || {}).map(String),
+          ],
           DEPARTMENT_WORDS.appliances
         )
       );
@@ -254,6 +316,14 @@ function AppliancesContent() {
         return s !== null && stars.includes(s);
       });
     }
+    for (const [facetId, selected] of Object.entries(attrFilters)) {
+      const facet = facetById.get(facetId);
+      if (!facet || selected.length === 0 || skip === `attr:${facetId}`) continue;
+      out = out.filter((p) => {
+        const opt = facetOptionOf(p, facet);
+        return opt !== null && selected.includes(opt);
+      });
+    }
     if (skip !== 'price') {
       const bucket = PRICE_BUCKETS.find((b) => b.id === priceBucket);
       if (bucket) out = out.filter((p) => p.price >= bucket.min && p.price < bucket.max);
@@ -264,46 +334,59 @@ function AppliancesContent() {
     }
     if (minRating > 0) out = out.filter((p) => (p.reviews || 0) > 0 && (p.rating || 0) >= minRating);
     if (inStockOnly) out = out.filter((p) => p.inStock);
-    if (expressOnly) out = out.filter((p) => p.isExpress === true);
     return out;
   };
 
-  const filtered = useMemo(() => {
-    const list = [...applyFilters(products)];
-    if (sortBy === 'price-low') list.sort((a, b) => a.price - b.price);
-    else if (sortBy === 'price-high') list.sort((a, b) => b.price - a.price);
-    else if (sortBy === 'discount') list.sort((a, b) => discountPct(b) - discountPct(a));
-    else if (sortBy === 'rating') list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-    return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, type, searchQuery, brands, stars, priceBucket, minPrice, maxPrice, minRating, inStockOnly, expressOnly, sortBy]);
+  const filtered = [...applyFilters(products)];
+  if (sortBy === 'price-low') filtered.sort((a, b) => a.price - b.price);
+  else if (sortBy === 'price-high') filtered.sort((a, b) => b.price - a.price);
+  else if (sortBy === 'discount') filtered.sort((a, b) => discountPct(b) - discountPct(a));
+  else if (sortBy === 'rating') filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
-  const brandFacets = useMemo(() => {
+  const brandFacets = (() => {
     const base = applyFilters(products, 'brand');
     const all = Array.from(new Set(products.map((p) => p.brand).filter(Boolean))).sort((a, b) => a.localeCompare(b));
     return all.map((name) => ({
       name,
       count: base.filter((p) => (p.brand || '').toLowerCase() === name.toLowerCase()).length,
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, type, searchQuery, stars, priceBucket, minPrice, maxPrice, minRating, inStockOnly, expressOnly]);
+  })();
 
-  const starFacets = useMemo(() => {
+  const starFacets = (() => {
     const base = applyFilters(products, 'stars');
     const present = Array.from(
       new Set(products.map(energyStarsOf).filter((s): s is number => s !== null))
     ).sort((a, b) => b - a);
     return present.map((s) => ({ stars: s, count: base.filter((p) => energyStarsOf(p) === s).length }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, type, searchQuery, brands, priceBucket, minPrice, maxPrice, minRating, inStockOnly, expressOnly]);
+  })();
 
-  const priceFacets = useMemo(() => {
+  const priceFacets = (() => {
     const base = applyFilters(products, 'price');
     return PRICE_BUCKETS.map((b) => ({ ...b, count: base.filter((p) => p.price >= b.min && p.price < b.max).length }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, type, searchQuery, brands, stars, minRating, inStockOnly, expressOnly]);
+  })();
 
-  const hasExpressProducts = products.some((p) => p.isExpress === true);
+  // Options for each attribute facet, in template order; only options some product actually has.
+  const attributeFacets = attributeDefs
+    .map((facet) => {
+      const { def } = facet;
+      const base = applyFilters(products, `attr:${facet.id}`);
+      const allOptions = def.type === 'enum' ? def.options : def.buckets.map((b) => b.label);
+      const inType = products.filter((p) => applianceTypeOf(p) === type);
+      const selected = attrFilters[facet.id] || [];
+      const options = allOptions
+        .filter((o) => selected.includes(o) || inType.some((p) => facetOptionOf(p, facet) === o))
+        .map((o) => ({ label: o, count: base.filter((p) => facetOptionOf(p, facet) === o).length }));
+      return { facet, options };
+    })
+    .filter((f) => f.options.length > 0);
+
+  const toggleAttr = (key: string, option: string) =>
+    setAttrFilters((prev) => {
+      const cur = prev[key] || [];
+      const next = cur.includes(option) ? cur.filter((o) => o !== option) : [...cur, option];
+      return { ...prev, [key]: next };
+    });
+
   const hasReviewedProducts = products.some((p) => (p.reviews || 0) > 0);
 
   // Removable chips for everything that is narrowing the list.
@@ -356,17 +439,26 @@ function AppliancesContent() {
     });
   if (minRating > 0) activeChips.push({ key: 'rating', label: `${minRating}★ & up`, clear: () => setMinRating(0) });
   if (inStockOnly) activeChips.push({ key: 'stock', label: 'In stock', clear: () => setInStockOnly(false) });
-  if (expressOnly) activeChips.push({ key: 'express', label: 'Vyntra Express', clear: () => setExpressOnly(false) });
+  Object.entries(attrFilters).forEach(([facetId, selected]) => {
+    const facet = facetById.get(facetId);
+    selected.forEach((o) =>
+      activeChips.push({
+        key: `attr-${facetId}-${o}`,
+        label: facet && facet.def.type === 'enum' ? `${facet.def.label}: ${o}` : o,
+        clear: () => toggleAttr(facetId, o),
+      })
+    );
+  });
 
   const clearAll = () => {
     setBrands([]);
     setStars([]);
+    setAttrFilters({});
     setPriceBucket(null);
     setMinPrice('');
     setMaxPrice('');
     setMinRating(0);
     setInStockOnly(false);
-    setExpressOnly(false);
     router.replace('/appliances', { scroll: false });
   };
 
@@ -395,6 +487,26 @@ function AppliancesContent() {
   /* ----------------------------- Filters panel ----------------------------- */
   const filtersPanel = (
     <div>
+      {attributeFacets.map(({ facet, options }) => (
+        <FilterSection key={facet.id} title={facet.title}>
+          <div className="space-y-0.5">
+            {options.map((o) => {
+              const checked = (attrFilters[facet.id] || []).includes(o.label);
+              return (
+                <CheckRow
+                  key={o.label}
+                  label={o.label}
+                  count={o.count}
+                  checked={checked}
+                  disabled={o.count === 0 && !checked}
+                  onChange={() => toggleAttr(facet.id, o.label)}
+                />
+              );
+            })}
+          </div>
+        </FilterSection>
+      ))}
+
       {brandFacets.length > 0 && (
         <FilterSection title="Brand">
           <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
@@ -513,17 +625,6 @@ function AppliancesContent() {
       <FilterSection title="Availability">
         <div className="space-y-0.5">
           <CheckRow label="In stock only" checked={inStockOnly} onChange={() => setInStockOnly((v) => !v)} />
-          {hasExpressProducts && (
-            <CheckRow
-              label={
-                <span className="inline-flex items-center gap-1 font-semibold text-[#007185]">
-                  <Zap className="h-3.5 w-3.5" /> Vyntra Express
-                </span>
-              }
-              checked={expressOnly}
-              onChange={() => setExpressOnly((v) => !v)}
-            />
-          )}
         </div>
       </FilterSection>
     </div>

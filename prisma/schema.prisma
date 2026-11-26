@@ -410,6 +410,9 @@ model Product {
   isCustomized  Boolean  @default(false) // NORMAL/READY-MADE vs CUSTOMIZED/MADE-TO-ORDER
   rating        Float    @default(0)
   reviewCount   Int      @default(0)
+  /// Structured, category-specific attributes used for filters (e.g. {"capacity_ton": 1.5, "ac_type": "Split"}).
+  /// Keys and allowed values are defined per category in src/lib/catalog/attributes.ts.
+  attributes    Json?
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])

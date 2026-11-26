@@ -17,7 +17,6 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Truck,
   RotateCcw,
   Search,
   Check,
@@ -404,10 +403,6 @@ function BooksContent() {
               <RotateCcw className="h-3.5 w-3.5 text-[#007185]" />
               7 Days Easy Return
             </span>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-[#E7E7E7] text-[#0F1111] font-medium shadow-2xs">
-              <Truck className="h-3.5 w-3.5 text-[#E67A00]" />
-              Vyntra Express Delivery
-            </span>
           </div>
         </div>
 
@@ -779,18 +774,6 @@ function BooksContent() {
               <div>
                 <h5 className="text-xs font-bold text-[#0F1111] mb-2.5">Fulfillment &amp; Availability</h5>
                 <div className="space-y-2 text-xs text-[#0F1111]">
-                  <label className="flex items-center gap-2 cursor-pointer hover:text-[#007185]">
-                    <input
-                      type="checkbox"
-                      checked={onlyPrime}
-                      onChange={(e) => setOnlyPrime(e.target.checked)}
-                      className="h-4 w-4 rounded border-[#D5D9D9] text-[#007185] focus:ring-[#007185]"
-                    />
-                    <span className="font-extrabold text-[#007185] flex items-center gap-1">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00A8E8]" />
-                      Vyntra Express
-                    </span>
-                  </label>
                   <label className="flex items-center gap-2 cursor-pointer hover:text-[#007185]">
                     <input
                       type="checkbox"

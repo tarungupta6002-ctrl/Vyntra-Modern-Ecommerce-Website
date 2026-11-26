@@ -3,6 +3,9 @@ import { requireVendor, verifyVendorOwnership, handleAuthError } from '@/lib/aut
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
+import { Prisma } from '@prisma/client';
+import { validateProductAttributes } from '@/lib/catalog/category-path';
+import { readStoredAttributes } from '@/lib/catalog/attributes';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +115,7 @@ export async function GET(request: Request, context: RouteContext) {
       specs,
       highlights,
       aplus,
+      attributes: readStoredAttributes((product as any).attributes),
       brand: product.brand,
       price: Number(product.basePrice),
       originalPrice: product.discountPrice ? Number(product.discountPrice) : Number(product.basePrice),
@@ -198,6 +202,17 @@ export async function PUT(request: Request, context: RouteContext) {
     const subtitle = body.subtitle?.trim() || null;
     const stockQuantity = Math.max(0, parseInt(body.stock, 10) || 10);
 
+    // Category-specific attributes. Only touched when the client sends them (older clients don't).
+    let attributesUpdate: Prisma.InputJsonValue | typeof Prisma.DbNull | undefined;
+    if (body.attributes !== undefined) {
+      const willBePublished = isPublished ?? Boolean(existingProduct?.isPublished);
+      const check = await validateProductAttributes(categoryId, body.attributes, willBePublished);
+      if (check.errors.length > 0) {
+        return apiError(check.errors[0], 400, { errors: check.errors }, 'INVALID_ATTRIBUTES');
+      }
+      attributesUpdate = Object.keys(check.attributes).length > 0 ? check.attributes : Prisma.DbNull;
+    }
+
     let finalDescription = description;
     if (body.aplus || body.specs || body.highlights) {
       finalDescription = JSON.stringify({
@@ -233,6 +248,7 @@ export async function PUT(request: Request, context: RouteContext) {
           ...(isPublished !== undefined ? { isPublished } : {}),
           ...(isCustomized !== undefined ? { isCustomized } : {}),
           ...(variantsInput ? { hasVariants: variantsInput.length > 1 } : {}),
+          ...(attributesUpdate !== undefined ? { attributes: attributesUpdate } : {}),
         },
       });
 

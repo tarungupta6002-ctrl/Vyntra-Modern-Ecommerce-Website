@@ -4,6 +4,7 @@ import { apiSuccess, apiError } from '@/lib/api-response';
 import { Prisma } from '@prisma/client';
 import { PRODUCTS_DATABASE } from '@/data/products';
 import { buildProductSearchWhere } from '@/lib/search';
+import { readStoredAttributes } from '@/lib/catalog/attributes';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,10 @@ interface FormattedProductItem {
   colors: string[];
   stockCount: number;
   inStock: boolean;
+  /** Category slugs from the root down to the product's category. */
+  categoryPath?: string[];
+  /** Structured category attributes (see src/lib/catalog/attributes.ts). */
+  attributes?: Record<string, string | number>;
   specs?: Record<string, string>;
   vendor: {
     name: string;
@@ -117,13 +122,16 @@ function formatProduct(product: any): FormattedProductItem {
     reviewCount: product.reviewCount,
     badge: computedBadge,
     badgeVariant: computedBadge === 'Bestseller' ? 'primary' : 'secondary',
-    isExpress: true,
+    // No real express-delivery data exists yet, so nothing is advertised as Express.
+    isExpress: false,
     image: imageUrl,
     sizes: sizes.length > 0 ? sizes : ['Standard'],
     colors: colors.length > 0 ? colors : ['Default'],
     stockCount: totalStock,
     inStock: totalStock > 0,
     specs: Object.keys(specs).length > 0 ? specs : undefined,
+    categoryPath: categoryPathOf(product.category),
+    attributes: readStoredAttributes(product.attributes),
     vendor: {
       name: product.vendor?.storeName || 'Vyntra Atelier',
       slug: product.vendor?.storeSlug || 'vyntra-atelier',
@@ -131,6 +139,16 @@ function formatProduct(product: any): FormattedProductItem {
       isVerified: product.vendor?.isVerified ?? true,
     },
   };
+}
+
+function categoryPathOf(category: any): string[] {
+  const path: string[] = [];
+  let node = category;
+  while (node && path.length < 6) {
+    if (node.slug) path.unshift(node.slug);
+    node = node.parent;
+  }
+  return path;
 }
 
 /**
@@ -278,7 +296,13 @@ export async function GET(request: NextRequest) {
           where,
           include: {
             category: {
-              select: { id: true, name: true, slug: true },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                // Ancestors, so listings can tell which department/type a product belongs to.
+                parent: { select: { slug: true, parent: { select: { slug: true, parent: { select: { slug: true } } } } } },
+              },
             },
             vendor: {
               select: {

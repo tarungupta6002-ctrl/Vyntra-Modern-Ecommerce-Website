@@ -36,6 +36,8 @@ import {
 import { formatINR } from '@/lib/utils';
 import { APlusData, createDefaultAPlusContent, cleanAplusText } from '@/types/aplus';
 import { APlusBuilder } from '@/components/vendor/aplus-builder';
+import { ProductAttributesSection } from '@/components/vendor/product-attributes-section';
+import { getTemplateForCategoryPath, validateAttributes } from '@/lib/catalog/attributes';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
 import { getCategoryMeasurementProfile } from '@/lib/category-measurement';
 import { ProductPricingSection } from '@/components/vendor/product-pricing-section';
@@ -88,6 +90,7 @@ interface ProductDraft {
   highlights: string[];
   specs: Array<{ label: string; value: string }>;
   aplusData?: APlusData;
+  attributes?: Record<string, string>;
 }
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size'];
@@ -191,6 +194,14 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   const [newHighlight, setNewHighlight] = useState('');
 
   // Specifications
+  // Category-specific attributes (capacity, type, energy rating...). Kept as strings while editing.
+  const [attributes, setAttributes] = useState<Record<string, string>>(() => {
+    const init = initialData?.attributes;
+    if (!init || typeof init !== 'object') return {};
+    return Object.fromEntries(Object.entries(init).map(([k, v]) => [k, String(v)]));
+  });
+  const [showAttributeErrors, setShowAttributeErrors] = useState(false);
+
   const [specs, setSpecs] = useState<Array<{ label: string; value: string }>>(
     Array.isArray(initialData?.specs) && initialData.specs.length > 0
       ? initialData.specs
@@ -323,6 +334,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           highlights,
           specs,
           aplusData,
+          attributes,
         };
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
         const now = new Date();
@@ -355,6 +367,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     highlights,
     specs,
     aplusData,
+    attributes,
   ]);
 
   const handleRestoreDraft = () => {
@@ -377,6 +390,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     if (existingDraft.highlights !== undefined) setHighlights(existingDraft.highlights);
     if (existingDraft.specs !== undefined) setSpecs(existingDraft.specs);
     if (existingDraft.aplusData !== undefined) setAplusData(existingDraft.aplusData);
+    if (existingDraft.attributes !== undefined) setAttributes(existingDraft.attributes);
 
     setShowDraftModal(false);
     setSuccessMessage('Restored your unsaved product draft successfully!');
@@ -547,6 +561,12 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       fullPath: trail.map((t) => t.name).join(' › '),
     };
   }, [categoryId, byId, getCategoryAncestry]);
+
+  // Amazon-style product type template for the chosen category (null when the category has none).
+  const attributeTemplate = React.useMemo(
+    () => getTemplateForCategoryPath((activeCategory?.trail || []).map((t) => t.slug)),
+    [activeCategory]
+  );
 
   const measurementProfile = React.useMemo(() => {
     return getCategoryMeasurementProfile(
@@ -1589,6 +1609,14 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    // Required category details are needed to publish (drafts may be incomplete).
+    const attributeCheck = validateAttributes(attributeTemplate, attributes, { enforceRequired: publishIntent });
+    if (attributeCheck.errors.length > 0) {
+      setShowAttributeErrors(true);
+      setErrorMessage(attributeCheck.errors[0]);
+      document.getElementById('product-attributes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     if (!price || numericPrice <= 0) {
       setErrorMessage('Please specify a valid base price greater than 0.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1685,6 +1713,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         isCustomized,
         description: description.trim() || undefined,
         specs: specs.filter((s) => s.label.trim() && s.value.trim()),
+        attributes: attributeCheck.attributes,
         highlights: highlights.filter((h) => h.trim()),
         aplus: sanitizedAplus,
         images: images.map((img) => img.url),
@@ -2144,6 +2173,14 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           </div>
         </div>
       </section>
+
+      {/* Category-specific details that power customer filters */}
+      <ProductAttributesSection
+        template={attributeTemplate}
+        values={attributes}
+        onChange={(key, value) => setAttributes((prev) => ({ ...prev, [key]: value }))}
+        showErrors={showAttributeErrors}
+      />
 
       {/* ===================================================================== */}
       {/* SECTION 2: PRICING & INVENTORY COMMERCIALS                           */}

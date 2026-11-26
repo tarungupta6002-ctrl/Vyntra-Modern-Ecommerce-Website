@@ -300,22 +300,6 @@ export default function WesternWearPage() {
               </ul>
             </div>
 
-            {/* Vyntra Express Filter */}
-            <div className="border-t border-[#E7E7E7] pt-4">
-              <h4 className="text-xs font-bold text-[#0F1111] mb-2">Vyntra Express</h4>
-              <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
-                <input
-                  type="checkbox"
-                  checked={primeOnly}
-                  onChange={(e) => setPrimeOnly(e.target.checked)}
-                  className="rounded text-[#007185] focus:ring-[#007185] h-4 w-4"
-                />
-                <span className="inline-flex items-center text-xs font-extrabold text-[#007185]">
-                  <span className="text-[#00A8E1] mr-0.5">✓</span>prime
-                </span>
-              </label>
-            </div>
-
             {/* Brands Filter */}
             {dynamicBrands.length > 0 && (
 <div className="border-t border-[#E7E7E7] pt-4">

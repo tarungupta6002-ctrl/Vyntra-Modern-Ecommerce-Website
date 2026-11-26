@@ -277,24 +277,6 @@ function WomensEthnicWearContent({ params }: PageProps) {
               </ul>
             </div>
 
-            {/* Vyntra Express / Vyntra Prime Filter */}
-            <div className="pt-3 border-t border-[#E7E7E7] space-y-2">
-              <span className="text-[13px] font-bold text-[#0F1111] block">
-                Vyntra Express
-              </span>
-              <label className="flex items-center gap-2 cursor-pointer text-xs group select-none">
-                <input
-                  type="checkbox"
-                  checked={primeOnly}
-                  onChange={(e) => setPrimeOnly(e.target.checked)}
-                  className="rounded text-[#007185] focus:ring-[#FF9900] h-4 w-4 border-[#888]"
-                />
-                <span className="font-black text-[#007185] italic text-sm tracking-tight">
-                  &#10003;prime
-                </span>
-              </label>
-            </div>
-
             {/* Brands Filter (Live Database Brands Only) */}
             {dynamicBrands.length > 0 && (
               <div className="pt-3 border-t border-[#E7E7E7] space-y-2">

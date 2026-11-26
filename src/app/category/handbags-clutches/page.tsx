@@ -181,7 +181,7 @@ function HandbagsContent() {
             reviewCount: p.reviewCount || 10,
             image: p.image || '/images/products/placeholder.jpg',
             slug: p.slug,
-            isPrime: p.isExpress ?? true,
+            isPrime: p.isExpress === true,
           }));
           setLiveProducts(dbItems);
         }
@@ -352,22 +352,6 @@ function HandbagsContent() {
               </div>
             </div>
             )}
-
-            {/* Vyntra Express */}
-            <div className="border-t border-zinc-200 pt-3">
-              <div className="font-bold text-zinc-900 text-[13px] mb-1.5">Vyntra Express</div>
-              <label className="flex items-center gap-2 cursor-pointer hover:text-amber-700">
-                <input
-                  type="checkbox"
-                  checked={primeOnly}
-                  onChange={(e) => setPrimeOnly(e.target.checked)}
-                  className="rounded border-zinc-300 text-amber-600 focus:ring-amber-500 h-3.5 w-3.5"
-                />
-                <span className="text-[#00a8e1] font-bold text-[13px] italic flex items-center">
-                  Vyntra Express
-                </span>
-              </label>
-            </div>
 
             {/* Customer Review */}
             <div className="border-t border-zinc-200 pt-3">

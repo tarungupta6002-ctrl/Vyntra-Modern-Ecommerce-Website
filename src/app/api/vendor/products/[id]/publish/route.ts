@@ -3,6 +3,7 @@ import { requireVendor, verifyVendorOwnership, handleAuthError } from '@/lib/aut
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
+import { validateProductAttributes } from '@/lib/catalog/category-path';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,22 @@ export async function PATCH(request: Request, context: RouteContext) {
       typeof body.isPublished === 'boolean'
         ? body.isPublished
         : !(await prisma.product.findUnique({ where: { id }, select: { isPublished: true } }))?.isPublished;
+
+    // A listing can't go live without the required category attributes (they power filters).
+    if (nextPublished) {
+      const current = await prisma.product.findUnique({ where: { id }, select: { categoryId: true, attributes: true } });
+      if (current) {
+        const check = await validateProductAttributes(current.categoryId, current.attributes, true);
+        if (check.errors.length > 0) {
+          return apiError(
+            `Add the missing product details before publishing: ${check.errors[0]}`,
+            400,
+            { errors: check.errors },
+            'INVALID_ATTRIBUTES'
+          );
+        }
+      }
+    }
 
     const updated = await prisma.product.update({
       where: { id },

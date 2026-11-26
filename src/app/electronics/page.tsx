@@ -17,7 +17,6 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Truck,
   RotateCcw,
   Search,
   Check,
@@ -517,10 +516,6 @@ function ElectronicsContent() {
               <RotateCcw className="h-3.5 w-3.5 text-[#007185]" />
               7 Days Return
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#E7E7E7] text-[#0F1111] font-medium shadow-2xs">
-              <Truck className="h-3.5 w-3.5 text-[#E67A00]" />
-              Vyntra Express Delivery
-            </span>
           </div>
         </div>
 
@@ -644,13 +639,8 @@ function ElectronicsContent() {
               </div>
             </div>
 
-            {/* Right Side: Trust & Benefit Cards (Vyntra Express, Genuine, Return, EMI) */}
+            {/* Right Side: Trust & Benefit Cards */}
             <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full md:w-auto z-10 shrink-0">
-              <div className="bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 hover:border-[#FFD814]/30 rounded-xl p-2.5 sm:p-3 text-center min-w-[125px] backdrop-blur-md transition-all shadow-xs">
-                <Truck className="w-4 h-4 mx-auto text-[#FFD814] mb-1" />
-                <span className="text-[11px] sm:text-xs font-bold block text-white">Vyntra Express</span>
-                <span className="text-[9px] sm:text-[10px] text-slate-300">Fast 24-48H Delivery</span>
-              </div>
               <div className="bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 hover:border-emerald-400/30 rounded-xl p-2.5 sm:p-3 text-center min-w-[125px] backdrop-blur-md transition-all shadow-xs">
                 <ShieldCheck className="w-4 h-4 mx-auto text-emerald-400 mb-1" />
                 <span className="text-[11px] sm:text-xs font-bold block text-white">100% Genuine</span>
@@ -849,15 +839,6 @@ function ElectronicsContent() {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-100 text-[#0F1111] text-xs font-medium border border-stone-200">
                 <span>In Stock Only</span>
                 <button onClick={() => setOnlyInStock(false)} className="hover:text-red-600">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-
-            {onlyExpress && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#007185]/10 text-[#007185] text-xs font-semibold border border-[#007185]/20">
-                <span>Vyntra Express</span>
-                <button onClick={() => setOnlyExpress(false)} className="hover:text-red-600">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -1146,15 +1127,6 @@ function ElectronicsContent() {
               <label className="flex items-center gap-2 text-xs text-[#0F1111] cursor-pointer hover:text-[#007185]">
                 <input
                   type="checkbox"
-                  checked={onlyExpress}
-                  onChange={(e) => setOnlyExpress(e.target.checked)}
-                  className="rounded accent-[#007185]"
-                />
-                <span className="font-semibold text-[#007185]">Vyntra Express</span>
-              </label>
-              <label className="flex items-center gap-2 text-xs text-[#0F1111] cursor-pointer hover:text-[#007185]">
-                <input
-                  type="checkbox"
                   checked={onlyInStock}
                   onChange={(e) => setOnlyInStock(e.target.checked)}
                   className="rounded accent-[#007185]"
@@ -1436,7 +1408,6 @@ function ElectronicsContent() {
                     key={product.id}
                     product={product}
                     imageAspectRatio="square"
-                    fulfillmentBadge="Vyntra Express"
                     titleClamp="4"
                     isSaved={isInWishlist(product.id)}
                     isAdded={Boolean(addedItemIds[product.id])}
@@ -1466,7 +1437,6 @@ function ElectronicsContent() {
                     key={product.id}
                     product={product}
                     imageAspectRatio="square"
-                    fulfillmentBadge="Vyntra Express"
                     titleClamp="3"
                     isSaved={isInWishlist(product.id)}
                     isAdded={Boolean(addedItemIds[product.id])}
@@ -1619,15 +1589,6 @@ function ElectronicsContent() {
 
               {/* Service & Stock */}
               <div className="pt-2 border-t border-[#E7E7E7] space-y-2">
-                <label className="flex items-center gap-2 text-xs text-[#0F1111]">
-                  <input
-                    type="checkbox"
-                    checked={onlyExpress}
-                    onChange={(e) => setOnlyExpress(e.target.checked)}
-                    className="accent-[#007185] rounded"
-                  />
-                  <span className="font-semibold text-[#007185]">Vyntra Express</span>
-                </label>
                 <label className="flex items-center gap-2 text-xs text-[#0F1111]">
                   <input
                     type="checkbox"

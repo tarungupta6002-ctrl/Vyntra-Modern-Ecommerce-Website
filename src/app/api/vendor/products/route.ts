@@ -3,6 +3,8 @@ import { requireVendor, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
+import { Prisma } from '@prisma/client';
+import { validateProductAttributes } from '@/lib/catalog/category-path';
 
 export const dynamic = 'force-dynamic';
 
@@ -232,6 +234,12 @@ export async function POST(request: Request) {
     const description = body.description?.trim() || null;
     const subtitle = body.subtitle?.trim() || null;
 
+    // Category-specific attributes (capacity, type, energy rating, ...) that power filters.
+    const attributeCheck = await validateProductAttributes(categoryId, body.attributes, wantsPublish);
+    if (attributeCheck.errors.length > 0) {
+      return apiError(attributeCheck.errors[0], 400, { errors: attributeCheck.errors }, 'INVALID_ATTRIBUTES');
+    }
+
     let finalDescription = description;
     if (body.aplus || body.specs || body.highlights) {
       finalDescription = JSON.stringify({
@@ -282,6 +290,7 @@ export async function POST(request: Request) {
           isCustomized,
           categoryId,
           vendorId: auth.vendorProfileId,
+          attributes: Object.keys(attributeCheck.attributes).length > 0 ? attributeCheck.attributes : Prisma.DbNull,
         },
       });
 

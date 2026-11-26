@@ -2050,7 +2050,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                           isBold: true,
                         },
                         { label: 'Cellular Technology', value: '5G, 4G LTE, VoLTE, VoWiFi' },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : isLaptopOrComputer
                     ? [
@@ -2081,7 +2080,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                             )?.value || 'Integrated',
                         },
                         { label: 'Connectivity', value: 'Wi-Fi 6E / Wi-Fi 6, Bluetooth 5.3' },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : isCamera
                     ? [
@@ -2108,7 +2106,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                                 s.label.toLowerCase().includes('stabilis') || s.label.toLowerCase().includes('stabiliz')
                             )?.value || '5-Axis Sensor-shift',
                         },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : isBook
                     ? [
@@ -2159,7 +2156,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                             product.customSpecs?.find((s) => s.label.toLowerCase().includes('reading age') || s.label.toLowerCase().includes('age'))?.value ||
                             '13 years and up',
                         },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Protected Book-Pack Dispatched' },
                       ]
                     : isAppliance
                     ? [
@@ -2192,14 +2188,12 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                           isBold: true,
                         },
                         { label: 'Warranty Summary', value: '10 Years on Motor/Compressor + 1 Year Comprehensive' },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : isAudioOrHeadphones
                     ? [
                         { label: 'Brand', value: product.brand, isBold: true },
                         { label: 'Model Name', value: product.title },
                         { label: 'Connectivity Technology', value: 'Wireless Bluetooth' },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : isSmartwatch
                     ? [
@@ -2207,14 +2201,12 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                         { label: 'Model Name', value: product.title },
                         { label: 'Compatible Devices', value: 'Smartphone (iOS & Android)' },
                         { label: 'Connectivity Technology', value: 'Bluetooth, Wi-Fi' },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : isMobileOrElectronic
                     ? [
                         { label: 'Brand', value: product.brand, isBold: true },
                         { label: 'Model Name', value: product.title },
                         { label: 'Connectivity Technology', value: 'Bluetooth & Wi-Fi' },
-                        { label: 'Fulfillment & Dispatch', value: 'Vyntra Express Inspected Stock' },
                       ]
                     : [
                         { label: 'Brand', value: product.brand, isBold: true },

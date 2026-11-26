@@ -19,8 +19,12 @@ export interface CategoryProductItem {
   isAmazonChoice?: boolean;
   isLimitedDeal?: boolean;
   isPrime: boolean;
-  /** Real "Vyntra Express" flag from the product API. */
+  /** "Vyntra Express" flag from the product API (false until real express-delivery data exists). */
   isExpress?: boolean;
+  /** Category slugs from the root down to the product's category. */
+  categoryPath?: string[];
+  /** Structured category attributes (see src/lib/catalog/attributes.ts). */
+  attributes?: Record<string, string | number>;
   deliveryDate: string;
   image: string;
   stockCount: number;
@@ -275,6 +279,8 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
                 gemstoneType: 'Pearl',
                 isQualityVerified: true,
                 specs: p.specs,
+                categoryPath: Array.isArray(p.categoryPath) ? p.categoryPath : undefined,
+                attributes: p.attributes && typeof p.attributes === 'object' ? p.attributes : undefined,
               }));
             setDbProducts(matched);
           } else {

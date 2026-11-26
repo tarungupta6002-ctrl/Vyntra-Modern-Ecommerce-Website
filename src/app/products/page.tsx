@@ -718,31 +718,6 @@ function VyntraProductListingContent() {
 
           {/* Right: 24h Express Fast Delivery Toggle & Sort Dropdown */}
           <div className="flex items-center justify-between md:justify-end gap-4 shrink-0">
-            {/* Express Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={expressOnly}
-                  onChange={(e) => {
-                    setExpressOnly(e.target.checked);
-                    showToast(
-                      e.target.checked
-                        ? 'Showing only 24h Express Delivery items'
-                        : 'Showing full inventory catalog',
-                      'bolt',
-                      true
-                    );
-                  }}
-                  className="sr-only peer"
-                  id="fast-delivery-toggle"
-                />
-                <div className="w-9 h-5 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-secondary-container" />
-              </div>
-              <span className="text-xs font-label font-bold text-on-surface flex items-center gap-1">
-                <Zap className="h-3.5 w-3.5 text-secondary" /> 24h Express
-              </span>
-            </label>
 
             <div className="h-4 w-[1px] bg-outline-variant hidden sm:block" />
 
