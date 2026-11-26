@@ -19,6 +19,8 @@ export interface CategoryProductItem {
   isAmazonChoice?: boolean;
   isLimitedDeal?: boolean;
   isPrime: boolean;
+  /** Real "Vyntra Express" flag from the product API. */
+  isExpress?: boolean;
   deliveryDate: string;
   image: string;
   stockCount: number;
@@ -245,12 +247,13 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
                 price: Number(p.price || 0),
                 originalPrice: Number(p.originalPrice || p.price || 0),
                 discount: p.discount || '',
-                rating: Number(p.rating) || 4.5,
-                reviews: Number(p.reviewCount) || 1,
-                isBestSeller: true,
+                rating: Number(p.rating) || 0,
+                reviews: Number(p.reviewCount) || 0,
+                isBestSeller: p.badge === 'Bestseller' && Number(p.reviewCount || 0) > 0,
                 isAmazonChoice: false,
                 isLimitedDeal: false,
-                isPrime: true,
+                isPrime: p.isExpress === true,
+                isExpress: p.isExpress === true,
                 deliveryDate: 'Tomorrow, 11 AM',
                 image: p.image || '',
                 stockCount: Number(p.stockCount || 0),

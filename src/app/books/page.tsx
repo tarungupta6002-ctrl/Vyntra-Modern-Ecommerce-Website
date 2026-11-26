@@ -29,7 +29,6 @@ import { CategoryProductItem, useCategoryProducts } from '@/hooks/use-category-p
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import {
-  FALLBACK_BOOKS,
   BOOK_SUBCATEGORIES,
   BOOK_AUTHORS,
   BOOK_FORMATS,
@@ -105,21 +104,10 @@ function BooksContent() {
     departmentSlug: 'books',
   });
 
-  // Combine live database items with realistic Amazon India fallback books
+  // Only real products from the database
   const products: CategoryProductItem[] = useMemo(() => {
     const rawList = [...(liveDbProducts || [])];
 
-    FALLBACK_BOOKS.forEach((fb) => {
-      const exists = rawList.some(
-        (p) =>
-          p.id === fb.id ||
-          p.slug === fb.slug ||
-          p.title.toLowerCase() === fb.title.toLowerCase()
-      );
-      if (!exists) {
-        rawList.push(fb);
-      }
-    });
 
     // Strictly filter for books only
     return rawList.filter((p) => {

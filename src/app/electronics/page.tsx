@@ -1376,18 +1376,20 @@ function ElectronicsContent() {
                           )}
                         </div>
 
-                        {/* Vyntra Express Delivery & Warranty */}
-                        <div className="space-y-1 text-xs text-[#565959] pt-1">
-                          <span className="font-extrabold text-[#007185] tracking-tight flex items-center gap-1.5">
-                            <span className="inline-block w-2 h-2 rounded-full bg-[#00A8E8]" />
-                            <span>Vyntra Express</span>
-                            <span className="text-stone-300">•</span>
-                            <span className="text-[#0F1111] font-semibold">FREE Delivery {product.deliveryDate || 'Tomorrow, 11 AM'}</span>
-                          </span>
-                          <p className="text-[11px] text-[#565959]">
-                            Eligible for 7-Day Replacement Guarantee &amp; 1 Year Brand Warranty
-                          </p>
-                        </div>
+                        {/* Fulfillment: only what the product data says */}
+                        {(product.isPrime || product.inStock === false) && (
+                          <div className="space-y-1 text-xs pt-1">
+                            {product.isPrime && (
+                              <span className="font-extrabold text-[#007185] tracking-tight flex items-center gap-1.5">
+                                <span className="inline-block w-2 h-2 rounded-full bg-[#00A8E8]" />
+                                <span>Vyntra Express</span>
+                              </span>
+                            )}
+                            {product.inStock === false && (
+                              <span className="block text-[#B12704] font-semibold">Currently out of stock</span>
+                            )}
+                          </div>
+                        )}
 
                         {/* Action CTA Buttons */}
                         <div className="pt-3 flex flex-wrap items-center gap-3">

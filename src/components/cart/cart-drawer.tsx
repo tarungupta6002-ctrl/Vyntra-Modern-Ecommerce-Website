@@ -17,38 +17,10 @@ import {
   RotateCcw,
   Zap,
   CheckCircle,
-  Check,
   Tag,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import { formatINR } from '@/lib/utils';
-
-interface CrossSellProduct {
-  productId: string;
-  title: string;
-  brand: string;
-  variantId: string;
-  size: string;
-  color: string;
-  price: number;
-  originalPrice: number;
-  image: string;
-  vendorName: string;
-}
-
-const DEFAULT_CROSS_SELL: CrossSellProduct = {
-  productId: 'VYN-KOL-901',
-  title: 'Handcrafted Tuscan Tan Kolhapuris',
-  brand: 'Vyntra Artisan',
-  variantId: 'var-kolhapuri-tan',
-  size: '9',
-  color: 'Tuscan Tan',
-  price: 1850,
-  originalPrice: 2999,
-  image:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCkS7yqJbq-jEkIPKDBNo8ePNeQm_dz27yKFkjHC6QykS9p0YgfRdpHPM6xsZpqXreQk7JkVaNI3-wHAYA11TAJltvxy8MBcIuWVCLVfjdEfM8wNJv6u7WDEwWwCIJyK9xnHLdZaMwOQTILpTWRmjZ_naBUq9NSFAVM6dAgkksbtKzIKeVznYs92oZDS_pyvRtu6Z4bIwaCh-28_Vhc1v49sjDcYY_d8pSlyCKRlV8',
-  vendorName: 'Kolhapur Craft Guild',
-};
 
 export function CartDrawer() {
   const router = useRouter();
@@ -58,7 +30,6 @@ export function CartDrawer() {
     closeCart,
     updateQuantity,
     removeItem,
-    addItem,
     getSubtotal,
     getTotalSavings,
     getTotalItems,
@@ -102,9 +73,6 @@ export function CartDrawer() {
 
   // Free delivery is complimentary on all artisan orders
   const isFreeDeliveryUnlocked = totalItems > 0;
-
-  // Check if cross-sell item is in cart
-  const hasCrossSell = items.some((item) => item.productId === DEFAULT_CROSS_SELL.productId);
 
   const dismissTimerRef = useRef<NodeJS.Timeout | null>(null);
   const checkoutTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -204,15 +172,6 @@ export function CartDrawer() {
       router.push('/checkout');
       setRedirecting(false);
     }, 400);
-  };
-
-  // Add cross-sell item dynamically using configured metadata
-  const handleAddCrossSell = () => {
-    addItem({
-      id: `cross-${DEFAULT_CROSS_SELL.productId}-${Date.now()}`,
-      quantity: 1,
-      ...DEFAULT_CROSS_SELL,
-    });
   };
 
   if (!isOpen) return null;
@@ -423,59 +382,6 @@ export function CartDrawer() {
                 </div>
               );
             })}
-
-              {/* Mini Cross-Sell Strip (From Stitch Screen ba2bd68e7f96406c866dcd5d3a7a1e1f) */}
-              <div
-                className="p-3 bg-surface-container rounded-xl flex items-center justify-between gap-3 shadow-xs border border-surface-container-high"
-                id="crossSellCard"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0 relative shadow-xs">
-                    <Image
-                      src={DEFAULT_CROSS_SELL.image}
-                      alt={DEFAULT_CROSS_SELL.title}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">
-                        Pair With
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-on-surface truncate leading-tight">
-                      {DEFAULT_CROSS_SELL.title}
-                    </p>
-                    <p className="text-xs font-bold text-primary mt-0.5 font-mono">+{formatINR(DEFAULT_CROSS_SELL.price)}</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={hasCrossSell}
-                  onClick={handleAddCrossSell}
-                  className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1 shadow-xs active:scale-95 ${
-                    hasCrossSell
-                      ? 'bg-secondary text-on-secondary cursor-default'
-                      : 'bg-primary text-on-primary hover:bg-primary-container'
-                  }`}
-                  id="addCrossSellBtn"
-                >
-                  {hasCrossSell ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      <span>Added</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Add</span>
-                    </>
-                  )}
-                </button>
-              </div>
 
               {/* Promo Code Badge / Applied Strip */}
               {couponApplied && subtotal >= 1499 ? (

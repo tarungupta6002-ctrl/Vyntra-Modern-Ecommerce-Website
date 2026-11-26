@@ -4,14 +4,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
-  Flame,
   Star,
   Zap,
   CheckCircle,
   Truck,
   RotateCcw,
   ShieldCheck,
-  Headphones,
   Lock,
   Heart,
   ShoppingBag,
@@ -24,61 +22,9 @@ import {
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 
-// 1. Live Countdown Ticker Component (Isolated leaf component to prevent full page re-renders)
-function FlashDealCountdown() {
-  const [timeLeft, setTimeLeft] = useState({
-    hours: '04',
-    minutes: '28',
-    seconds: '42',
-  });
-
-  useEffect(() => {
-    let totalSeconds = 4 * 3600 + 28 * 60 + 42;
-    const interval = setInterval(() => {
-      if (totalSeconds > 0) {
-        totalSeconds--;
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
-        setTimeLeft({
-          hours: String(h).padStart(2, '0'),
-          minutes: String(m).padStart(2, '0'),
-          seconds: String(s).padStart(2, '0'),
-        });
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex items-center gap-2 bg-surface-container-lowest px-4 py-2 rounded-xl shadow-sm border border-outline-variant/30 hover:border-secondary-container/40 transition-colors">
-      <span className="relative flex h-3 w-3 mr-1">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-container opacity-75" />
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary-container" />
-      </span>
-      <span className="text-[11px] text-on-surface-variant uppercase tracking-wider font-semibold">
-        Offer Closes In:
-      </span>
-      <div className="flex items-center gap-1 text-base font-bold text-on-surface font-mono">
-        <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface font-bold">
-          {timeLeft.hours}
-        </span>
-        <span className="animate-pulse text-secondary-container">:</span>
-        <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface font-bold">
-          {timeLeft.minutes}
-        </span>
-        <span className="animate-pulse text-secondary-container">:</span>
-        <span className="bg-surface-container px-2 py-0.5 rounded text-on-surface font-bold">
-          {timeLeft.seconds}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function VyntraHomepage() {
   const { addItem, openCart } = useCartStore();
-  const { addItem: addWishlistItem, removeItem: removeWishlistItem, isInWishlist } = useWishlistStore();
+  const { toggleItemResult: toggleWishlistItem, isInWishlist } = useWishlistStore();
 
   // 2. Interactive Toast Notification State
   const [toast, setToast] = useState<{
@@ -120,39 +66,42 @@ export default function VyntraHomepage() {
   }, []);
 
   // 4. Wishlist State per product
-  const [wishlist, setWishlist] = useState<Record<string, boolean>>({
-    'prod-1': false,
-    'prod-2': true,
-    'prod-3': false,
-    'prod-4': false,
-  });
 
-  const toggleWishlist = (id: string, name: string) => {
-    const isCurrently = !!wishlist[id];
-    if (isCurrently) {
-      removeWishlistItem(id);
-      showToast(`Removed ${name} from Wishlist`, 'favorite_border');
-    } else {
-      addWishlistItem({
-        id,
-        productId: id,
-        title: name,
-        brand: 'Vyntra Curated',
-        price: 2499,
-        originalPrice: 4999,
-        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCpwrNsj5YPVo1vY-tBQP-nqo5OW28cUelkKu1fAIXjy8j8ybHKnia7QJpGxGZhojsR8aMRp25Fed9Hz54OYs2zdU1dPdeWd0iIfWJP9sfnGF9N9j1pnBt57PEOxYqJDmj9ZWoNqXngWuiQYKDA45JQ5i5iQ3m6yVpn2Anz1lWxSbLNQDloCdeRUkTjPUkUaXvgnwcXMatjaiNym-yhEVb5gjtPFsoJ7AJMY4cyuN4',
-        inStock: true,
+  // Wishlist uses the real product data; guests get the sign-in prompt from the store.
+  const toggleWishlist = async (prod: {
+    id: string;
+    slug?: string;
+    title: string;
+    brand?: string;
+    price: number;
+    originalPrice?: number;
+    image?: string;
+    inStock?: boolean;
+  }) => {
+    try {
+      const result = await toggleWishlistItem({
+        id: prod.id,
+        productId: prod.id,
+        slug: prod.slug,
+        title: prod.title,
+        brand: prod.brand || '',
+        price: prod.price,
+        originalPrice: prod.originalPrice || prod.price,
+        image: prod.image || '',
+        inStock: prod.inStock !== false,
         boardIds: ['all'],
       });
-      showToast(`Saved ${name} to your Wishlist!`, 'favorite');
+      showToast(
+        result === 'added' ? `Saved ${prod.title} to your Wishlist!` : `Removed ${prod.title} from Wishlist`,
+        result === 'added' ? 'favorite' : 'favorite_border'
+      );
+    } catch {
+      // Signed-out users see the sign-in prompt; nothing changed.
     }
-    setWishlist((prev) => ({ ...prev, [id]: !isCurrently }));
   };
 
   // 5. Selected Sizes for Apparel
-  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({
-    'prod-2': 'M',
-  });
+  const [selectedSizes] = useState<Record<string, string>>({});
 
   // 6. Active Category Filter Chip & Filtering
   const [activeChip, setActiveChip] = useState('Top Curated');
@@ -178,7 +127,6 @@ export default function VyntraHomepage() {
         sub.includes('ethnic') ||
         sub.includes('apparel') ||
         sub.includes('fashion') ||
-        id === 'prod-2' ||
         title.includes('kurta') ||
         title.includes('linen')
       );
@@ -203,8 +151,6 @@ export default function VyntraHomepage() {
         sub.includes('watch') ||
         sub.includes('mobile') ||
         sub.includes('phone') ||
-        id === 'prod-1' ||
-        id === 'prod-3' ||
         title.includes('headphone') ||
         title.includes('watch') ||
         title.includes('phone') ||
@@ -221,7 +167,6 @@ export default function VyntraHomepage() {
         sub.includes('skin') ||
         sub.includes('beauty') ||
         sub.includes('elixir') ||
-        id === 'prod-4' ||
         title.includes('kumkumadi') ||
         title.includes('elixir')
       );
@@ -235,6 +180,7 @@ export default function VyntraHomepage() {
 
   // 8. Dynamic Featured Products from Backend API / Prisma DB
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [productsLoaded, setProductsLoaded] = useState(false);
 
   useEffect(() => {
     fetch('/api/products?limit=4')
@@ -245,8 +191,9 @@ export default function VyntraHomepage() {
         }
       })
       .catch((err) => {
-        console.warn('[Homepage Products Fetch Error, using fallback]:', err);
-      });
+        console.warn('[Homepage Products Fetch Error]:', err);
+      })
+      .finally(() => setProductsLoaded(true));
   }, []);
 
   // Filter dynamic products when available
@@ -254,39 +201,9 @@ export default function VyntraHomepage() {
     return featuredProducts.filter((prod) => matchesCategory(prod, activeChip));
   }, [featuredProducts, activeChip]);
 
-  // Fallback product visibility flags
-  const showFallbackProd1 = matchesCategory(
-    { id: 'prod-1', category: 'Mobiles & Electronics', subCategory: 'audio', title: 'Apex Pro' },
-    activeChip
-  );
-  const showFallbackProd2 = matchesCategory(
-    { id: 'prod-2', category: 'Fashion', subCategory: 'ethnic', title: 'Kurta' },
-    activeChip
-  );
-  const showFallbackProd3 = matchesCategory(
-    { id: 'prod-3', category: 'Mobiles & Electronics', subCategory: 'smartwatch', title: 'Smartwatch' },
-    activeChip
-  );
-  const showFallbackProd4 = matchesCategory(
-    { id: 'prod-4', category: 'Clean Skincare', subCategory: 'skincare', title: 'Kumkumadi' },
-    activeChip
-  );
-
-  const fallbackMatchCount =
-    (showFallbackProd1 ? 1 : 0) +
-    (showFallbackProd2 ? 1 : 0) +
-    (showFallbackProd3 ? 1 : 0) +
-    (showFallbackProd4 ? 1 : 0);
-
   const handleFilterChipClick = (chip: string) => {
     setActiveChip(chip);
-    const count =
-      featuredProducts.length > 0
-        ? featuredProducts.filter((p) => matchesCategory(p, chip)).length
-        : (matchesCategory({ id: 'prod-1', category: 'Mobiles & Electronics', subCategory: 'audio', title: 'Apex Pro' }, chip) ? 1 : 0) +
-          (matchesCategory({ id: 'prod-2', category: 'Fashion', subCategory: 'ethnic', title: 'Kurta' }, chip) ? 1 : 0) +
-          (matchesCategory({ id: 'prod-3', category: 'Mobiles & Electronics', subCategory: 'smartwatch', title: 'Smartwatch' }, chip) ? 1 : 0) +
-          (matchesCategory({ id: 'prod-4', category: 'Clean Skincare', subCategory: 'skincare', title: 'Kumkumadi' }, chip) ? 1 : 0);
+    const count = featuredProducts.filter((p) => matchesCategory(p, chip)).length;
 
     if (count > 0) {
       showToast(
@@ -430,62 +347,6 @@ export default function VyntraHomepage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/75 via-transparent to-transparent pointer-events-none" />
 
-            {/* Floating Tag Pill 1: Kurta */}
-            <div
-              onClick={() => {
-                handleAddToCart({
-                  id: 'hero-kurta',
-                  title: 'Raw Organic Linen Handcrafted Kurta',
-                  brand: 'Vyntra Artisan Edit',
-                  price: 1899,
-                  originalPrice: 3499,
-                  image:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuATya0XrGZz-BrcZxqlky_dh8-3eLgms9yn99t6R4qTSkg0Z36m5J6zTzrIkkwk_trr3XhmEF7vg3lwuJoBAFw0LGAJ87ctHUyFXxixsa3obRG_-731YH7krSyypXgog6i9dCZO_qIGY0QMHo1u205Oa21CoqZoBDKAOzlWGxDEDQx9HOmXkEufGxjknXHhK2jbWV3Y3PVwgs5YLhyLxKP1HIvS76rQ9AQjtUQzW_k',
-                  vendorName: 'Jaipur Textile Collective',
-                });
-              }}
-              className="animate-float-slow absolute top-10 left-6 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-xl flex items-center gap-3 border border-outline-variant/30 hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer"
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-secondary-container" />
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wide text-on-surface-variant font-bold font-sans">
-                  Raw Organic Linen
-                </span>
-                <span className="text-sm font-bold text-on-surface font-headline">
-                  Handcrafted Kurta ₹1,899
-                </span>
-              </div>
-            </div>
-
-            {/* Floating Tag Pill 2: Headphones */}
-            <div
-              onClick={() => {
-                handleAddToCart({
-                  id: 'hero-headphones',
-                  title: 'ANC Apex Pro High-Fidelity Wireless Headphones',
-                  brand: 'Kinetix Audio',
-                  price: 4499,
-                  originalPrice: 8999,
-                  image:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuDP2xrfkhe3LslFL7nC-6jsMKgIBZJSi-4_YvbfkNyliZrvns1v5FUwsuuhKAMXBY5OV9UfvBkdsKtFi7Ajg8d6MwS-xLQHMsZvy8WYYdOIIthV5b1UzfIH6PwCMM3dPiSEVo1Gfxr9WYO1yMc2NkFx3PphQf_R_dlrgGjwMTvCh5gDwI8cGuaN3cmQsAetPcWcBtT8WbMgDph4DmP9I5fdHEXP8zIe9f4UlTX-h6U',
-                  vendorName: 'Apex Electronics Hub',
-                });
-              }}
-              className="animate-float-alt absolute bottom-16 right-6 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-2 rounded-xl shadow-xl flex items-center gap-3 border border-outline-variant/30 hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary-container">
-                <Headphones className="h-4 w-4" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-secondary font-bold font-sans">
-                  50% Drop Today
-                </span>
-                <span className="text-sm font-bold text-on-surface font-headline">
-                  ANC Apex Pro ₹4,499
-                </span>
-              </div>
-            </div>
-
             <div className="absolute bottom-4 left-6 text-white text-[10px] uppercase tracking-widest opacity-80 pointer-events-none font-semibold">
               Curated Catalog No. 04 / India Edit
             </div>
@@ -602,244 +463,6 @@ export default function VyntraHomepage() {
       </section>
 
       {/* ======================================================== */}
-      {/* 3. FLASH SALE & LIGHTNING DEALS (Interactive Ticker) */}
-      {/* ======================================================== */}
-      <section
-        className="reveal-on-scroll w-full max-w-[1360px] mx-auto px-4 lg:px-10 py-8"
-        id="lightning-deals-section"
-      >
-        <div className="bg-surface-container-low rounded-xl p-6 lg:p-10 shadow-sm relative overflow-hidden border border-outline-variant/40 hover:border-secondary-container/40 transition-all duration-300">
-          <div className="absolute right-0 top-0 w-96 h-96 bg-secondary-container/15 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b-0 relative z-10">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="shimmer-badge flex items-center gap-1 bg-secondary-container text-white px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider shadow-sm cursor-pointer">
-                <Flame className="h-4 w-4 animate-pulse" />
-                Lightning Deals
-              </span>
-              <h2 className="font-headline text-xl lg:text-2xl font-bold text-on-surface">
-                Steals Ending Shortly
-              </h2>
-            </div>
-
-            {/* Live Countdown Ticker */}
-            <FlashDealCountdown />
-          </div>
-
-          {/* Deals Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
-            {/* Deal 1 */}
-            <div className="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-outline-variant/30 hover:border-secondary-container/50 group">
-              <div className="flex gap-4">
-                <div className="w-24 h-24 rounded-lg bg-surface-container-low shrink-0 overflow-hidden relative">
-                  <div
-                    className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                    style={{
-                      backgroundImage:
-                        "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCR7AJClTZ5JGCTNkMdU5HU_Ho57T8ypyVNS9sFkndsjs0HI9G3b316gQ73lkXGbjxDXQWnceIA26xc-_Fk6xB41ZfAvLeP6sYwy4GIXdzMuMIpHaLJYC2ufXTlHi8jY8-E23p0h6a2DCi5HLoqu2Uo4Jh-9ELQIBf-SqLHZ2-6M2I8_vuEdaqiOk3c1tiSNUduWnSCCeP6LPkDBQk6dKvDKm_rzJHrXAT_nF7Nzho')",
-                    }}
-                  />
-                  <span className="absolute top-1 left-1 bg-secondary-container text-white text-[10px] font-bold px-1 rounded shadow-sm">
-                    -60%
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[10px] text-on-surface-variant uppercase font-bold">
-                    Kinetix Pulse 3
-                  </span>
-                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-accent transition-colors">
-                    Ultra-Slim GPS Fitness Tracker
-                  </h4>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-sm font-extrabold text-on-surface font-mono">
-                      ₹1,599
-                    </span>
-                    <span className="text-xs text-outline line-through font-mono">
-                      ₹3,999
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between items-center text-[10px] mb-1.5">
-                  <span className="text-secondary font-bold flex items-center gap-0.5">
-                    <Zap className="h-3 w-3" /> Only 4 Units Left
-                  </span>
-                  <span className="text-on-surface-variant font-medium">88% Claimed</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
-                  <div
-                    className="h-full bg-secondary-container rounded-full transition-all duration-500"
-                    style={{ width: '88%' }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'deal-1',
-                      title: 'Ultra-Slim GPS Fitness Tracker',
-                      brand: 'Kinetix Pulse',
-                      price: 1599,
-                      originalPrice: 3999,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuCR7AJClTZ5JGCTNkMdU5HU_Ho57T8ypyVNS9sFkndsjs0HI9G3b316gQ73lkXGbjxDXQWnceIA26xc-_Fk6xB41ZfAvLeP6sYwy4GIXdzMuMIpHaLJYC2ufXTlHi8jY8-E23p0h6a2DCi5HLoqu2Uo4Jh-9ELQIBf-SqLHZ2-6M2I8_vuEdaqiOk3c1tiSNUduWnSCCeP6LPkDBQk6dKvDKm_rzJHrXAT_nF7Nzho',
-                      vendorName: 'Kinetix Labs',
-                    })
-                  }
-                  className="w-full mt-3 bg-secondary-container hover:bg-secondary text-white text-xs py-2.5 rounded-lg font-bold shadow-sm transition-all duration-200 active:scale-95 flex items-center justify-center gap-1 hover:shadow-md"
-                >
-                  <Zap className="h-4 w-4" />
-                  <span>
-                    {addedItems['deal-1'] ? 'Claimed ✓' : 'Claim Lightning Deal'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Deal 2 */}
-            <div className="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-outline-variant/30 hover:border-secondary-container/50 group">
-              <div className="flex gap-4">
-                <div className="w-24 h-24 rounded-lg bg-surface-container-low shrink-0 overflow-hidden relative">
-                  <div
-                    className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                    style={{
-                      backgroundImage:
-                        "url('https://lh3.googleusercontent.com/aida-public/AB6AXuC7P80ElBO5FxwOYVyGnQtzb4STZYEIb8lqOMjI0rWxaShLe5JuWWQDrZEXhWJ3fJmJWKBhNO8f6DQs0to2vZ9r_B-zXRSedc7WCuiuTyXQwWgQMEtDtEHGjBdcL1bEOFWf6RKVPCXcNGCFN3X7FB6g74yvDhML7pnVLdlE2E-VYx4dyUwUJYdDmZNRmA8aCtQdVgHOnzd-bJvWPkwZNX9zQGGBLrZUbtrYwDjmQzc')",
-                    }}
-                  />
-                  <span className="absolute top-1 left-1 bg-secondary-container text-white text-[10px] font-bold px-1 rounded shadow-sm">
-                    -50%
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[10px] text-on-surface-variant uppercase font-bold">
-                    Forest Nectar
-                  </span>
-                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-accent transition-colors">
-                    Glow Kumkumadi Oil (30ml)
-                  </h4>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-sm font-extrabold text-on-surface font-mono">
-                      ₹1,299
-                    </span>
-                    <span className="text-xs text-outline line-through font-mono">
-                      ₹2,599
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between items-center text-[10px] mb-1.5">
-                  <span className="text-secondary font-bold flex items-center gap-0.5">
-                    <Truck className="h-3 w-3" /> Express Dispatched
-                  </span>
-                  <span className="text-on-surface-variant font-medium">72% Claimed</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
-                  <div
-                    className="h-full bg-secondary-container rounded-full transition-all duration-500"
-                    style={{ width: '72%' }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'deal-2',
-                      title: 'Glow Kumkumadi Oil (30ml)',
-                      brand: 'Forest Nectar',
-                      price: 1299,
-                      originalPrice: 2599,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuC7P80ElBO5FxwOYVyGnQtzb4STZYEIb8lqOMjI0rWxaShLe5JuWWQDrZEXhWJ3fJmJWKBhNO8f6DQs0to2vZ9r_B-zXRSedc7WCuiuTyXQwWgQMEtDtEHGjBdcL1bEOFWf6RKVPCXcNGCFN3X7FB6g74yvDhML7pnVLdlE2E-VYx4dyUwUJYdDmZNRmA8aCtQdVgHOnzd-bJvWPkwZNX9zQGGBLrZUbtrYwDjmQzc',
-                      vendorName: 'Pure Ayurveda Collective',
-                    })
-                  }
-                  className="w-full mt-3 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-[14px] py-[5px] px-[11px] h-[31px] rounded-full font-normal shadow-sm transition-all duration-150 active:scale-95 flex items-center justify-center"
-                >
-                  <span>
-                    {addedItems['deal-2'] ? 'Added ✓' : 'Add to cart'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Deal 3 */}
-            <div className="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-outline-variant/30 hover:border-secondary-container/50 group">
-              <div className="flex gap-4">
-                <div className="w-24 h-24 rounded-lg bg-surface-container-low shrink-0 overflow-hidden relative">
-                  <div
-                    className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                    style={{
-                      backgroundImage:
-                        "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZ3-0drvQIJ255qXJvWQtPaFSjxjBlR_LRHSEQv-TYTZUEdgu4ujQWU-rilV5nR3JOMC3K4dRxjcMBDhVxk1y5LmTvwZ4xBd5dJiWbi0c4bAmzf8RVWQS6uuXgzfp-QSdRd2Hgf1no4284INWvWAxEkIEz8XFsWInm5yOmOhnRNdJIZFLDbqFE092mKNpxUybJxCc4R_4dK2tU1_gMtL_krnnZAKNC-z7vKPa3TuQ')",
-                    }}
-                  />
-                  <span className="absolute top-1 left-1 bg-secondary-container text-white text-[10px] font-bold px-1 rounded shadow-sm">
-                    -45%
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-[10px] text-on-surface-variant uppercase font-bold">
-                    Kala Living
-                  </span>
-                  <h4 className="text-sm font-bold text-on-surface truncate group-hover:text-accent transition-colors">
-                    Teakwood 15W Fast Pad
-                  </h4>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-sm font-extrabold text-on-surface font-mono">
-                      ₹1,850
-                    </span>
-                    <span className="text-xs text-outline line-through font-mono">
-                      ₹3,400
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="flex justify-between items-center text-[10px] mb-1.5">
-                  <span className="text-secondary font-bold flex items-center gap-0.5">
-                    <Zap className="h-3 w-3" /> 9 Left at this price
-                  </span>
-                  <span className="text-on-surface-variant font-medium">64% Claimed</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
-                  <div
-                    className="h-full bg-secondary-container rounded-full transition-all duration-500"
-                    style={{ width: '64%' }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'deal-3',
-                      title: 'Teakwood 15W Fast Pad',
-                      brand: 'Kala Living',
-                      price: 1850,
-                      originalPrice: 3400,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuCZ3-0drvQIJ255qXJvWQtPaFSjxjBlR_LRHSEQv-TYTZUEdgu4ujQWU-rilV5nR3JOMC3K4dRxjcMBDhVxk1y5LmTvwZ4xBd5dJiWbi0c4bAmzf8RVWQS6uuXgzfp-QSdRd2Hgf1no4284INWvWAxEkIEz8XFsWInm5yOmOhnRNdJIZFLDbqFE092mKNpxUybJxCc4R_4dK2tU1_gMtL_krnnZAKNC-z7vKPa3TuQ',
-                      vendorName: 'Kala Studio Bengaluru',
-                    })
-                  }
-                  className="w-full mt-3 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-[14px] py-[5px] px-[11px] h-[31px] rounded-full font-normal shadow-sm transition-all duration-150 active:scale-95 flex items-center justify-center"
-                >
-                  <span>
-                    {addedItems['deal-3'] ? 'Added ✓' : 'Add to cart'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ======================================================== */}
       {/* 4. TRENDING PRODUCTS GRID (4 Detailed Product Cards) */}
       {/* ======================================================== */}
       <section
@@ -883,7 +506,7 @@ export default function VyntraHomepage() {
           {featuredProducts.length > 0 ? (
             displayedDynamicProducts.length > 0 ? (
               displayedDynamicProducts.slice(0, 4).map((prod) => {
-              const isFavorited = wishlist[prod.id];
+              const isFavorited = isInWishlist(prod.id);
               const isJustAdded = addedItems[prod.id];
               return (
                 <div
@@ -892,7 +515,7 @@ export default function VyntraHomepage() {
                 >
                   <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
                     <Link
-                      href={`/products/${prod.slug || 'handcrafted-premium-linen-kurta'}`}
+                      href={`/products/${prod.slug || prod.id}`}
                       className="block w-full h-full"
                     >
                       <div
@@ -916,7 +539,7 @@ export default function VyntraHomepage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => toggleWishlist(prod.id, prod.title)}
+                      onClick={() => toggleWishlist(prod)}
                       className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center transition-all duration-200 shadow-sm active:scale-125 ${
                         isFavorited
                           ? 'text-secondary-container'
@@ -937,15 +560,17 @@ export default function VyntraHomepage() {
                         <span className="uppercase font-semibold tracking-wider">
                           {prod.brand}
                         </span>
-                        <div className="flex items-center gap-0.5 text-on-surface font-bold">
-                          <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                          <span>{prod.rating || 4.8}</span>
-                          <span className="text-outline font-normal">
-                            ({prod.reviewCount || 120})
-                          </span>
-                        </div>
+                        {prod.reviewCount > 0 && prod.rating > 0 ? (
+                          <div className="flex items-center gap-0.5 text-on-surface font-bold">
+                            <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                            <span>{prod.rating}</span>
+                            <span className="text-outline font-normal">({prod.reviewCount})</span>
+                          </div>
+                        ) : (
+                          <span className="text-outline font-normal normal-case">No reviews yet</span>
+                        )}
                       </div>
-                      <Link href={`/products/${prod.slug || 'handcrafted-premium-linen-kurta'}`}>
+                      <Link href={`/products/${prod.slug || prod.id}`}>
                         <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                           {prod.title}
                         </h3>
@@ -1018,437 +643,19 @@ export default function VyntraHomepage() {
               </button>
             </div>
           )
-        ) : fallbackMatchCount > 0 ? (
-          <>
-            {/* Product 1 */}
-            {showFallbackProd1 && (
-              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
-            <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
-              <div
-                className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCO_0SBO4wOQpdfwdVNjScqbXfcFC8rAK84vqhKjzYAk-Cww2JAVIFrYoR9ziwNF0KHgWpjj69cb-c3f8JqO2Xn343pnxdvDfo_7AhNhze0kgPUl501f4OzAOrjzZeCSudYgSPV2-u28Y2kvYhZjQGBTgOJzQaLUZj-aNVuBhkULhZ24WoMEGiHUJrPotT8IrsDD00yosG4Yz6ykMTis921nXuR-8TlPqmB8THSxFw')",
-                }}
-              />
-              <div className="absolute top-3 left-3 flex flex-col gap-1">
-                <span className="bg-secondary-container text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
-                  50% OFF
-                </span>
-                <span className="bg-primary-fixed text-[#0F1111] text-[10px] px-2 py-0.5 rounded font-bold uppercase">
-                  Bestseller
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleWishlist('prod-1', 'Apex Pro Wireless Headphones')}
-                className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center transition-all duration-200 shadow-sm active:scale-125 ${
-                  wishlist['prod-1']
-                    ? 'text-secondary-container'
-                    : 'text-on-surface-variant hover:text-secondary-container'
-                }`}
-                title="Wishlist toggle"
-              >
-                <Heart
-                  className="h-4 w-4"
-                  fill={wishlist['prod-1'] ? 'currentColor' : 'none'}
-                />
-              </button>
-            </div>
-
-            <div className="p-4 flex flex-col flex-1 justify-between">
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-on-surface-variant mb-1">
-                  <span className="uppercase font-semibold tracking-wider">
-                    Sonorous Audio
-                  </span>
-                  <div className="flex items-center gap-0.5 text-on-surface font-bold">
-                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    <span>4.8</span>
-                    <span className="text-outline font-normal">(1,240)</span>
-                  </div>
-                </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
-                  Apex Pro Hybrid Noise-Cancelling Wireless Headphones
-                </h3>
-              </div>
-
-              <div className="pt-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-extrabold text-on-surface font-mono">
-                    ₹4,499
-                  </span>
-                  <span className="text-xs text-outline line-through font-mono">
-                    ₹8,999
-                  </span>
-                  <span className="text-[11px] text-secondary font-bold">
-                    Save ₹4,500
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] px-1.5 py-0.5 rounded font-semibold">
-                    Next Day Free Delivery
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'prod-1',
-                      title: 'Apex Pro Hybrid Noise-Cancelling Headphones',
-                      brand: 'Sonorous Audio',
-                      price: 4499,
-                      originalPrice: 8999,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuCO_0SBO4wOQpdfwdVNjScqbXfcFC8rAK84vqhKjzYAk-Cww2JAVIFrYoR9ziwNF0KHgWpjj69cb-c3f8JqO2Xn343pnxdvDfo_7AhNhze0kgPUl501f4OzAOrjzZeCSudYgSPV2-u28Y2kvYhZjQGBTgOJzQaLUZj-aNVuBhkULhZ24WoMEGiHUJrPotT8IrsDD00yosG4Yz6ykMTis921nXuR-8TlPqmB8THSxFw',
-                      vendorName: 'Sonorous Flagship Store',
-                    })
-                  }
-                  className="w-full mt-3 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-[14px] py-[5px] px-[11px] h-[31px] rounded-full font-normal shadow-sm transition-all duration-150 active:scale-95 flex items-center justify-center"
-                >
-                  <span>
-                    {addedItems['prod-1'] ? 'Added ✓' : 'Add to cart'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-            )}
-
-            {/* Product 2 (with Size Selectors) */}
-            {showFallbackProd2 && (
-              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
-            <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
-              <div
-                className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAYfuYMHb5ydF4mt44nirF_fmeBBwP6jmLzxYmTutlVJCsds9Y1EVNP5BlhyBoCs66umZuaMKy3F7MXxsZ2KmJUIo1-ajofZf7XUFeKH_2elEMRDfVBTSEALYphlqvLR-CZ7kxP3bvVLm3Y6NOpewj894RGACQrUoU8tmWiYQghW2ceV1rOTkLlkrHDOE1ZINkCZ3ppUVX1udVqwN2Oi1MVqHkjLswJGFgjQs2ofrU')",
-                }}
-              />
-              <div className="absolute top-3 left-3 flex flex-col gap-1">
-                <span className="bg-secondary-container text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
-                  50% OFF
-                </span>
-                <span className="bg-primary-fixed text-[#0F1111] text-[10px] px-2 py-0.5 rounded font-bold uppercase">
-                  Trending
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleWishlist('prod-2', 'Ethnoc Pure Linen Kurta Set')}
-                className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center transition-all duration-200 shadow-sm active:scale-125 ${
-                  wishlist['prod-2']
-                    ? 'text-secondary-container'
-                    : 'text-on-surface-variant hover:text-secondary-container'
-                }`}
-                title="Wishlist toggle"
-              >
-                <Heart
-                  className="h-4 w-4"
-                  fill={wishlist['prod-2'] ? 'currentColor' : 'none'}
-                />
-              </button>
-            </div>
-
-            <div className="p-4 flex flex-col flex-1 justify-between">
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-on-surface-variant mb-1">
-                  <span className="uppercase font-semibold tracking-wider">
-                    Avanya Studio
-                  </span>
-                  <div className="flex items-center gap-0.5 text-on-surface font-bold">
-                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    <span>4.6</span>
-                    <span className="text-outline font-normal">(950)</span>
-                  </div>
-                </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
-                  Ethnoc Handcrafted Pure Linen Kurta &amp; Trouser Set
-                </h3>
-
-                {/* Size Selector Group */}
-                <div className="flex items-center gap-1.5 mt-2">
-                  <span className="text-[10px] text-on-surface-variant font-medium mr-1">
-                    Sizes:
-                  </span>
-                  {['S', 'M', 'L', 'XL'].map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() =>
-                        setSelectedSizes((prev) => ({ ...prev, 'prod-2': size }))
-                      }
-                      className={`w-6 h-6 rounded text-[10px] font-bold flex items-center justify-center transition-all ${
-                        selectedSizes['prod-2'] === size
-                          ? 'bg-[#007185] text-white shadow-sm'
-                          : 'bg-surface-container text-on-surface hover:border hover:border-[#007185]'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-extrabold text-on-surface font-mono">
-                    ₹1,899
-                  </span>
-                  <span className="text-xs text-outline line-through font-mono">
-                    ₹3,799
-                  </span>
-                  <span className="text-[11px] text-[#B12704] font-bold">
-                    50% Savings
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="bg-[#E7F4F5] text-[#007185] text-[10px] px-1.5 py-0.5 rounded font-semibold border border-[#BDE3E8]">
-                    100% Khadi Certified
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'prod-2',
-                      title: 'Ethnoc Handcrafted Pure Linen Kurta Set',
-                      brand: 'Avanya Studio',
-                      price: 1899,
-                      originalPrice: 3799,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuAYfuYMHb5ydF4mt44nirF_fmeBBwP6jmLzxYmTutlVJCsds9Y1EVNP5BlhyBoCs66umZuaMKy3F7MXxsZ2KmJUIo1-ajofZf7XUFeKH_2elEMRDfVBTSEALYphlqvLR-CZ7kxP3bvVLm3Y6NOpewj894RGACQrUoU8tmWiYQghW2ceV1rOTkLlkrHDOE1ZINkCZ3ppUVX1udVqwN2Oi1MVqHkjLswJGFgjQs2ofrU',
-                      vendorName: 'Jaipur Khadi Weaver Collective',
-                    })
-                  }
-                  className="w-full mt-3 bg-[#FF9900] hover:bg-[#FA8900] text-[#0F1111] border border-[#FF8F00] text-xs py-2.5 rounded-md font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all duration-150 active:scale-95"
-                >
-                  <Zap className="h-4 w-4" />
-                  <span>
-                    {addedItems['prod-2'] ? 'Added ✓' : 'Add to Cart'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-            )}
-
-            {/* Product 3 */}
-            {showFallbackProd3 && (
-              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
-            <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
-              <div
-                className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBs0APuMtE_djueigXLt6w1IS_X4ks7HalG7w29cGZ4s9LPcq_tySLwqHwWzZY3bckOZ4otgOVlwNWADQ_gEhq5BMExxCohbFijs1uG41KhpdFjv2lmcp6K-kDuDlwTHMQqTGI6jzwKi9qhcPBxcMYaea7ztC1pqkfBW9tmul63Or-5eEt8pYmVtkBjHNQfR4gHtarSIcHoQrBY434MpKIi_AxHqg8mgXtnqTYLd_0')",
-                }}
-              />
-              <div className="absolute top-3 left-3 flex flex-col gap-1">
-                <span className="bg-secondary-container text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
-                  50% OFF
-                </span>
-                <span className="bg-surface-container-highest text-on-surface text-[10px] px-2 py-0.5 rounded font-bold uppercase">
-                  New Gen
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  toggleWishlist('prod-3', 'Series 7 Titanium AMOLED Smartwatch')
-                }
-                className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center transition-all duration-200 shadow-sm active:scale-125 ${
-                  wishlist['prod-3']
-                    ? 'text-secondary-container'
-                    : 'text-on-surface-variant hover:text-secondary-container'
-                }`}
-                title="Wishlist toggle"
-              >
-                <Heart
-                  className="h-4 w-4"
-                  fill={wishlist['prod-3'] ? 'currentColor' : 'none'}
-                />
-              </button>
-            </div>
-
-            <div className="p-4 flex flex-col flex-1 justify-between">
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-on-surface-variant mb-1">
-                  <span className="uppercase font-semibold tracking-wider">
-                    Kinetix Labs
-                  </span>
-                  <div className="flex items-center gap-0.5 text-on-surface font-bold">
-                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    <span>4.7</span>
-                    <span className="text-outline font-normal">(410)</span>
-                  </div>
-                </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
-                  Minimalist Series 7 Titanium AMOLED Smartwatch
-                </h3>
-              </div>
-
-              <div className="pt-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-extrabold text-on-surface font-mono">
-                    ₹2,999
-                  </span>
-                  <span className="text-xs text-outline line-through font-mono">
-                    ₹5,999
-                  </span>
-                  <span className="text-[11px] text-secondary font-bold">
-                    ₹3,000 Off
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] px-1.5 py-0.5 rounded font-semibold">
-                    7-Day Battery Life
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'prod-3',
-                      title: 'Minimalist Series 7 Titanium Smartwatch',
-                      brand: 'Kinetix Labs',
-                      price: 2999,
-                      originalPrice: 5999,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuBs0APuMtE_djueigXLt6w1IS_X4ks7HalG7w29cGZ4s9LPcq_tySLwqHwWzZY3bckOZ4otgOVlwNWADQ_gEhq5BMExxCohbFijs1uG41KhpdFjv2lmcp6K-kDuDlwTHMQqTGI6jzwKi9qhcPBxcMYaea7ztC1pqkfBW9tmul63Or-5eEt8pYmVtkBjHNQfR4gHtarSIcHoQrBY434MpKIi_AxHqg8mgXtnqTYLd_0',
-                      vendorName: 'Apex Electronics Hub',
-                    })
-                  }
-                  className="w-full mt-3 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-[14px] py-[5px] px-[11px] h-[31px] rounded-full font-normal shadow-sm transition-all duration-150 active:scale-95 flex items-center justify-center"
-                >
-                  <span>
-                    {addedItems['prod-3'] ? 'Added ✓' : 'Add to cart'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-            )}
-
-            {/* Product 4 */}
-            {showFallbackProd4 && (
-              <div className="group flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 border border-outline-variant/30 hover:border-primary/40">
-            <div className="relative w-full aspect-[3/4] bg-surface-container-low overflow-hidden">
-              <div
-                className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-out group-hover:scale-105"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCAFcKLHNHwdca7UTjt8qTpgJp-AeqKOjI-3sDPs2wT4WjffGTif59Szgw-aPGqJd1K3BVS17qyu5FtfAqWm0LY-GHjAjuBu35FNzHEc6jcaDrAAgdXupelkqqTN298mtVdN-nTaqJHSKtuNEcKQRybO2gHU80cqfPcc6yXwHnYlAK-OPiSO_MurIT28EoO2zPnsRP7J6RVJoMPSW3XwIwsDehKiHtb4gLoRgxgQOk')",
-                }}
-              />
-              <div className="absolute top-3 left-3 flex flex-col gap-1">
-                <span className="bg-secondary-container text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
-                  50% OFF
-                </span>
-                <span className="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] px-2 py-0.5 rounded font-bold uppercase">
-                  100% Ayurvedic
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  toggleWishlist('prod-4', 'Cold-Pressed Kumkumadi Radiance Elixir')
-                }
-                className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center transition-all duration-200 shadow-sm active:scale-125 ${
-                  wishlist['prod-4']
-                    ? 'text-secondary-container'
-                    : 'text-on-surface-variant hover:text-secondary-container'
-                }`}
-                title="Wishlist toggle"
-              >
-                <Heart
-                  className="h-4 w-4"
-                  fill={wishlist['prod-4'] ? 'currentColor' : 'none'}
-                />
-              </button>
-            </div>
-
-            <div className="p-4 flex flex-col flex-1 justify-between">
-              <div>
-                <div className="flex items-center justify-between text-[11px] text-on-surface-variant mb-1">
-                  <span className="uppercase font-semibold tracking-wider">
-                    Forest Nectar
-                  </span>
-                  <div className="flex items-center gap-0.5 text-on-surface font-bold">
-                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    <span>4.9</span>
-                    <span className="text-outline font-normal">(3,120)</span>
-                  </div>
-                </div>
-                <h3 className="font-headline text-sm font-bold text-on-surface line-clamp-2 leading-snug group-hover:text-accent transition-colors">
-                  Cold-Pressed Kumkumadi Radiance &amp; Glow Night Elixir
-                </h3>
-              </div>
-
-              <div className="pt-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-base font-extrabold text-on-surface font-mono">
-                    ₹1,299
-                  </span>
-                  <span className="text-xs text-outline line-through font-mono">
-                    ₹2,599
-                  </span>
-                  <span className="text-[11px] text-secondary font-bold">
-                    ₹1,300 Off
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] px-1.5 py-0.5 rounded font-semibold">
-                    Kashmiri Saffron Infused
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleAddToCart({
-                      id: 'prod-4',
-                      title: 'Cold-Pressed Kumkumadi Radiance Elixir',
-                      brand: 'Forest Nectar',
-                      price: 1299,
-                      originalPrice: 2599,
-                      image:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuCAFcKLHNHwdca7UTjt8qTpgJp-AeqKOjI-3sDPs2wT4WjffGTif59Szgw-aPGqJd1K3BVS17qyu5FtfAqWm0LY-GHjAjuBu35FNzHEc6jcaDrAAgdXupelkqqTN298mtVdN-nTaqJHSKtuNEcKQRybO2gHU80cqfPcc6yXwHnYlAK-OPiSO_MurIT28EoO2zPnsRP7J6RVJoMPSW3XwIwsDehKiHtb4gLoRgxgQOk',
-                      vendorName: 'Pure Ayurveda Collective',
-                    })
-                  }
-                  className="w-full mt-3 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-[14px] py-[5px] px-[11px] h-[31px] rounded-full font-normal shadow-sm transition-all duration-150 active:scale-95 flex items-center justify-center"
-                >
-                  <span>
-                    {addedItems['prod-4'] ? 'Added ✓' : 'Add to cart'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-            )}
-          </>
         ) : (
           <div className="col-span-full py-12 px-4 flex flex-col items-center justify-center text-center bg-surface-container-low rounded-xl border border-outline-variant/30">
             <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-3">
               <Sparkles className="h-6 w-6 text-on-surface-variant" />
             </div>
             <h3 className="font-headline text-base sm:text-lg font-bold text-on-surface mb-1">
-              No products found in {activeChip}
+              {productsLoaded ? 'New products are on their way' : 'Loading products…'}
             </h3>
-            <p className="text-xs sm:text-sm text-on-surface-variant max-w-md mb-4">
-              We couldn&apos;t find any items matching this category right now.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveChip('Top Curated');
-                showToast('Showing all curated products', 'tune');
-              }}
-              className="px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] rounded-full text-xs font-bold transition-all active:scale-95 shadow-sm"
-            >
-              Reset to Top Curated
-            </button>
+            {productsLoaded && (
+              <p className="text-xs sm:text-sm text-on-surface-variant max-w-md">
+                Our sellers are adding their catalog. Check back soon.
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -133,10 +133,7 @@ export function CategoryProductCard({
               </span>
             </>
           ) : (
-            <span className="text-[11px] text-[#565959] font-medium flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#007600]" />
-              <span>100% Brand Authentic</span>
-            </span>
+            <span className="text-[11px] text-[#565959]">No reviews yet</span>
           )}
         </div>
 
@@ -166,7 +163,7 @@ export function CategoryProductCard({
           )}
         </div>
 
-        {/* Fulfillment & Delivery */}
+        {/* Fulfillment: only what the product data actually says (no invented delivery dates). */}
         <div className="space-y-0.5 text-[11px] text-[#565959] mb-3">
           {fulfillmentBadge ? (
             <span className="font-extrabold text-[#007185] text-xs tracking-tight flex items-center gap-1">
@@ -179,9 +176,9 @@ export function CategoryProductCard({
               Vyntra Express
             </span>
           ) : null}
-          <span className="block text-[#0F1111] font-medium">
-            FREE Delivery <span className="font-bold">{product.deliveryDate || 'Tomorrow'}</span>
-          </span>
+          {product.inStock === false && (
+            <span className="block text-[#B12704] font-semibold">Currently out of stock</span>
+          )}
         </div>
       </div>
 
@@ -190,13 +187,16 @@ export function CategoryProductCard({
         <button
           type="button"
           onClick={() => onAddToCart(product)}
-          className={`w-full py-1.5 px-3 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98 ${
+          disabled={product.inStock === false}
+          className={`w-full py-1.5 px-3 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs active:scale-98 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500 disabled:border-stone-200 disabled:shadow-none disabled:active:scale-100 ${
             isAdded
               ? 'bg-[#007600] text-white'
               : 'bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200]'
           }`}
         >
-          {isAdded ? (
+          {product.inStock === false ? (
+            <span>Out of stock</span>
+          ) : isAdded ? (
             <>
               <Check className="h-3.5 w-3.5" />
               <span>Added to Cart</span>

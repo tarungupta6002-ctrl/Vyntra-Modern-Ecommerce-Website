@@ -29,44 +29,6 @@ import { useWishlistStore } from '@/store/wishlist-store';
 import { CategoryProductCard } from '@/components/products/category-product-card';
 import { CategoryProductItem } from '@/hooks/use-category-products';
 
-// Fallback mobile data in case database connection experiences network latency in dev/sandbox
-const STATIC_MOBILE_FALLBACK: CategoryProductItem[] = [
-  {
-    id: 'mob-apl-15',
-    slug: 'apple-iphone-15-128gb-black',
-    title: 'Apple iPhone 17 Pro 512 GB: 15.93 cm (6.3") Display with Promotion up to 120Hz, A19 Pro Chip, Breakthrough Battery Life, Pro Fusion Camera System with Center Stage Front Camera; Cosmic Orange',
-    brand: 'Apple',
-    category: 'mobiles',
-    subcategory: 'smartphones',
-    subCategory: 'Flagship Smartphone',
-    price: 150990,
-    originalPrice: 154900,
-    discount: '3% OFF',
-    rating: 0,
-    reviews: 0,
-    isBestSeller: false,
-    isAmazonChoice: false,
-    isLimitedDeal: true,
-    isPrime: true,
-    deliveryDate: 'Tomorrow, 11 AM',
-    image: '/images/mobiles/iphone-flagship.jpg',
-    stockCount: 15,
-    inStock: true,
-    vendorName: 'Tarun Store',
-    vendorSlug: 'tarun-store-fdam',
-    sizes: ['512 GB', '1 TB'],
-    specs: {
-      ram: '8 GB',
-      storage: '512 GB',
-      network: '5G',
-      battery: 'All-Day Battery',
-      screen_size: '6.3 inch',
-      processor: 'A19 Pro Chip',
-      primary_camera: 'Pro Fusion 48MP Camera',
-    },
-  },
-];
-
 // Target Brand list requested in specification
 const TARGET_BRANDS = [
   'Apple',
@@ -170,7 +132,7 @@ function MobilesPageContent() {
   const { toggleItem, isInWishlist } = useWishlistStore();
 
   // Data state
-  const [products, setProducts] = useState<CategoryProductItem[]>(STATIC_MOBILE_FALLBACK);
+  const [products, setProducts] = useState<CategoryProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [addedItemMap, setAddedItemMap] = useState<Record<string, boolean>>({});
 
@@ -230,7 +192,8 @@ function MobilesPageContent() {
               isAmazonChoice: false,
               badge: p.badge || 'New Launch',
               isLimitedDeal: Number(p.originalPrice) > Number(p.price) * 1.1,
-              isPrime: true,
+              isPrime: p.isExpress === true,
+              isExpress: p.isExpress === true,
               deliveryDate: 'Tomorrow, 11 AM',
               image: p.image || BRAND_HERO_IMAGE_MAP[p.brand] || '',
               stockCount: Number(p.stockCount || 10),
@@ -242,7 +205,7 @@ function MobilesPageContent() {
             }));
             setProducts(mapped);
           } else {
-            setProducts(STATIC_MOBILE_FALLBACK);
+            setProducts([]);
           }
           setIsLoading(false);
         }
@@ -250,7 +213,7 @@ function MobilesPageContent() {
       .catch((err) => {
         console.warn('[Mobiles API fetch fallback]:', err);
         if (isMounted) {
-          setProducts(STATIC_MOBILE_FALLBACK);
+          setProducts([]);
           setIsLoading(false);
         }
       });

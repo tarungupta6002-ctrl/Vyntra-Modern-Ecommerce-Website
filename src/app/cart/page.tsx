@@ -17,10 +17,8 @@ import {
   Zap,
   CheckCircle,
   Tag,
-  Star,
   Heart,
   ChevronRight,
-  ChevronLeft,
   Clock,
   Info,
   HelpCircle,
@@ -33,61 +31,6 @@ import { useCartStore } from '@/store/cart-store';
 import { useAddressStore } from '@/store/address-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { formatINR } from '@/lib/utils';
-
-// Curated Cross-Sell Recommendations from Stitch Screen 998b86f76b0f4208abd2a0e8ad042dd6
-const RECOMMENDED_ITEMS = [
-  {
-    id: 'rec-kolhapuri',
-    productId: 'VYN-KOL-901',
-    title: 'Hand-Braided Leather Kolhapuri Slippers',
-    brand: 'Royal Heritage Footwear',
-    subtitle: 'Tan Brown • Cushioned insole',
-    category: 'Artisan Footwear',
-    price: 1850,
-    originalPrice: 2999,
-    discount: '38% OFF',
-    rating: 4.8,
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA3RzymBlnryW6ki109nl5uVP5TqDozOMCtJvQM0kuWy_vWhr2igPNd5JAYeq0K-PNfy5gHc_fxdr1Td0QdhydA0WwNg5Tto3gay8CDXqu-6JdE4CChYRQlyqnmaAyWKiMfXmRB4-OHTxdqF-jE4SQ4wR-WfWXYf2oWF0jFLjCB-ZKIh27QaGE6DZQrNmu0erE1FtdzMj9m6cAq3saC_wfOqxl0MDDFlkmiDr8spOU',
-    size: '8',
-    color: 'Tan Brown',
-    vendorName: 'Kolhapur Artisan Cluster',
-  },
-  {
-    id: 'rec-stole',
-    productId: 'VYN-STL-304',
-    title: 'Tussar Raw Silk Stole with Zari Border',
-    brand: 'Benaras Weavers',
-    subtitle: 'Ivory & Gold • Free size',
-    category: 'Weaves of Kashi',
-    price: 899,
-    originalPrice: 1799,
-    discount: '50% OFF',
-    rating: 4.9,
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA28HpHzOmxX33JLeH5pT_G8Ge7w8zdUoNJc_g4rlUNOn7DYyV2djKo55RZ0HQMfNhpKMLvsVEMRQVC0mbihOdGt_FI6meGI3KoFmqOsUlauB408fenxH4R7K21U7wmAb8dXJCd0zfWLkB8skNspG7jur3XyWZ4Nr4_ckhM7W0iO9HfLWd8a56wv9NCm-PfLlHkaZRenYSTZrMXjkFlqtu88jEAjFKIpYJ5I71QrRM',
-    size: 'Free Size',
-    color: 'Ivory Gold',
-    vendorName: 'Varanasi Master Guild',
-  },
-  {
-    id: 'rec-jhumkas',
-    productId: 'VYN-JHM-102',
-    title: 'Antique Finish Brass Filigree Jhumkas',
-    brand: 'Tribe Amrapali',
-    subtitle: 'Gold Tone • Nickel free',
-    category: 'Temple Collection',
-    price: 999,
-    originalPrice: 1500,
-    discount: '33% OFF',
-    rating: 4.7,
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBh-0ww564FnMwFh1aca6agBR343em0eYojPS36NnOR20w03rmmfdfUAN6nAiTbQPE94H5HzqrblwOx41ju_mSGDCfQcCL3frpJcLXx_bN4ZxkSkvugAVmsDeQrLQY1Hz2-wCi3WVyucrwXSeS5pOrgEVdRXponPUpLb4BezUMEEbT1rE6fysnsEeDiknN2Dxzz-TtnKdXtP5sUqwpEgOvX7K6uvwnNpTAcLgVotWI',
-    size: 'One Size',
-    color: 'Antique Gold',
-    vendorName: 'Jaipur Jewelry Guild',
-  },
-];
 
 export default function CartPage() {
   const router = useRouter();
@@ -328,25 +271,6 @@ export default function CartPage() {
     } catch {
       showToast(`Could not move to Wishlist`, 'error');
     }
-  };
-
-  // Quick Add Recommendation to Cart
-  const handleAddRecommendation = (rec: (typeof RECOMMENDED_ITEMS)[0]) => {
-    addItem({
-      id: `cart-rec-${rec.id}-${Date.now()}`,
-      productId: rec.productId,
-      title: rec.title,
-      brand: rec.brand,
-      variantId: `var-${rec.id}`,
-      size: rec.size,
-      color: rec.color,
-      price: rec.price,
-      originalPrice: rec.originalPrice,
-      quantity: 1,
-      image: rec.image,
-      vendorName: rec.vendorName,
-    });
-    showToast(`Added ${rec.title} to Bag!`, 'bag');
   };
 
   if (!mounted) {
@@ -959,113 +883,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Bottom Section: Recommended For You */}
-        <div className="mt-14 mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
-            <div>
-              <span className="text-xs font-bold text-secondary uppercase tracking-widest font-headline">
-                Complete Your Ensemble
-              </span>
-              <h2 className="font-headline font-bold text-2xl text-on-surface tracking-tight mt-0.5">
-                Recommended For You
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="w-9 h-9 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-container transition-colors border border-surface-container"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="w-9 h-9 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface hover:text-primary hover:bg-surface-container transition-colors border border-surface-container"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {RECOMMENDED_ITEMS.map((rec) => (
-              <div
-                key={rec.id}
-                className="bg-surface-container-lowest rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col group border border-surface-container"
-              >
-                <div className="relative w-full h-56 rounded-xl overflow-hidden bg-surface-container-low mb-4">
-                  <Image
-                    src={rec.image}
-                    alt={rec.title}
-                    fill
-                    sizes="(max-width: 640px) 100vw, 300px"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <span className="absolute top-2.5 left-2.5 bg-surface-container-lowest/90 backdrop-blur-sm text-on-surface text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                    {rec.category}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await addToWishlist({
-                          id: rec.productId || `wish-rec-${rec.id}`,
-                          productId: rec.productId,
-                          title: rec.title,
-                          brand: rec.brand,
-                          price: rec.price,
-                          originalPrice: rec.originalPrice,
-                          image: rec.image,
-                          inStock: true,
-                          boardIds: ['all'],
-                        });
-                        showToast(`Added "${rec.title}" to Wishlist!`, 'heart');
-                      } catch {
-                        showToast(`Could not add to Wishlist`, 'error');
-                      }
-                    }}
-                    className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-surface-container-lowest/90 backdrop-blur-sm text-on-surface-variant hover:text-error flex items-center justify-center shadow-sm transition-transform active:scale-90"
-                    title="Save to Wishlist"
-                  >
-                    <Heart className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="flex flex-col flex-1 justify-between">
-                  <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[11px] font-bold text-secondary uppercase tracking-wider">
-                        {rec.brand}
-                      </span>
-                      <span className="flex items-center text-xs font-bold text-on-surface">
-                        <Star className="h-3.5 w-3.5 fill-current text-secondary mr-0.5" /> {rec.rating}
-                      </span>
-                    </div>
-                    <h4 className="font-headline font-bold text-sm text-on-surface line-clamp-1">{rec.title}</h4>
-                    <p className="text-xs text-on-surface-variant mt-1">{rec.subtitle}</p>
-                  </div>
-
-                  <div className="mt-4 pt-3 flex items-center justify-between gap-2 border-t border-surface-container/60">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-headline font-extrabold text-base text-on-surface font-mono">
-                        {formatINR(rec.price)}
-                      </span>
-                      <span className="text-xs text-outline line-through font-mono">
-                        {formatINR(rec.originalPrice)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAddRecommendation(rec)}
-                      className="px-3.5 py-[5px] h-[31px] bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] font-normal text-[14px] rounded-full transition-colors flex items-center justify-center shadow-sm active:scale-95"
-                    >
-                      <span>Add to cart</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Available Coupons Dialog Modal */}

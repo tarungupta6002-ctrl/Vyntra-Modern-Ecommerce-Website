@@ -38,7 +38,6 @@ import {
   Award,
   Navigation,
 } from 'lucide-react';
-import { useCartStore } from '@/store/cart-store';
 import { formatINR } from '@/lib/utils';
 const TabLoadingSkeleton = () => (
   <div className="p-8 flex items-center justify-center">
@@ -102,101 +101,9 @@ type AccountTab =
   | 'support'
   | 'profile';
 
-interface CuratedItem {
-  id: string;
-  productId: string;
-  brand: string;
-  title: string;
-  price: number;
-  originalPrice: number;
-  discount: string;
-  rating: number;
-  reviewCount: number;
-  badge: string;
-  badgeColor: string;
-  image: string;
-}
-
-const CURATED_RECOMMENDATIONS: CuratedItem[] = [
-  {
-    id: 'rec-1',
-    productId: 'VYN-SBY-801',
-    brand: 'Sabyasachi Heritage',
-    title: 'Ivory & Gold Embroidered Bandhgala Waistcoat',
-    price: 24500,
-    originalPrice: 40800,
-    discount: '40% OFF',
-    rating: 4.9,
-    reviewCount: 48,
-    badge: '40% OFF',
-    badgeColor: 'bg-secondary-container text-white',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBahPEa1jmrZ0vqHRCsDZOZIUaBM3N9bXseNamrijzJ0WYdYMfYzp7wkdlCHW6z-AP55lfKQVZdoJk8uuj087i_fZzCVjNw25peoTHFe2XzIaQ2r4KCcb-3z_Y0goQgt0sp5oG4FwuI68lH-eJTCXewYafTOrgp-4hVWDcIfrJ2yvoq6NwzuH9V9Ny1xOVaIpney5KDbWvZz9eICbBSoI1Ulqdfmti3ba4VUgSUFzo',
-  },
-  {
-    id: 'rec-2',
-    productId: 'VYN-NDL-402',
-    brand: 'Needledust Artisans',
-    title: 'Marigold Zardozi Heritage Mules',
-    price: 5990,
-    originalPrice: 7490,
-    discount: '20% OFF',
-    rating: 4.8,
-    reviewCount: 112,
-    badge: 'NEW DROP',
-    badgeColor: 'bg-primary text-white',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCf0bhR7pZX3HEOulpc6yQ0RVRMTqzrgEnLVlzMO7JeZlGc7qw1_mmQ5enDiJqMO4MAVd0IdelXhNlCm4Ayhb2V9U4BL3lUxGxgN717KCRa93ZgcPxd7jRSqODnAFPNgQqxDzrkm5xCF9EfryxC6CwKmlLpF9zAjbAhYnebcPgFqNMillsVOUhoudNej2tIfQjQwIPHSUj74rPLEDfzAF-8zT1FRFt6uy1kbzYDZIo',
-  },
-  {
-    id: 'rec-3',
-    productId: 'VYN-AMR-305',
-    brand: 'Tribe Amrapali',
-    title: 'Filigree Royal Lion Crest Brooch',
-    price: 3850,
-    originalPrice: 4500,
-    discount: '15% OFF',
-    rating: 5.0,
-    reviewCount: 29,
-    badge: 'LIMITED EDITION',
-    badgeColor: 'bg-secondary-container text-white',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC7TXbcYfCjmwcuerejrqCaRdfrrHp3fCpjAD2V-LUZv9k89H9MW1oH_W52K6HaRClPSdDHvUsnUTkNI_wwHsnmbR6DiIjSOTsJeXu1VbRIjvyRjKChD24Zv_G2OQtykHJMPXT_D1qWlO1POx3-Z_iZKvfYovhl5dh_ttmy8gs8vLcoCdhVpSQb6SYckHckcxZny9pqoHgt1kwPQUNEy2SER3DtimdraEfmKo2A6Jw',
-  },
-];
-
 const PAST_ORDERS: any[] = [];
 
 const SAVED_ADDRESSES: any[] = [];
-
-const WISHLIST_ITEMS = [
-  {
-    id: 'w-1',
-    productId: 'VYN-BAN-104',
-    title: 'Marigold Lotus Pure Katan Silk Banarasi Saree',
-    brand: 'Varanasi Master Weavers',
-    price: 32900,
-    originalPrice: 48000,
-    discount: '31% OFF',
-    rating: 5.0,
-    inStock: true,
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAZY6Rn1sX9zajvu57JMzOmU7lTmvqI-LwLj8FZkGKPKa2fDRcswkkFSPDEu2zQusfLQWUiFp9H4LzwuJYFJbuF9bGPKbWzWd4XagxqkVICEurmu18QQYfHOCl534lDi1BtAdVsfQh39l8Mvx4sE-mOFzw7JsKJkwKtMR1GcEXqC7L8Z5IXFPP91xobDUp-qeMs0I6rAor8wRM1atkC0vFuzXoUFhDnmnOtgVY-ahc',
-  },
-  {
-    id: 'w-2',
-    productId: 'VYN-JHM-202',
-    title: 'Handcrafted Heritage Brass Polki Jhumkas',
-    brand: 'Jaipur Jewels',
-    price: 4200,
-    originalPrice: 6000,
-    discount: '30% OFF',
-    rating: 4.8,
-    inStock: true,
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC7TXbcYfCjmwcuerejrqCaRdfrrHp3fCpjAD2V-LUZv9k89H9MW1oH_W52K6HaRClPSdDHvUsnUTkNI_wwHsnmbR6DiIjSOTsJeXu1VbRIjvyRjKChD24Zv_G2OQtykHJMPXT_D1qWlO1POx3-Z_iZKvfYovhl5dh_ttmy8gs8vLcoCdhVpSQb6SYckHckcxZny9pqoHgt1kwPQUNEy2SER3DtimdraEfmKo2A6Jw',
-  },
-];
 
 function AccountDashboardContent() {
   const router = useRouter();
@@ -206,9 +113,8 @@ function AccountDashboardContent() {
 
   const [mounted, setMounted] = useState(false);
 
-  const { addItem, openCart } = useCartStore();
   const { addresses: storeAddresses, getDefaultAddress, fetchAddresses } = useAddressStore();
-  const { items: wishlistStoreItems, addItem: addWishlistItem } = useWishlistStore();
+  const { items: wishlistStoreItems } = useWishlistStore();
   const { totalLiquidity: vaultBalance } = usePaymentVaultStore();
   const { orders: userOrders, totalCount: totalOrderCount, fetchOrders: fetchUserOrders } = useOrderStore();
   const profileStore = useUserProfileStore();
@@ -263,7 +169,6 @@ function AccountDashboardContent() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   // Wishlist state
-  const [wishlist, setWishlist] = useState(WISHLIST_ITEMS);
 
   // Toast state
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'info' | 'error' }>({
@@ -375,51 +280,6 @@ function AccountDashboardContent() {
     } else {
       router.replace(`/account?tab=${tab}`, { scroll: false });
     }
-  };
-
-  // Quick Add recommendation to Cart
-  const handleQuickAdd = (item: CuratedItem) => {
-    addItem({
-      id: `curated-${item.id}-${Date.now()}`,
-      productId: item.productId,
-      title: item.title,
-      brand: item.brand,
-      variantId: `var-${item.id}`,
-      size: 'Standard',
-      color: 'Curated Artisan',
-      price: item.price,
-      originalPrice: item.originalPrice,
-      quantity: 1,
-      image: item.image,
-      vendorName: item.brand,
-    });
-    showNotification(`Added ${item.title} to Bag!`, 'success');
-  };
-
-  // Move wishlist item to bag
-  const handleMoveToBag = (item: typeof WISHLIST_ITEMS[0]) => {
-    addItem({
-      id: `wish-${item.id}-${Date.now()}`,
-      productId: item.productId,
-      title: item.title,
-      brand: item.brand,
-      variantId: `var-${item.id}`,
-      size: 'Standard',
-      color: 'Patron Choice',
-      price: item.price,
-      originalPrice: item.originalPrice,
-      quantity: 1,
-      image: item.image,
-      vendorName: item.brand,
-    });
-    setWishlist((prev) => prev.filter((w) => w.id !== item.id));
-    showNotification(`Moved ${item.title} to Bag!`, 'success');
-  };
-
-  // Remove from wishlist
-  const handleRemoveWishlist = (id: string) => {
-    setWishlist((prev) => prev.filter((w) => w.id !== id));
-    showNotification('Item removed from Wishlist', 'info');
   };
 
   // Logout handler
@@ -1168,106 +1028,6 @@ function AccountDashboardContent() {
                     </div>
                   </section>
                 ) : null}
-
-                {/* Curated Recommendations Strip (Stitch Screen Feature) */}
-                <section className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-                    <div>
-                      <span className="text-[11px] font-headline font-bold uppercase tracking-wider text-secondary-container">
-                        Tailored Edits
-                      </span>
-                      <h2 className="font-headline font-bold text-xl text-on-surface">
-                        Curated Just For You
-                      </h2>
-                      <p className="text-xs text-on-surface-variant">
-                        Recommended based on your ethnic wear purchases &amp; artisan preferences
-                      </p>
-                    </div>
-                    <Link
-                      href="/products"
-                      className="text-xs font-headline font-bold text-primary hover:underline inline-flex items-center gap-1 self-start sm:self-auto"
-                    >
-                      <span>View Entire Catalog</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {CURATED_RECOMMENDATIONS.map((item) => (
-                      <div
-                        key={item.id}
-                        className="group rounded-2xl bg-surface-container-lowest p-3.5 shadow-sm border border-surface-container hover:shadow-md transition-all flex flex-col justify-between"
-                      >
-                        <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-surface-container mb-3">
-                          <Image
-                            src={item.image}
-                            alt={item.title}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <span
-                            className={`absolute top-2.5 left-2.5 text-[10px] font-headline font-extrabold uppercase px-2 py-0.5 rounded shadow-sm ${item.badgeColor}`}
-                          >
-                            {item.badge}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              addWishlistItem({
-                                id: `rec-${item.id}`,
-                                title: item.title,
-                                brand: item.brand,
-                                price: item.price,
-                                originalPrice: item.originalPrice,
-                                image: item.image,
-                                inStock: true,
-                                rating: item.rating,
-                                reviewCount: item.reviewCount,
-                                boardIds: ['all'],
-                              });
-                              showNotification(`Added ${item.title} to Wishlist!`, 'success');
-                            }}
-                            aria-label="Save to Wishlist"
-                            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm text-on-surface flex items-center justify-center hover:text-rose-500 transition-colors shadow-sm"
-                          >
-                            <Heart className="h-4 w-4" />
-                          </button>
-                        </div>
-
-                        <div>
-                          <span className="text-[10px] font-headline font-bold uppercase tracking-widest text-outline">
-                            {item.brand}
-                          </span>
-                          <h3 className="font-headline font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">
-                            {item.title}
-                          </h3>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-headline font-bold text-sm text-on-surface">
-                                {formatINR(item.price)}
-                              </span>
-                              <span className="text-xs text-outline line-through">
-                                {formatINR(item.originalPrice)}
-                              </span>
-                            </div>
-                            <span className="text-[11px] font-bold text-secondary-container flex items-center gap-0.5">
-                              <Star className="h-3.5 w-3.5 fill-secondary-container" />
-                              {item.rating} ({item.reviewCount})
-                            </span>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleQuickAdd(item)}
-                          className="mt-3.5 w-full py-[5px] px-[11px] h-[31px] rounded-full bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-[14px] font-normal transition-all flex items-center justify-center shadow-sm active:scale-95"
-                        >
-                          <span>Add to cart</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
 
                 {/* Quick Account Shortcuts Strip */}
                 <section className="space-y-4">
