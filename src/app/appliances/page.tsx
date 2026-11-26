@@ -102,22 +102,9 @@ function AppliancesContent() {
   // Live database products with fallback support
   const { products: liveDbProducts, isLoading } = useCategoryProducts({
     categoryKey: 'appliances',
-    extraKeywords: [
-      'refrigerator',
-      'fridge',
-      'washing machine',
-      'washer',
-      'dryer',
-      'air conditioner',
-      'ac',
-      'microwave',
-      'chimney',
-      'dishwasher',
-      'water purifier',
-      'geyser',
-      'vacuum cleaner',
-      'oven',
-    ],
+    // Only products filed under Appliances in the catalog tree. Keyword matching pulled in
+    // laptops, watches and shoes ("ac" inside "Acer", "Maritime", "Black").
+    departmentSlug: 'appliances',
   });
 
   // Combine live database items with realistic Amazon India fallback appliances

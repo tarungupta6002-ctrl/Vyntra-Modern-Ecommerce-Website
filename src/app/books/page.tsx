@@ -102,20 +102,7 @@ function BooksContent() {
   // Live database products with fallback support
   const { products: liveDbProducts, isLoading } = useCategoryProducts({
     categoryKey: 'books',
-    extraKeywords: [
-      'book',
-      'novel',
-      'paperback',
-      'hardcover',
-      'atomic habits',
-      'psychology of money',
-      'rich dad',
-      'shiva trilogy',
-      'sudha murty',
-      'ikigai',
-      'fiction',
-      'literature',
-    ],
+    departmentSlug: 'books',
   });
 
   // Combine live database items with realistic Amazon India fallback books

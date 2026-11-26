@@ -162,7 +162,7 @@ export default function WesternWearPage() {
   };
 
   // Live database catalog from PostgreSQL
-  const { products: liveWesternProducts, dynamicBrands } = useCategoryProducts({ categoryKey: 'western-wear' });
+  const { products: liveWesternProducts, dynamicBrands } = useCategoryProducts({ categoryKey: 'western-wear', departmentSlug: 'western-wear' });
 
   const toggleBrand = (brandName: string) => {
     setSelectedBrands((prev) =>

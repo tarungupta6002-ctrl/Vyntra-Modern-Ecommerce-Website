@@ -46,6 +46,12 @@ export interface UseCategoryProductsOptions {
   extraKeywords?: string[];
   initialSubCategory?: string;
   subCategoryKey?: 'subcategory' | 'category' | 'slug';
+  /**
+   * Root category slug in the catalog tree (e.g. 'appliances'). When set, products are taken
+   * from that branch of the tree by the API instead of keyword matching, which can pull in
+   * unrelated items (e.g. "ac" matching "Acer" or "Black").
+   */
+  departmentSlug?: string;
 }
 
 const CATEGORY_ALIASES: Record<string, string[]> = {
@@ -201,7 +207,7 @@ export function matchesCategory(
 }
 
 export function useCategoryProducts(options: UseCategoryProductsOptions) {
-  const { categoryKey, extraKeywords = [] } = options;
+  const { categoryKey, extraKeywords = [], departmentSlug } = options;
   const [dbProducts, setDbProducts] = useState<CategoryProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +219,10 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
         setIsLoading(true);
         setError(null);
         // Fetch live verified marketplace products
-        const res = await fetch('/api/products?limit=100');
+        const url = departmentSlug
+          ? `/api/products?limit=100&category=${encodeURIComponent(departmentSlug)}`
+          : '/api/products?limit=100';
+        const res = await fetch(url);
         const json = await res.json();
         const rawList: any[] = Array.isArray(json.data)
           ? json.data
@@ -224,7 +233,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
         if (isMounted) {
           if (json.success && rawList.length > 0) {
             const matched: CategoryProductItem[] = rawList
-              .filter((p: any) => matchesCategory(p, categoryKey, extraKeywords))
+              .filter((p: any) => (departmentSlug ? true : matchesCategory(p, categoryKey, extraKeywords)))
               .map((p: any) => ({
                 id: p.id,
                 slug: p.slug,
@@ -284,7 +293,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
     return () => {
       isMounted = false;
     };
-  }, [categoryKey, extraKeywords.join(',')]);
+  }, [categoryKey, extraKeywords.join(','), departmentSlug]);
 
   // Dynamically derived list of brands from the actual database products
   const dynamicBrands = useMemo(() => {
