@@ -34,7 +34,7 @@ import {
   X,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
-import { APlusData, createDefaultAPlusContent } from '@/types/aplus';
+import { APlusData, createDefaultAPlusContent, cleanAplusText } from '@/types/aplus';
 import { APlusBuilder } from '@/components/vendor/aplus-builder';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
 import { getCategoryMeasurementProfile } from '@/lib/category-measurement';
@@ -1656,11 +1656,21 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         return true;
       });
 
+      // Never save builder placeholder text as if the vendor wrote it.
+      const textCleanedModules = deduplicatedModules.map((mod) => ({
+        ...mod,
+        title: cleanAplusText(mod.title),
+        subtitle: cleanAplusText(mod.subtitle),
+        description: cleanAplusText(mod.description),
+        badgeText: cleanAplusText(mod.badgeText),
+        cards: mod.cards?.map((c) => ({ ...c, title: cleanAplusText(c.title), description: cleanAplusText(c.description) })),
+      }));
+
       const sanitizedAplus =
-        deduplicatedModules.length > 0
+        textCleanedModules.length > 0
           ? {
               ...aplusData,
-              modules: deduplicatedModules,
+              modules: textCleanedModules,
             }
           : undefined;
 

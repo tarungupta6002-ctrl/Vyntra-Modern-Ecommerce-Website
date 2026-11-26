@@ -132,8 +132,8 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
     let newMod: APlusModule = {
       id: newId,
       type,
-      title: type === 'hero_banner' ? '' : 'Product Features',
-      description: type === 'hero_banner' ? '' : 'Highlight the key qualities, craftsmanship, and benefits of your product.',
+      title: '',
+      description: '',
       imageUrl: '',
     };
 
@@ -142,15 +142,10 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
       newMod.badgeText = '';
     } else if (type === 'image_text_split') {
       newMod.imagePosition = 'left';
-      newMod.badgeText = 'PREMIUM QUALITY';
+      newMod.badgeText = '';
     } else if (type === 'feature_cards_3' || type === 'feature_cards_4') {
-      const count = type === 'feature_cards_4' ? 4 : 3;
-      newMod.cards = Array.from({ length: count }).map((_, i) => ({
-        id: `card-${i + 1}`,
-        title: `Feature #${i + 1}`,
-        description: 'Highlight a key product feature or benefit.',
-        imageUrl: '',
-      }));
+      // The builder edits the banner image, heading and description; cards start empty.
+      newMod.cards = [];
     } else if (type === 'lifestyle_gallery') {
       newMod.imageUrl = '';
       newMod.secondaryImageUrl = '';
@@ -463,6 +458,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                           type="text"
                           value={mod.subtitle || ''}
                           onChange={(e) => handleUpdateModule(idx, { subtitle: e.target.value })}
+                          placeholder="Optional"
                           className="w-full px-2.5 py-1.5 border border-[#D5D9D9] rounded-lg bg-white"
                         />
                       </div>
@@ -495,13 +491,19 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                   )}
 
                   {/* Description / Story */}
-                  {(mod.type === 'image_text_split' || mod.type === 'craftsmanship_story') && (
+                  {(mod.type === 'image_text_split' ||
+                    mod.type === 'craftsmanship_story' ||
+                    mod.type === 'feature_cards_3' ||
+                    mod.type === 'feature_cards_4') && (
                     <div className="md:col-span-2 space-y-1">
-                      <label className="block text-[11px] font-bold text-[#565959]">Description Body</label>
+                      <label className="block text-[11px] font-bold text-[#565959]">
+                        Description{mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4' ? ' (optional, shown under the heading)' : ''}
+                      </label>
                       <textarea
                         rows={3}
                         value={mod.description || ''}
                         onChange={(e) => handleUpdateModule(idx, { description: e.target.value })}
+                        placeholder="e.g. Auto-cleans the outdoor unit every 8 hours for steady cooling."
                         className="w-full px-2.5 py-1.5 border border-[#D5D9D9] rounded-lg bg-white"
                       />
                     </div>

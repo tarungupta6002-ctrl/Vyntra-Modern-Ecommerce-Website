@@ -16,7 +16,7 @@ import {
   Heart,
   ChevronRight,
 } from 'lucide-react';
-import { APlusData, APlusModule } from '@/types/aplus';
+import { APlusData, APlusModule, cleanAplusText } from '@/types/aplus';
 
 interface APlusContentDisplayProps {
   aplus: APlusData;
@@ -309,19 +309,19 @@ function renderModule(mod: APlusModule, brandName: string) {
 
             {/* Narrative Column */}
             <div className={`md:col-span-6 space-y-3 ${isLeft ? 'md:order-2' : 'md:order-1'}`}>
-              {mod.badgeText && (
+              {cleanAplusText(mod.badgeText) && (
                 <span className="bg-[#800020] text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-block">
-                  {mod.badgeText}
+                  {cleanAplusText(mod.badgeText)}
                 </span>
               )}
-              {mod.title && (
+              {cleanAplusText(mod.title) && (
                 <h3 className="text-xl sm:text-2xl font-headline font-bold text-[#0F1111] leading-snug">
-                  {mod.title}
+                  {cleanAplusText(mod.title)}
                 </h3>
               )}
-              {mod.description && (
+              {cleanAplusText(mod.description) && (
                 <p className="text-xs sm:text-sm text-[#0F1111] leading-relaxed">
-                  {mod.description}
+                  {cleanAplusText(mod.description)}
                 </p>
               )}
             </div>
@@ -356,28 +356,39 @@ function renderModule(mod: APlusModule, brandName: string) {
           return (isBlankImg && isPlaceholderTitle) || isSampleImg;
         });
 
+      const moduleTitle = cleanAplusText(mod.title);
+      const moduleDescription = cleanAplusText(mod.description);
+
       if (mod.imageUrl && hasBoilerplateOrEmptyCards) {
         return (
-          <div className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-[#D5D9D9] bg-white group">
-            <div className="relative w-full bg-white flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={mod.imageUrl}
-                alt={mod.altText || mod.title || 'Brand Banner'}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-auto block object-contain mx-auto"
-              />
+          <div className="space-y-4">
+            {(moduleTitle || moduleDescription) && (
+              <div className="pb-2 border-b border-[#D5D9D9]">
+                {moduleTitle && (
+                  <h3 className="text-lg sm:text-xl font-headline font-bold text-[#0F1111]">{moduleTitle}</h3>
+                )}
+                {moduleDescription && (
+                  <p className="mt-1 text-xs sm:text-sm text-[#565959] leading-relaxed max-w-3xl">{moduleDescription}</p>
+                )}
+              </div>
+            )}
+            <div className="relative w-full rounded-2xl overflow-hidden shadow-lg border border-[#D5D9D9] bg-white group">
+              <div className="relative w-full bg-white flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={mod.imageUrl}
+                  alt={mod.altText || moduleTitle || 'Brand Banner'}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-auto block object-contain mx-auto"
+                />
+              </div>
             </div>
           </div>
         );
       }
 
-      const displayCards = cards.filter((c) => {
-        const hasRealImg = Boolean(c.imageUrl?.trim());
-        const isPlaceholder = c.title?.startsWith('Feature #') || c.title?.startsWith('Hallmark #');
-        return hasRealImg || !isPlaceholder;
-      });
+      const displayCards = cards.filter((c) => Boolean(c.imageUrl?.trim()) || Boolean(cleanAplusText(c.title)));
 
       if (displayCards.length === 0 && !mod.imageUrl) {
         return null;
@@ -385,10 +396,15 @@ function renderModule(mod: APlusModule, brandName: string) {
 
       return (
         <div className="space-y-4">
-          {mod.title && (
-            <h3 className="text-lg sm:text-xl font-headline font-bold text-[#0F1111] pb-2 border-b border-[#D5D9D9]">
-              {mod.title}
-            </h3>
+          {(moduleTitle || moduleDescription) && (
+            <div className="pb-2 border-b border-[#D5D9D9]">
+              {moduleTitle && (
+                <h3 className="text-lg sm:text-xl font-headline font-bold text-[#0F1111]">{moduleTitle}</h3>
+              )}
+              {moduleDescription && (
+                <p className="mt-1 text-xs sm:text-sm text-[#565959] leading-relaxed max-w-3xl">{moduleDescription}</p>
+              )}
+            </div>
           )}
 
           <div className={`grid grid-cols-1 sm:grid-cols-2 ${isFour ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-5`}>
@@ -400,13 +416,17 @@ function renderModule(mod: APlusModule, brandName: string) {
                 {c.imageUrl && (
                   <div className="relative aspect-[4/3] bg-[#F7F8F8] overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.imageUrl} alt={c.altText || c.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                    <img src={c.imageUrl} alt={c.altText || cleanAplusText(c.title) || moduleTitle || 'Feature'} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                 )}
                 <div className="p-4 space-y-1.5 flex-1 flex flex-col justify-between">
                   <div>
-                    <h4 className="font-headline font-bold text-sm text-[#0F1111]">{c.title}</h4>
-                    <p className="text-xs text-[#565959] leading-relaxed mt-1">{c.description}</p>
+                    {cleanAplusText(c.title) && (
+                      <h4 className="font-headline font-bold text-sm text-[#0F1111]">{cleanAplusText(c.title)}</h4>
+                    )}
+                    {cleanAplusText(c.description) && (
+                      <p className="text-xs text-[#565959] leading-relaxed mt-1">{cleanAplusText(c.description)}</p>
+                    )}
                   </div>
                 </div>
               </div>

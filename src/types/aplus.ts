@@ -17,6 +17,30 @@ export type APlusModuleType =
   | 'brand_story'
   | 'promo_banner';
 
+/**
+ * Text the A+ builder used to pre-fill into new modules. Older listings saved it as if the
+ * vendor had written it, so it is treated as empty everywhere (display and save).
+ */
+const APLUS_PLACEHOLDER_TEXTS = new Set(
+  [
+    'Highlight the key qualities, craftsmanship, and benefits of your product.',
+    'Highlight a key product feature or benefit.',
+    'Product Features',
+    'PREMIUM QUALITY',
+    'Product Description',
+    'New Section Heading',
+  ].map((t) => t.toLowerCase())
+);
+
+/** Returns the vendor's text, or '' when it is blank or builder placeholder text. */
+export function cleanAplusText(value?: string | null): string {
+  const text = (value || '').trim();
+  if (!text) return '';
+  if (APLUS_PLACEHOLDER_TEXTS.has(text.toLowerCase())) return '';
+  if (/^(feature|hallmark) #\d+$/i.test(text)) return '';
+  return text;
+}
+
 export interface APlusFeatureCard {
   id: string;
   title: string;

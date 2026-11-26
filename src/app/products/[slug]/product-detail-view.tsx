@@ -864,11 +864,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                       <span>{product.badge}</span>
                     </span>
                   )}
-                  {isMobileOrElectronic ? (
-                    <span className="bg-emerald-700 text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded shadow-md">
-                      Brand Warranty • 5G
-                    </span>
-                  ) : product.isCustomized ? (
+                  {isMobileOrElectronic ? null : product.isCustomized ? (
                     <span className="bg-[#FFD814] text-[#0F1111] text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded shadow-md border border-[#FCD200]">
                       Customized / Made to Order
                     </span>
@@ -1654,23 +1650,9 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                 <Package className="h-5 w-5 text-[#007185]" />
               )}
               <h2 className="text-xl font-headline font-bold text-[#0F1111]">
-                {isMobileOrElectronic
-                  ? 'Technical Specifications & Hardware Matrix'
-                  : 'Product Specifications'}
+                {isMobileOrElectronic ? 'Technical Specifications' : 'Product Specifications'}
               </h2>
             </div>
-            {isMobileOrElectronic && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded bg-[#007185]/10 text-[#007185] border border-[#007185]/20 flex items-center gap-1">
-                  <Wifi className="h-3 w-3" />
-                  <span>5G Enabled</span>
-                </span>
-                <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" />
-                  <span>Verified Device</span>
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Highlight Specs Cards */}
