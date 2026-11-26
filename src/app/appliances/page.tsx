@@ -68,29 +68,39 @@ function applianceTypeOf(p: CategoryProductItem): ApplianceType | null {
   return null;
 }
 
-/** BEE star rating (1-5) from the specs or title, or null when the product doesn't state one. */
-function energyStarsOf(p: CategoryProductItem): number | null {
-  const attr = p.attributes?.energy_rating;
-  if (typeof attr === 'string') {
-    const a = attr.match(/^([1-5])\s*star/i);
-    return a ? Number(a[1]) : null;
-  }
+/** All attribute value sets of a listing: the listing itself plus each variant (Amazon: any child matches). */
+const attributeSets = (p: CategoryProductItem) => [p.attributes || {}, ...(p.variantAttributes || [])];
+
+/** BEE star ratings (1-5) a listing is sold in: from attributes (incl. variants), else specs or title. */
+function energyStarsOf(p: CategoryProductItem): number[] {
+  const fromAttrs = attributeSets(p)
+    .map((a) => (typeof a.energy_rating === 'string' ? a.energy_rating.match(/^([1-5])\s*star/i) : null))
+    .filter((m): m is RegExpMatchArray => m !== null)
+    .map((m) => Number(m[1]));
+  if (fromAttrs.length > 0) return Array.from(new Set(fromAttrs));
+  if (typeof p.attributes?.energy_rating === 'string') return []; // e.g. "Not rated"
   const specs = p.specs || {};
   const specValue = Object.entries(specs).find(([k]) => /energy|bee|star rating/i.test(k))?.[1];
   const m = String(specValue ?? '').match(/([1-5])\s*star/i) || (p.title || '').match(/\b([1-5])\s*star\b/i);
-  return m ? Number(m[1]) : null;
+  return m ? [Number(m[1])] : [];
 }
 
 /** The product's attribute template (AC, refrigerator, ...), from its category path. */
 const templateOf = (p: CategoryProductItem) => getTemplateForCategoryPath(p.categoryPath || [p.category]);
 
-/** Filter option a product falls into for an attribute: the enum value or the number's range label. */
-function attributeOptionOf(p: CategoryProductItem, def: AttributeDef): string | null {
-  const v = p.attributes?.[def.key];
-  if (v === undefined || v === null || v === '') return null;
-  if (def.type === 'enum') return String(v);
-  const n = Number(v);
-  return Number.isFinite(n) ? bucketFor(def, n)?.label ?? null : null;
+/** Filter options a listing falls into for an attribute (enum values or range labels), across its variants. */
+function attributeOptionsOf(p: CategoryProductItem, def: AttributeDef): string[] {
+  const out = new Set<string>();
+  for (const attrs of attributeSets(p)) {
+    const v = attrs[def.key];
+    if (v === undefined || v === null || v === '') continue;
+    if (def.type === 'enum') out.add(String(v));
+    else {
+      const label = Number.isFinite(Number(v)) ? bucketFor(def, Number(v))?.label : undefined;
+      if (label) out.add(label);
+    }
+  }
+  return Array.from(out);
 }
 
 const PRICE_BUCKETS = [
@@ -284,8 +294,8 @@ function AppliancesContent() {
     );
   })();
   const facetById = new Map(attributeDefs.map((f) => [f.id, f]));
-  const facetOptionOf = (p: CategoryProductItem, f: Facet) =>
-    templateOf(p)?.id === f.tpl.id ? attributeOptionOf(p, f.def) : null;
+  const facetOptionsOf = (p: CategoryProductItem, f: Facet): string[] =>
+    templateOf(p)?.id === f.tpl.id ? attributeOptionsOf(p, f.def) : [];
 
   // Every filter except the one named, so facet counts show what each option would return.
   const applyFilters = (list: CategoryProductItem[], skip?: string) => {
@@ -311,18 +321,12 @@ function AppliancesContent() {
       out = out.filter((p) => brands.some((b) => b.toLowerCase() === (p.brand || '').toLowerCase()));
     }
     if (skip !== 'stars' && stars.length) {
-      out = out.filter((p) => {
-        const s = energyStarsOf(p);
-        return s !== null && stars.includes(s);
-      });
+      out = out.filter((p) => energyStarsOf(p).some((s) => stars.includes(s)));
     }
     for (const [facetId, selected] of Object.entries(attrFilters)) {
       const facet = facetById.get(facetId);
       if (!facet || selected.length === 0 || skip === `attr:${facetId}`) continue;
-      out = out.filter((p) => {
-        const opt = facetOptionOf(p, facet);
-        return opt !== null && selected.includes(opt);
-      });
+      out = out.filter((p) => facetOptionsOf(p, facet).some((o) => selected.includes(o)));
     }
     if (skip !== 'price') {
       const bucket = PRICE_BUCKETS.find((b) => b.id === priceBucket);
@@ -355,9 +359,9 @@ function AppliancesContent() {
   const starFacets = (() => {
     const base = applyFilters(products, 'stars');
     const present = Array.from(
-      new Set(products.map(energyStarsOf).filter((s): s is number => s !== null))
+      new Set(products.flatMap(energyStarsOf))
     ).sort((a, b) => b - a);
-    return present.map((s) => ({ stars: s, count: base.filter((p) => energyStarsOf(p) === s).length }));
+    return present.map((s) => ({ stars: s, count: base.filter((p) => energyStarsOf(p).includes(s)).length }));
   })();
 
   const priceFacets = (() => {
@@ -374,8 +378,8 @@ function AppliancesContent() {
       const inType = products.filter((p) => applianceTypeOf(p) === type);
       const selected = attrFilters[facet.id] || [];
       const options = allOptions
-        .filter((o) => selected.includes(o) || inType.some((p) => facetOptionOf(p, facet) === o))
-        .map((o) => ({ label: o, count: base.filter((p) => facetOptionOf(p, facet) === o).length }));
+        .filter((o) => selected.includes(o) || inType.some((p) => facetOptionsOf(p, facet).includes(o)))
+        .map((o) => ({ label: o, count: base.filter((p) => facetOptionsOf(p, facet).includes(o)).length }));
       return { facet, options };
     })
     .filter((f) => f.options.length > 0);

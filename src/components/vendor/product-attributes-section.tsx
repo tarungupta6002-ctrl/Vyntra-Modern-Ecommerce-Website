@@ -10,13 +10,21 @@ interface ProductAttributesSectionProps {
   onChange: (key: string, value: string) => void;
   /** Highlight empty required fields (set after a failed submit). */
   showErrors: boolean;
+  /** Keys every variant sets itself (e.g. capacity); shown as "set per variant" here. */
+  keysFromVariants?: string[];
 }
 
 /**
  * Category-specific product details (Amazon-style product type template).
  * These structured values power the filters customers use on listing pages.
  */
-export function ProductAttributesSection({ template, values, onChange, showErrors }: ProductAttributesSectionProps) {
+export function ProductAttributesSection({
+  template,
+  values,
+  onChange,
+  showErrors,
+  keysFromVariants = [],
+}: ProductAttributesSectionProps) {
   if (!template) return null;
 
   return (
@@ -40,7 +48,22 @@ export function ProductAttributesSection({ template, values, onChange, showError
         {template.attributes.map((def) => {
           const id = `attr-${def.key}`;
           const value = values[def.key] ?? '';
-          const missing = showErrors && def.required && !String(value).trim();
+          const perVariant = keysFromVariants.includes(def.key);
+          const missing = showErrors && def.required && !perVariant && !String(value).trim();
+          if (perVariant) {
+            return (
+              <div key={def.key} className="space-y-1">
+                <span className="block text-xs font-bold text-[#0F1111]">
+                  {def.label}
+                  {def.type === 'number' && <span className="font-normal text-[#565959]"> ({def.unit})</span>}
+                </span>
+                <p className="px-3 py-2 text-sm rounded-lg border border-dashed border-[#D5D9D9] bg-[#F7F8F8] text-[#565959]">
+                  Set per variant
+                </p>
+                <p className="text-[11px] text-[#565959]">Each variant below has its own value.</p>
+              </div>
+            );
+          }
           const border = missing ? 'border-[#B12704] ring-1 ring-[#B12704]' : 'border-[#D5D9D9] focus:border-[#007185]';
           return (
             <div key={def.key} className="space-y-1">
@@ -96,7 +119,7 @@ export function ProductAttributesSection({ template, values, onChange, showError
 
       <p className="flex items-start gap-1.5 text-[11px] text-[#565959]">
         <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-        If your variants differ (e.g. 1 Ton and 1.5 Ton), enter the values of the main variant.
+        Sold in several capacities or ratings? Choose &quot;Multiple Variants&quot; below and set them per variant.
       </p>
     </section>
   );

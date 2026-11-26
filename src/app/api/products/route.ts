@@ -33,6 +33,8 @@ interface FormattedProductItem {
   categoryPath?: string[];
   /** Structured category attributes (see src/lib/catalog/attributes.ts). */
   attributes?: Record<string, string | number>;
+  /** Per-variant attribute values (e.g. each capacity an AC is sold in). */
+  variantAttributes?: Array<Record<string, string | number>>;
   specs?: Record<string, string>;
   vendor: {
     name: string;
@@ -132,6 +134,9 @@ function formatProduct(product: any): FormattedProductItem {
     specs: Object.keys(specs).length > 0 ? specs : undefined,
     categoryPath: categoryPathOf(product.category),
     attributes: readStoredAttributes(product.attributes),
+    variantAttributes: (product.variants || [])
+      .map((v: any) => readStoredAttributes(v.attributes))
+      .filter((a: Record<string, unknown>) => Object.keys(a).length > 0),
     vendor: {
       name: product.vendor?.storeName || 'Vyntra Atelier',
       slug: product.vendor?.storeSlug || 'vyntra-atelier',
@@ -327,6 +332,7 @@ export async function GET(request: NextRequest) {
                 originalPrice: true,
                 discountPercentage: true,
                 imageUrl: true,
+                attributes: true,
               },
             },
             inventories: {

@@ -25,6 +25,8 @@ export interface CategoryProductItem {
   categoryPath?: string[];
   /** Structured category attributes (see src/lib/catalog/attributes.ts). */
   attributes?: Record<string, string | number>;
+  /** Per-variant attribute values; a listing matches a filter if any variant does. */
+  variantAttributes?: Array<Record<string, string | number>>;
   deliveryDate: string;
   image: string;
   stockCount: number;
@@ -281,6 +283,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
                 specs: p.specs,
                 categoryPath: Array.isArray(p.categoryPath) ? p.categoryPath : undefined,
                 attributes: p.attributes && typeof p.attributes === 'object' ? p.attributes : undefined,
+                variantAttributes: Array.isArray(p.variantAttributes) ? p.variantAttributes : undefined,
               }));
             setDbProducts(matched);
           } else {

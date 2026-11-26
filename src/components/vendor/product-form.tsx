@@ -37,7 +37,15 @@ import { formatINR } from '@/lib/utils';
 import { APlusData, createDefaultAPlusContent, cleanAplusText } from '@/types/aplus';
 import { APlusBuilder } from '@/components/vendor/aplus-builder';
 import { ProductAttributesSection } from '@/components/vendor/product-attributes-section';
-import { getTemplateForCategoryPath, validateAttributes } from '@/lib/catalog/attributes';
+import {
+  getTemplateForCategoryPath,
+  validateAttributes,
+  getVariantDefs,
+  variantLabel,
+  keysProvidedByAllVariants,
+  type ProductAttributes,
+} from '@/lib/catalog/attributes';
+import { VariantOptionsBuilder, type GeneratedVariant } from '@/components/vendor/variant-options-builder';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
 import { getCategoryMeasurementProfile } from '@/lib/category-measurement';
 import { ProductPricingSection } from '@/components/vendor/product-pricing-section';
@@ -60,6 +68,8 @@ export interface ProductVariantItem {
   price: string;
   stock: string;
   imageUrl?: string;
+  /** Structured values of this variant (e.g. capacity, energy rating) for categories with templates. */
+  attributes?: ProductAttributes;
 }
 
 export interface ProductFormProps {
@@ -169,6 +179,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           price: v.price ? String(v.price) : '',
           stock: v.stock !== undefined ? String(v.stock) : '10',
           imageUrl: v.imageUrl || '',
+          attributes: v.attributes && Object.keys(v.attributes).length > 0 ? v.attributes : undefined,
         }))
       : []
   );
@@ -566,6 +577,13 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   const attributeTemplate = React.useMemo(
     () => getTemplateForCategoryPath((activeCategory?.trail || []).map((t) => t.slug)),
     [activeCategory]
+  );
+
+  // Attributes that can differ per variant (e.g. AC capacity, energy rating) and those every variant sets.
+  const variantDefs = React.useMemo(() => getVariantDefs(attributeTemplate), [attributeTemplate]);
+  const keysFromVariants = React.useMemo(
+    () => (hasVariants ? keysProvidedByAllVariants(attributeTemplate, variants.map((v) => v.attributes || {})) : []),
+    [hasVariants, attributeTemplate, variants]
   );
 
   const measurementProfile = React.useMemo(() => {
@@ -1507,6 +1525,31 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     setUniversalCustomVariant('');
   };
 
+  // Template categories: one variant per combination of variation values, each with its own attributes.
+  const handleGenerateAttributeVariants = (combos: GeneratedVariant[], color: string) => {
+    const colorTag = color.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase();
+    setVariants((prev) => {
+      const existing = new Set(prev.map((v) => `${v.size}|${v.color}`.toLowerCase()));
+      const fresh: ProductVariantItem[] = [];
+      combos.forEach(({ attributes: attrs }) => {
+        const label = variantLabel(attributeTemplate, attrs);
+        if (!label || existing.has(`${label}|${color}`.toLowerCase())) return;
+        existing.add(`${label}|${color}`.toLowerCase());
+        const tag = label.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12);
+        fresh.push({
+          size: label,
+          color,
+          sku: `${skuPrefix}-${colorTag ? `${colorTag}-` : ''}${tag}`,
+          price: price || '',
+          stock: '10',
+          imageUrl: images[0]?.url || '',
+          attributes: attrs,
+        });
+      });
+      return [...prev, ...fresh];
+    });
+  };
+
   // Amazon-style: Generate variants from Color + Selected Sizes
   const handleGenerateAmazonVariants = () => {
     const rawColor = builderColor.trim();
@@ -1610,7 +1653,10 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       return;
     }
     // Required category details are needed to publish (drafts may be incomplete).
-    const attributeCheck = validateAttributes(attributeTemplate, attributes, { enforceRequired: publishIntent });
+    const attributeCheck = validateAttributes(attributeTemplate, attributes, {
+      enforceRequired: publishIntent,
+      satisfiedKeys: keysFromVariants,
+    });
     if (attributeCheck.errors.length > 0) {
       setShowAttributeErrors(true);
       setErrorMessage(attributeCheck.errors[0]);
@@ -1727,6 +1773,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
               price: v.price ? parseFloat(v.price) : numericPrice,
               stock: parseInt(v.stock, 10) || 10,
               imageUrl: v.imageUrl || images[0]?.url,
+              attributes: v.attributes || {},
             }))
           : undefined,
       };
@@ -2180,6 +2227,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         values={attributes}
         onChange={(key, value) => setAttributes((prev) => ({ ...prev, [key]: value }))}
         showErrors={showAttributeErrors}
+        keysFromVariants={keysFromVariants}
       />
 
       {/* ===================================================================== */}
@@ -2470,6 +2518,10 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 )}
               </div>
 
+              {variantDefs.length > 0 ? (
+                <VariantOptionsBuilder defs={variantDefs} onGenerate={handleGenerateAttributeVariants} />
+              ) : (
+              <>
               {/* Step 1 & 2: Color and Sizes input */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
                 {/* Step 1: Color Name */}
@@ -3007,6 +3059,8 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   </button>
                 </div>
               </div>
+              </>
+              )}
             </div>
 
             {/* Empty State vs Matrix Table */}
@@ -3060,6 +3114,8 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           type="text"
                           value={v.size}
                           onChange={(e) => handleUpdateVariant(idx, 'size', e.target.value)}
+                          readOnly={Boolean(v.attributes && variantDefs.length > 0)}
+                          title={v.size}
                           placeholder={
                             isBookCategory
                               ? 'e.g. Paperback, Hardcover'

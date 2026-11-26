@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { Prisma } from '@prisma/client';
-import { validateProductAttributes } from '@/lib/catalog/category-path';
+import { validateListingAttributes } from '@/lib/catalog/category-path';
 
 export const dynamic = 'force-dynamic';
 
@@ -235,7 +235,12 @@ export async function POST(request: Request) {
     const subtitle = body.subtitle?.trim() || null;
 
     // Category-specific attributes (capacity, type, energy rating, ...) that power filters.
-    const attributeCheck = await validateProductAttributes(categoryId, body.attributes, wantsPublish);
+    const attributeCheck = await validateListingAttributes(
+      categoryId,
+      body.attributes,
+      Array.isArray(body.variants) ? body.variants.map((v: any) => v?.attributes) : [],
+      wantsPublish
+    );
     if (attributeCheck.errors.length > 0) {
       return apiError(attributeCheck.errors[0], 400, { errors: attributeCheck.errors }, 'INVALID_ATTRIBUTES');
     }
@@ -331,6 +336,10 @@ export async function POST(request: Request) {
               price: vPrice,
               originalPrice: originalPrice > vPrice ? originalPrice : null,
               imageUrl: v.imageUrl || rawImages[0],
+              attributes:
+                Object.keys(attributeCheck.variantAttributes[i] || {}).length > 0
+                  ? attributeCheck.variantAttributes[i]
+                  : Prisma.DbNull,
             },
           });
 

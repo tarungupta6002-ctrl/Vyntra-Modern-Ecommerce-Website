@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { Prisma } from '@prisma/client';
-import { validateProductAttributes } from '@/lib/catalog/category-path';
-import { readStoredAttributes } from '@/lib/catalog/attributes';
+import { validateListingAttributes } from '@/lib/catalog/category-path';
+import { readStoredAttributes, type ProductAttributes } from '@/lib/catalog/attributes';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,6 +134,7 @@ export async function GET(request: Request, context: RouteContext) {
         originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
         stock: v.inventories[0]?.quantity ?? 0,
         imageUrl: v.imageUrl,
+        attributes: readStoredAttributes((v as any).attributes),
       })),
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
@@ -204,14 +205,25 @@ export async function PUT(request: Request, context: RouteContext) {
 
     // Category-specific attributes. Only touched when the client sends them (older clients don't).
     let attributesUpdate: Prisma.InputJsonValue | typeof Prisma.DbNull | undefined;
+    let variantAttributesUpdate: ProductAttributes[] | null = null;
     if (body.attributes !== undefined) {
       const willBePublished = isPublished ?? Boolean(existingProduct?.isPublished);
-      const check = await validateProductAttributes(categoryId, body.attributes, willBePublished);
+      // Variant values come from the request when sent, otherwise from what is stored.
+      const sentVariantAttrs = Array.isArray(body.variants) && body.variants.some((v: any) => v?.attributes !== undefined);
+      const variantInputs = sentVariantAttrs
+        ? body.variants.map((v: any) => v?.attributes)
+        : (await prisma.productVariant.findMany({ where: { productId: id }, select: { attributes: true } })).map((v) => v.attributes);
+      const check = await validateListingAttributes(categoryId, body.attributes, variantInputs, willBePublished);
       if (check.errors.length > 0) {
         return apiError(check.errors[0], 400, { errors: check.errors }, 'INVALID_ATTRIBUTES');
       }
       attributesUpdate = Object.keys(check.attributes).length > 0 ? check.attributes : Prisma.DbNull;
+      if (sentVariantAttrs) variantAttributesUpdate = check.variantAttributes;
     }
+    const variantAttrData = (i: number) =>
+      variantAttributesUpdate
+        ? { attributes: Object.keys(variantAttributesUpdate[i] || {}).length > 0 ? variantAttributesUpdate[i] : Prisma.DbNull }
+        : {};
 
     let finalDescription = description;
     if (body.aplus || body.specs || body.highlights) {
@@ -302,6 +314,7 @@ export async function PUT(request: Request, context: RouteContext) {
                 price: vPrice,
                 originalPrice: originalPrice > vPrice ? originalPrice : null,
                 imageUrl: v.imageUrl || rawImages[0] || null,
+                ...variantAttrData(i),
               },
             });
           } else {
@@ -314,6 +327,7 @@ export async function PUT(request: Request, context: RouteContext) {
                 price: vPrice,
                 originalPrice: originalPrice > vPrice ? originalPrice : null,
                 imageUrl: v.imageUrl || rawImages[0] || null,
+                ...variantAttrData(i),
               },
             });
             variantId = newVar.id;

@@ -48,6 +48,11 @@ export interface AttributeTemplate {
   /** Category slugs this template applies to (the category and everything under it). */
   categorySlugs: string[];
   attributes: AttributeDef[];
+  /**
+   * Attributes that may differ between variants of one listing (Amazon's "variation theme"),
+   * e.g. an AC sold as 1 Ton and 1.5 Ton. Each variant stores its own values for these keys.
+   */
+  variantKeys?: string[];
 }
 
 export type ProductAttributes = Record<string, string | number>;
@@ -95,6 +100,7 @@ const capacityLitres = (buckets: NumberBucket[], max = 2000, required = true): N
 export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   {
     id: 'air-conditioner',
+    variantKeys: ['capacity_ton', 'energy_rating'],
     name: 'Air conditioner',
     categorySlugs: ['air-conditioners', 'split-inverter-acs', 'window-air-conditioners', 'smart-wifi-acs'],
     attributes: [
@@ -123,6 +129,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'air-cooler',
+    variantKeys: ['capacity_litres'],
     name: 'Air cooler',
     categorySlugs: ['air-coolers'],
     attributes: [
@@ -137,6 +144,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'refrigerator',
+    variantKeys: ['capacity_litres', 'energy_rating'],
     name: 'Refrigerator',
     categorySlugs: ['refrigerators'],
     attributes: [
@@ -160,6 +168,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'washing-machine',
+    variantKeys: ['capacity_kg', 'energy_rating'],
     name: 'Washing machine',
     categorySlugs: ['washing-machines', 'front-load-washing-machines', 'top-load-washing-machines', 'semi-automatic-washing-machines'],
     attributes: [
@@ -202,6 +211,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'clothes-dryer',
+    variantKeys: ['capacity_kg'],
     name: 'Clothes dryer',
     categorySlugs: ['clothes-dryers'],
     attributes: [
@@ -225,6 +235,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'microwave',
+    variantKeys: ['capacity_litres'],
     name: 'Microwave / OTG',
     categorySlugs: ['microwave-ovens'],
     attributes: [
@@ -239,6 +250,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'chimney',
+    variantKeys: ['suction_m3h'],
     name: 'Kitchen chimney / hob',
     categorySlugs: ['kitchen-chimneys'],
     attributes: [
@@ -262,6 +274,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'induction',
+    variantKeys: ['power_watts'],
     name: 'Induction cooktop',
     categorySlugs: ['induction-cooktops'],
     attributes: [
@@ -274,6 +287,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'air-fryer',
+    variantKeys: ['capacity_litres'],
     name: 'Air fryer',
     categorySlugs: ['air-fryers'],
     attributes: [
@@ -290,6 +304,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'dishwasher',
+    variantKeys: ['place_settings'],
     name: 'Dishwasher',
     categorySlugs: ['dishwashers'],
     attributes: [
@@ -314,6 +329,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'mixer-grinder',
+    variantKeys: ['jars'],
     name: 'Mixer grinder',
     categorySlugs: ['mixer-grinders'],
     attributes: [
@@ -340,6 +356,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'water-purifier',
+    variantKeys: ['capacity_litres'],
     name: 'Water purifier',
     categorySlugs: ['water-purifiers'],
     attributes: [
@@ -377,6 +394,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'geyser',
+    variantKeys: ['capacity_litres'],
     name: 'Water geyser',
     categorySlugs: ['water-geysers'],
     attributes: [
@@ -403,6 +421,7 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
   },
   {
     id: 'air-purifier',
+    variantKeys: ['coverage_sqft'],
     name: 'Air purifier',
     categorySlugs: ['air-purifiers'],
     attributes: [
@@ -468,7 +487,14 @@ export interface AttributeValidationResult {
 export function validateAttributes(
   template: AttributeTemplate | null,
   input: unknown,
-  { enforceRequired = true }: { enforceRequired?: boolean } = {}
+  {
+    enforceRequired = true,
+    satisfiedKeys = [],
+  }: {
+    enforceRequired?: boolean;
+    /** Required keys already provided elsewhere (e.g. by every variant), so not needed here. */
+    satisfiedKeys?: string[];
+  } = {}
 ): AttributeValidationResult {
   const out: ProductAttributes = {};
   const errors: string[] = [];
@@ -480,7 +506,7 @@ export function validateAttributes(
     const empty = value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 
     if (empty) {
-      if (def.required && enforceRequired) errors.push(`${def.label} is required for ${template.name.toLowerCase()} listings.`);
+      if (def.required && enforceRequired && !satisfiedKeys.includes(def.key)) errors.push(`${def.label} is required for ${template.name.toLowerCase()} listings.`);
       continue;
     }
 
@@ -517,4 +543,38 @@ export function readStoredAttributes(value: unknown): ProductAttributes {
     if (typeof v === 'string' || typeof v === 'number') out[k] = v;
   }
   return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Variants                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Attribute definitions that may differ per variant for this template, in template order. */
+export function getVariantDefs(template: AttributeTemplate | null): AttributeDef[] {
+  if (!template?.variantKeys?.length) return [];
+  return template.attributes.filter((d) => template.variantKeys!.includes(d.key));
+}
+
+/** Validates one variant's attributes: only the template's variant keys, no required check. */
+export function validateVariantAttributes(template: AttributeTemplate | null, input: unknown): AttributeValidationResult {
+  const variantOnly: AttributeTemplate | null = template
+    ? { ...template, attributes: getVariantDefs(template) }
+    : null;
+  return validateAttributes(variantOnly, input, { enforceRequired: false });
+}
+
+/** Human label for a variant from its attributes, e.g. "1.5 Ton · 5 Star". */
+export function variantLabel(template: AttributeTemplate | null, attrs: ProductAttributes): string {
+  return getVariantDefs(template)
+    .filter((d) => attrs[d.key] !== undefined && attrs[d.key] !== '')
+    .map((d) => (d.type === 'number' ? `${Number(attrs[d.key])} ${d.unit}` : String(attrs[d.key])))
+    .join(' · ');
+}
+
+/** Variant-key attributes that every variant provides (so the listing-level value isn't required). */
+export function keysProvidedByAllVariants(template: AttributeTemplate | null, variants: ProductAttributes[]): string[] {
+  if (variants.length === 0) return [];
+  return getVariantDefs(template)
+    .map((d) => d.key)
+    .filter((k) => variants.every((v) => v[k] !== undefined && v[k] !== ''));
 }

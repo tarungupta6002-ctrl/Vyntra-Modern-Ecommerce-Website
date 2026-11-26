@@ -455,6 +455,9 @@ model ProductVariant {
   discountPercentage Decimal? @db.Decimal(5, 2)
   imageUrl           String?
   barcode            String?  @unique
+  /// Variant-specific category attributes (e.g. {"capacity_ton": 1.5, "energy_rating": "5 Star"}).
+  /// Allowed keys: the template's variantKeys in src/lib/catalog/attributes.ts.
+  attributes         Json?
 
   orderItems    OrderItem[]
   inventories   ProductInventory[]

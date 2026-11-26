@@ -2,7 +2,9 @@ import { prisma } from '@/lib/prisma';
 import {
   getTemplateForCategoryPath,
   validateAttributes,
-  type AttributeValidationResult,
+  validateVariantAttributes,
+  keysProvidedByAllVariants,
+  type ProductAttributes,
 } from '@/lib/catalog/attributes';
 
 /** Category slugs from the root down to `categoryId` (e.g. ["appliances", "air-conditioners", "split-inverter-acs"]). */
@@ -22,15 +24,45 @@ export async function getCategoryPathSlugs(categoryId: string): Promise<string[]
   return slugs;
 }
 
+export interface ListingAttributesResult {
+  attributes: ProductAttributes;
+  /** One entry per input variant (same order). */
+  variantAttributes: ProductAttributes[];
+  errors: string[];
+}
+
 /**
- * Validates seller-entered attributes against the category's template.
- * Required fields are enforced only when the listing is being published (drafts may be incomplete).
+ * Validates seller-entered listing attributes and per-variant attributes against the category's
+ * template. A required field counts as provided when every variant has it (e.g. each AC variant
+ * has its own capacity). Required fields are enforced only when publishing (drafts may be incomplete).
  */
-export async function validateProductAttributes(
+export async function validateListingAttributes(
   categoryId: string,
-  input: unknown,
+  productInput: unknown,
+  variantInputs: unknown[] | null | undefined,
   isPublishing: boolean
-): Promise<AttributeValidationResult> {
+): Promise<ListingAttributesResult> {
   const template = getTemplateForCategoryPath(await getCategoryPathSlugs(categoryId));
-  return validateAttributes(template, input, { enforceRequired: isPublishing });
+  const errors: string[] = [];
+
+  const variantResults = (variantInputs || []).map((v) => validateVariantAttributes(template, v));
+  variantResults.forEach((r, i) => r.errors.forEach((e) => errors.push(`Variant ${i + 1}: ${e}`)));
+  const variantAttributes = variantResults.map((r) => r.attributes);
+
+  const perVariantKeys = keysProvidedByAllVariants(template, variantAttributes);
+  const listing = validateAttributes(template, productInput, {
+    enforceRequired: isPublishing,
+    satisfiedKeys: perVariantKeys,
+  });
+  // Variant errors first: an invalid variant value is usually why a required field looks missing.
+  errors.push(...listing.errors);
+  // Variants are the source of truth for values they all set; don't keep a second, possibly stale copy.
+  for (const key of perVariantKeys) delete listing.attributes[key];
+
+  return { attributes: listing.attributes, variantAttributes, errors };
+}
+
+/** Listing-level check only (kept for callers without variant data). */
+export async function validateProductAttributes(categoryId: string, input: unknown, isPublishing: boolean) {
+  return validateListingAttributes(categoryId, input, [], isPublishing);
 }
