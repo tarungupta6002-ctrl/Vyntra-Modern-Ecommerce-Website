@@ -3,7 +3,7 @@ import { requireAdmin, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OrderStatus, OrderItemStatus, PaymentStatus, ShipmentStatus } from '@prisma/client';
-import { notifyOrderStatusChange } from '@/lib/email/order-notifications';
+import { afterOrderStatusChange } from '@/lib/orders/after-status-change';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,13 +151,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       });
     });
 
-    // Customer email when the admin changed the status (shipped / delivered / cancelled). Never throws.
+    // Refund (for cancelled online-paid orders) + customer email. Never throws.
+    let responseOrder = updated;
     if (status) {
-      await notifyOrderStatusChange(order.id, order.status, status);
+      await afterOrderStatusChange(order.id, order.status, status, 'ADMIN');
+      // A cancellation refund changes paymentStatus/refundedAmount: return the fresh values.
+      if (status === OrderStatus.CANCELLED && order.status !== OrderStatus.CANCELLED) {
+        responseOrder = await prisma.order.findUniqueOrThrow({
+          where: { id: order.id },
+          include: { items: true, shippingAddress: true },
+        });
+      }
     }
 
     return apiSuccess({
-      order: updated,
+      order: responseOrder,
       updatedBy: {
         adminId: admin.userId,
         role: admin.role,

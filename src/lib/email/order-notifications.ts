@@ -91,6 +91,7 @@ async function loadOrderEmailData(
       user: { select: { email: true, name: true } },
       shippingAddress: true,
       vendorShipments: { select: { courierPartner: true, trackingNumber: true } },
+      cancellationRefund: { select: { amount: true, status: true } },
       items: {
         include: {
           variant: { select: { imageUrl: true } },
@@ -146,6 +147,9 @@ async function loadOrderEmailData(
       shipments: order.vendorShipments.length
         ? order.vendorShipments
         : [{ courierPartner: order.courierPartner, trackingNumber: order.trackingNumber }],
+      refund: order.cancellationRefund
+        ? { amount: Number(order.cancellationRefund.amount), status: order.cancellationRefund.status }
+        : null,
       siteUrl: siteUrl(),
     },
   };

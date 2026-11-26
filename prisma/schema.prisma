@@ -659,6 +659,7 @@ model Order {
   vendorShipments    VendorShipment[]
   returnRequests     ReturnRequest[]
   refundTransactions RefundTransaction[]
+  cancellationRefund CancellationRefund?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1210,6 +1211,30 @@ model AdminAuditLog {
 // ------------------------------------------------------------------------------
 // PAYMENT GATEWAY WEBHOOK AUDIT & IDEMPOTENCY LEDGER
 // ------------------------------------------------------------------------------
+
+// Automatic Razorpay refund for an online-paid order that was cancelled before delivery.
+// At most one per order: the unique orderId is the idempotency guard against double refunds.
+model CancellationRefund {
+  id                String       @id @default(cuid())
+  orderId           String       @unique
+  order             Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  amount            Decimal      @db.Decimal(12, 2)
+  status            RefundStatus @default(INITIATED) // INITIATED -> GATEWAY_PENDING -> CONFIRMED | FAILED
+  initiatedBy       String       // CUSTOMER | ADMIN | VENDOR | SYSTEM
+  razorpayPaymentId String?
+  razorpayRefundId  String?      @unique
+  failureReason     String?
+  gatewayResponse   Json?
+  attempts          Int          @default(0)
+  processedAt       DateTime?
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
 
 model PaymentWebhookEvent {
   id          String   @id @default(cuid())

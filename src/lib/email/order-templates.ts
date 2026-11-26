@@ -39,6 +39,8 @@ export interface OrderEmailData {
     phone?: string | null;
   } | null;
   shipments?: { courierPartner?: string | null; trackingNumber?: string | null }[];
+  /** Automatic cancellation refund, if one was attempted (status is a RefundStatus). */
+  refund?: { amount: number; status: string } | null;
   siteUrl: string;
 }
 
@@ -90,6 +92,19 @@ function paymentLabel(method: string, status: string, total: number): string {
   if (method === 'COD') return status === 'PAID' ? 'Cash on Delivery (paid)' : `Cash on Delivery: pay ${formatRupees(total)} on delivery`;
   const names: Record<string, string> = { UPI: 'UPI', CARD: 'Card', NETBANKING: 'Net Banking' };
   return `${names[method] || method}${status === 'PAID' ? ' (paid)' : ''}`;
+}
+
+function cancellationRefundNote(d: OrderEmailData): string {
+  const r = d.refund;
+  if (r && (r.status === 'GATEWAY_PENDING' || r.status === 'CONFIRMED')) {
+    return `A refund of ${formatRupees(r.amount)} has been initiated to your original payment method. It usually reaches your account within 5–7 business days.`;
+  }
+  const paidOnline = d.paymentMethod !== 'COD' && (d.paymentStatus === 'PAID' || d.paymentStatus === 'PARTIALLY_REFUNDED' || Boolean(r));
+  if (paidOnline) {
+    // The automatic refund could not be started (or is still being checked): don't promise a timeline.
+    return `Your refund${r ? ` of ${formatRupees(r.amount)}` : ''} is being processed by our team and will be returned to your original payment method. If you have any questions, please contact Customer Service.`;
+  }
+  return 'No payment was taken for this order.';
 }
 
 /* ------------------------------------------------------------------ */
@@ -165,9 +180,7 @@ function copyFor(type: OrderEmailType, d: OrderEmailData): Copy {
         showTotals: true,
         showAddress: false,
         showTracking: false,
-        note: d.paymentMethod !== 'COD' && d.paymentStatus === 'PAID'
-          ? 'You paid online for this order, so a refund to your original payment method is due. If you have any questions, please contact Customer Service.'
-          : 'No payment was taken for this order.',
+        note: cancellationRefundNote(d),
       };
   }
 }
