@@ -55,6 +55,50 @@ interface OrderItemDetail {
   returnRequest?: any;
 }
 
+interface CancellationRefundInfo {
+  status: 'INITIATED' | 'GATEWAY_PENDING' | 'CONFIRMED' | 'FAILED' | 'RECONCILIATION_REQUIRED';
+  amount: number;
+  razorpayRefundId: string | null;
+  failureReason: string | null;
+  attempts: number;
+  createdAt: string;
+  processedAt: string | null;
+}
+
+const REFUND_STATUS_LABEL: Record<CancellationRefundInfo['status'], string> = {
+  INITIATED: 'Sending to Razorpay',
+  GATEWAY_PENDING: 'Awaiting Razorpay confirmation',
+  CONFIRMED: 'Refunded',
+  FAILED: 'Failed',
+  RECONCILIATION_REQUIRED: 'Needs check',
+};
+
+const refundNeedsRetry = (r: CancellationRefundInfo | null) =>
+  !!r && (r.status === 'FAILED' || r.status === 'RECONCILIATION_REQUIRED');
+
+const TONE_CLASS = {
+  emerald: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+  sky: 'bg-sky-50 text-sky-900 border border-sky-200',
+  rose: 'bg-rose-50 text-rose-800 border border-rose-200',
+  amber: 'bg-amber-50 text-amber-900 border border-amber-200',
+};
+
+/**
+ * What the payment badge should say. The order is marked REFUNDED as soon as Razorpay accepts the
+ * refund, but the money only lands once Razorpay confirms it, so the refund record decides the label.
+ */
+function paymentStatusView(order: { paymentStatus: string; cancellationRefund: CancellationRefundInfo | null }) {
+  const r = order.cancellationRefund;
+  if (r) {
+    if (refundNeedsRetry(r)) return { label: 'Refund failed', tone: 'rose' as const };
+    if (r.status !== 'CONFIRMED') return { label: 'Refund initiated', tone: 'sky' as const };
+  }
+  if (order.paymentStatus === 'REFUNDED') return { label: 'Refunded', tone: 'sky' as const };
+  if (order.paymentStatus === 'PARTIALLY_REFUNDED') return { label: 'Partially refunded', tone: 'sky' as const };
+  if (order.paymentStatus === 'PAID') return { label: 'Paid', tone: 'emerald' as const };
+  return { label: order.paymentStatus.replace(/_/g, ' ').toLowerCase(), tone: 'amber' as const };
+}
+
 interface OrderDetailData {
   id: string;
   orderNumber: string;
@@ -69,6 +113,8 @@ interface OrderDetailData {
   trackingNumber: string | null;
   remittanceReference: string | null;
   settledAt: string | null;
+  refundedAmount: number;
+  cancellationRefund: CancellationRefundInfo | null;
   financials: {
     subtotal: number;
     discount: number;
@@ -122,6 +168,9 @@ export default function AdminOrderDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedRefund, setCopiedRefund] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [retryMessage, setRetryMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const fetchOrderDetail = async () => {
     setIsLoading(true);
@@ -147,6 +196,31 @@ export default function AdminOrderDetailPage() {
     }
   }, [orderId]);
 
+  const retryRefund = async () => {
+    if (!order || retrying) return;
+    setRetrying(true);
+    setRetryMessage(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${encodeURIComponent(order.id)}/cancellation-refund`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message || json.message || 'Refund retry failed.');
+      }
+      setRetryMessage({ ok: true, text: 'Refund sent to Razorpay again.' });
+      await fetchOrderDetail();
+    } catch (err: any) {
+      setRetryMessage({ ok: false, text: err.message || 'Refund retry failed.' });
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const copyRefundId = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedRefund(true);
+    setTimeout(() => setCopiedRefund(false), 2000);
+  };
+
   const copyOrderNumber = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(true);
@@ -169,6 +243,10 @@ export default function AdminOrderDetailPage() {
       </div>
     );
   }
+
+  const refund = order?.cancellationRefund ?? null;
+  const isCancelled = order?.status === 'CANCELLED';
+  const paymentView = order ? paymentStatusView(order) : { label: '', tone: 'amber' as const };
 
   if (error || !order) {
     return (
@@ -284,14 +362,8 @@ export default function AdminOrderDetailPage() {
                 {order.isCOD ? 'Cash on Delivery (COD)' : 'Prepaid (Online)'}
               </span>
 
-              <span
-                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                  order.paymentStatus === 'PAID'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-amber-50 text-amber-900 border border-amber-200'
-                }`}
-              >
-                Payment: {order.paymentStatus}
+              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${TONE_CLASS[paymentView.tone]}`}>
+                Payment: {paymentView.label}
               </span>
             </div>
 
@@ -348,8 +420,12 @@ export default function AdminOrderDetailPage() {
             <span className="font-bold text-[#0F1111] block truncate">
               {order.settledAt ? 'Remitted & Settled' : 'Pending Settlement'}
             </span>
-            <span className="text-[11px] text-[#565959] block font-mono">
-              {order.remittanceReference ? `UTR: ${order.remittanceReference}` : 'No UTR Reference'}
+            <span className="text-[11px] text-[#565959] block font-mono truncate">
+              {order.remittanceReference
+                ? `${order.isCOD ? 'UTR' : 'Payment ID'}: ${order.remittanceReference}`
+                : order.isCOD
+                ? 'No UTR Reference'
+                : 'No Payment ID'}
             </span>
           </div>
         </div>
@@ -668,23 +744,95 @@ export default function AdminOrderDetailPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#565959]">Payment Status:</span>
-                  <span
-                    className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${
-                      order.paymentStatus === 'PAID'
-                        ? 'bg-emerald-100 text-emerald-900'
-                        : 'bg-amber-100 text-amber-900'
-                    }`}
-                  >
-                    {order.paymentStatus}
+                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${TONE_CLASS[paymentView.tone]}`}>
+                    {paymentView.label}
                   </span>
                 </div>
                 {order.remittanceReference && (
-                  <div className="flex items-center justify-between pt-1 border-t border-stone-200 text-[11px]">
-                    <span className="text-[#565959]">Remittance UTR:</span>
-                    <span className="font-mono font-bold text-[#007185]">{order.remittanceReference}</span>
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-200 text-[11px]">
+                    <span className="text-[#565959] shrink-0">{order.isCOD ? 'Remittance UTR:' : 'Razorpay Payment ID:'}</span>
+                    <span className="font-mono font-bold text-[#007185] truncate">{order.remittanceReference}</span>
                   </div>
                 )}
               </div>
+
+              {refund && (
+                <div
+                  className={`p-3 rounded-xl border space-y-1.5 text-xs ${
+                    refundNeedsRetry(refund) ? 'bg-rose-50 border-rose-200' : 'bg-sky-50/60 border-sky-200'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Cancellation Refund</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#565959]">Amount:</span>
+                    <strong className="text-[#0F1111] font-mono">{formatINR(refund.amount)}</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#565959]">Status:</span>
+                    <span
+                      className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${
+                        refund.status === 'CONFIRMED'
+                          ? TONE_CLASS.emerald
+                          : refundNeedsRetry(refund)
+                          ? TONE_CLASS.rose
+                          : TONE_CLASS.sky
+                      }`}
+                    >
+                      {REFUND_STATUS_LABEL[refund.status]}
+                    </span>
+                  </div>
+                  {refund.razorpayRefundId && (
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-[#565959] shrink-0">Refund ID:</span>
+                      <span className="flex items-center gap-1 min-w-0">
+                        <span className="font-mono font-bold text-[#007185] truncate">{refund.razorpayRefundId}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyRefundId(refund.razorpayRefundId!)}
+                          className="p-0.5 rounded hover:bg-stone-200 text-stone-500 shrink-0"
+                          title="Copy refund ID"
+                          aria-label="Copy refund ID"
+                        >
+                          {copiedRefund ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#565959]">{refund.processedAt ? 'Refunded on:' : 'Started on:'}</span>
+                    <span className="text-[#0F1111]">
+                      {new Date(refund.processedAt || refund.createdAt).toLocaleString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                  {refundNeedsRetry(refund) && (
+                    <div className="pt-1.5 border-t border-rose-200 space-y-2">
+                      {refund.failureReason && (
+                        <p className="text-[11px] text-rose-800 break-words">{refund.failureReason}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={retryRefund}
+                        disabled={retrying}
+                        className="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold flex items-center justify-center gap-1.5"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${retrying ? 'animate-spin' : ''}`} />
+                        <span>{retrying ? 'Retrying…' : 'Retry refund'}</span>
+                      </button>
+                    </div>
+                  )}
+                  {retryMessage && (
+                    <p role="status" className={`text-[11px] font-semibold ${retryMessage.ok ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {retryMessage.text}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -695,6 +843,12 @@ export default function AdminOrderDetailPage() {
             </h3>
 
             <div className="space-y-2 pt-1 text-xs">
+              {isCancelled ? (
+                <p className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-[#565959] leading-relaxed">
+                  This order is cancelled, so there is nothing to ship and no GST tax invoice is issued for it.
+                </p>
+              ) : (
+                <>
               <Link
                 href={`/admin/shipments?search=${encodeURIComponent(order.orderNumber)}`}
                 className="w-full py-2.5 px-4 rounded-xl bg-[#007185] hover:bg-[#004B57] text-white font-bold text-center block shadow-xs transition-all flex items-center justify-center gap-2"
@@ -711,6 +865,8 @@ export default function AdminOrderDetailPage() {
                 <FileText className="h-4 w-4 text-[#007185]" />
                 <span>Print Official GST Tax Invoice</span>
               </Link>
+                </>
+              )}
 
               <Link
                 href="/admin/orders"

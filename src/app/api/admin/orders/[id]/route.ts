@@ -82,6 +82,17 @@ export async function GET(request: Request, context: RouteContext) {
             items: true,
           },
         },
+        cancellationRefund: {
+          select: {
+            status: true,
+            amount: true,
+            razorpayRefundId: true,
+            failureReason: true,
+            attempts: true,
+            createdAt: true,
+            processedAt: true,
+          },
+        },
       },
     });
 
@@ -162,6 +173,20 @@ export async function GET(request: Request, context: RouteContext) {
         trackingNumber: order.trackingNumber,
         remittanceReference: order.remittanceReference,
         settledAt: order.settledAt ? order.settledAt.toISOString() : null,
+        refundedAmount: Number(order.refundedAmount || 0),
+        cancellationRefund: order.cancellationRefund
+          ? {
+              status: order.cancellationRefund.status,
+              amount: Number(order.cancellationRefund.amount),
+              razorpayRefundId: order.cancellationRefund.razorpayRefundId,
+              failureReason: order.cancellationRefund.failureReason,
+              attempts: order.cancellationRefund.attempts,
+              createdAt: order.cancellationRefund.createdAt.toISOString(),
+              processedAt: order.cancellationRefund.processedAt
+                ? order.cancellationRefund.processedAt.toISOString()
+                : null,
+            }
+          : null,
         financials: {
           subtotal,
           discount,

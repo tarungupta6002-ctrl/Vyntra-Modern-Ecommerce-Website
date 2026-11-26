@@ -206,6 +206,34 @@ export function TaxInvoiceView({ order: propOrder, orderId, embedded = false }: 
     );
   }
 
+  // A cancelled order was never sold, so there is no tax invoice for it.
+  if (String(order.status).toLowerCase() === 'cancelled') {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-stone-100 p-4">
+        <div className="max-w-md w-full bg-white p-6 rounded-2xl border border-stone-200 shadow-sm text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-stone-900">No invoice for a cancelled order</h2>
+            <p className="text-xs text-stone-500 mt-1">
+              Order #{order.orderNumber} was cancelled before it shipped, so no GST tax invoice was issued.
+            </p>
+          </div>
+          {!embedded && (
+            <Link
+              href={`/orders/${encodeURIComponent(order.orderNumber)}/cancel`}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#007185] hover:bg-[#005B6B] text-white text-xs font-bold transition-all shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>See cancellation &amp; refund</span>
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // 1. Seller & Facility Resolution
   const primaryItem = order.items?.[0];
   const sellerName = (primaryItem?.sellerName || 'Varun Store').toUpperCase();
