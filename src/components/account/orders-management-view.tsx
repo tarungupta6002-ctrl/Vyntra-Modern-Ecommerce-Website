@@ -569,7 +569,8 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                             <span className="text-[10px] font-headline font-bold uppercase tracking-wider bg-surface-container-high text-primary px-2 py-0.5 rounded">
                               {item.categoryTag}
                             </span>
-                            {order.returnWindowDaysLeft && (
+                            {/* `> 0`, not `&&`: React renders a bare 0 when the window is closed or not open yet */}
+                            {(order.returnWindowDaysLeft ?? 0) > 0 && (
                               <span className="text-[11px] font-medium text-secondary-container flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 Return Window Open ({order.returnWindowDaysLeft} days left)
