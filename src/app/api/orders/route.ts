@@ -3,6 +3,7 @@ import { requireAuth, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OrderStatus } from '@prisma/client';
+import { cancellationRefundAsTransaction } from '@/lib/refund-ui-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +63,17 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
         include: {
           shippingAddress: true,
+          cancellationRefund: {
+            select: {
+              id: true,
+              status: true,
+              amount: true,
+              razorpayRefundId: true,
+              initiatedBy: true,
+              processedAt: true,
+              createdAt: true,
+            },
+          },
           vendorShipments: {
             include: {
               vendor: {
@@ -202,7 +214,8 @@ export async function GET(request: Request) {
         tax: Number(order.tax || 0),
         totalAmount: Number(order.totalAmount),
         refundedAmount: Number(order.refundedAmount || 0),
-        refundTransactions: order.items.flatMap((item) =>
+        refundTransactions: [
+          ...order.items.flatMap((item) =>
           (item.returnRequest?.refundTransactions || []).map((t) => ({
             id: t.id,
             amount: Number(t.amount),
@@ -214,6 +227,22 @@ export async function GET(request: Request) {
             createdAt: t.createdAt.toISOString(),
           }))
         ),
+          ...[cancellationRefundAsTransaction(order.cancellationRefund)].filter(
+            (t): t is NonNullable<typeof t> => t !== null
+          ),
+        ],
+        cancellationRefund: order.cancellationRefund
+          ? {
+              status: order.cancellationRefund.status,
+              amount: Number(order.cancellationRefund.amount),
+              reference: order.cancellationRefund.razorpayRefundId,
+              initiatedBy: order.cancellationRefund.initiatedBy,
+              createdAt: order.cancellationRefund.createdAt.toISOString(),
+              processedAt: order.cancellationRefund.processedAt
+                ? order.cancellationRefund.processedAt.toISOString()
+                : null,
+            }
+          : null,
         totalItems: order.items.reduce((sum, item) => sum + item.quantity, 0),
         trackingNumber: order.trackingNumber || null,
         courierPartner: order.courierPartner || null,

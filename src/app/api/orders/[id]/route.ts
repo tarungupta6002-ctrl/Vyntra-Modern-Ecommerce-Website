@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
+import { cancellationRefundAsTransaction } from '@/lib/refund-ui-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function GET(request: Request, context: RouteContext) {
       },
       include: {
         shippingAddress: true,
-        cancellationRefund: { select: { status: true, amount: true, razorpayRefundId: true, createdAt: true } },
+        cancellationRefund: { select: { id: true, status: true, amount: true, razorpayRefundId: true, processedAt: true, createdAt: true } },
         vendorShipments: {
           include: {
             vendor: {
@@ -98,7 +99,8 @@ export async function GET(request: Request, context: RouteContext) {
             createdAt: order.cancellationRefund.createdAt.toISOString(),
           }
         : null,
-      refundTransactions: order.items.flatMap((item) =>
+      refundTransactions: [
+        ...order.items.flatMap((item) =>
         (item.returnRequest?.refundTransactions || []).map((t) => ({
           id: t.id,
           amount: Number(t.amount),
@@ -110,6 +112,10 @@ export async function GET(request: Request, context: RouteContext) {
           createdAt: t.createdAt.toISOString(),
         }))
       ),
+        ...[cancellationRefundAsTransaction(order.cancellationRefund)].filter(
+          (t): t is NonNullable<typeof t> => t !== null
+        ),
+      ],
       createdAt: order.createdAt,
       trackingNumber: order.trackingNumber,
       courierPartner: order.courierPartner,

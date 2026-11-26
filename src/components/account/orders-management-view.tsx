@@ -1329,6 +1329,26 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
       {modalType === 'cancellation' && activeOrderModal && (() => {
         const modalRefundSummary = formatCustomerRefundSummary(activeOrderModal as any);
         const canonicalReturnId = activeOrderModal.items?.find((i) => i.returnRequest)?.returnRequest?.id;
+        const cxlRefund = activeOrderModal.cancellationRefund || null;
+        const isCodOrder = (activeOrderModal.paymentMethod || '').toUpperCase() === 'COD';
+        // Who cancelled comes from the refund record; no free-text reason is stored for cancellations.
+        const cancelledBy = !cxlRefund
+          ? null
+          : cxlRefund.initiatedBy === 'CUSTOMER'
+          ? 'You'
+          : cxlRefund.initiatedBy === 'VENDOR'
+          ? 'The seller'
+          : 'Vyntra';
+        const reasonText = activeOrderModal.cancellationReason || null;
+        const cxlRefundFailed = cxlRefund?.status === 'FAILED' || cxlRefund?.status === 'RECONCILIATION_REQUIRED';
+        const cxlRefundState = !cxlRefund
+          ? null
+          : cxlRefund.status === 'CONFIRMED'
+          ? `Refund completed${cxlRefund.processedAt ? ` on ${new Date(cxlRefund.processedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
+          : cxlRefundFailed
+          ? "Refund is delayed. We're retrying it, and you don't need to do anything."
+          : `Refund initiated on ${new Date(cxlRefund.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. It usually reaches your account in 5–7 business days.`;
+        const refundRef = cxlRefund?.reference || null;
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
@@ -1357,10 +1377,12 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
               </div>
 
               <div className="p-4 rounded-xl bg-rose-50/70 border border-rose-200 text-xs space-y-2.5">
-                <div className="flex justify-between items-center text-rose-950 pb-2 border-b border-rose-200/60">
-                  <span className="font-semibold">Reason:</span>
-                  <span className="text-rose-900 font-medium">{activeOrderModal.cancellationReason || 'Requested by Customer'}</span>
-                </div>
+                {(cancelledBy || reasonText) && (
+                  <div className="flex justify-between items-center text-rose-950 pb-2 border-b border-rose-200/60">
+                    <span className="font-semibold">{cancelledBy ? 'Cancelled by:' : 'Reason:'}</span>
+                    <span className="text-rose-900 font-medium">{cancelledBy || reasonText}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-zinc-700">
                   <span>Order Total:</span>
                   <span className="font-semibold text-zinc-900">{formatINR(activeOrderModal.totalAmount)}</span>
@@ -1376,22 +1398,48 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-rose-200/60">
-                  <span className="font-bold text-rose-950">Amount Refunded to Date:</span>
+                  <span className="font-bold text-rose-950">
+                    {cxlRefund && cxlRefund.status !== 'CONFIRMED' ? 'Refund Amount:' : 'Amount Refunded to Date:'}
+                  </span>
                   <span className="font-bold text-base text-rose-900">{modalRefundSummary.refundedAmountFormatted}</span>
                 </div>
                 <div className="flex justify-between items-center text-zinc-600 text-[11px]">
                   <span>Remaining Non-Refunded:</span>
                   <span className="font-medium text-zinc-800">{modalRefundSummary.remainingAmountFormatted}</span>
                 </div>
-                <div className="flex justify-between items-center text-zinc-700 pt-1">
-                  <span className="font-semibold text-rose-950">Refund Destination:</span>
-                  <span className="text-rose-900 font-medium">{modalRefundSummary.refundDestinationLabel}</span>
-                </div>
-                <div className="flex justify-between items-center text-zinc-700">
-                  <span className="font-semibold text-rose-950">Bank Reference / UTR:</span>
-                  <span className="font-mono text-rose-900 font-bold">{modalRefundSummary.verifiedReferenceNumber}</span>
-                </div>
-                {modalRefundSummary.hasRefund && (
+                {isCodOrder && !modalRefundSummary.hasRefund ? (
+                  <p className="pt-1 text-zinc-700">
+                    This was a Cash on Delivery order, so no payment was collected and nothing needs to be refunded.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center gap-3 text-zinc-700 pt-1">
+                      <span className="font-semibold text-rose-950 shrink-0">Refund Destination:</span>
+                      <span className="text-rose-900 font-medium text-right">{modalRefundSummary.refundDestinationLabel}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-3 text-zinc-700">
+                      <span className="font-semibold text-rose-950 shrink-0">
+                        {refundRef ? 'Refund Reference:' : 'Bank Reference / UTR:'}
+                      </span>
+                      <span className="font-mono text-rose-900 font-bold break-all text-right">
+                        {refundRef || modalRefundSummary.verifiedReferenceNumber}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {cxlRefundState && (
+                  <p
+                    className={`pt-2 border-t border-rose-200/60 text-[11px] leading-relaxed ${
+                      cxlRefundFailed ? 'text-amber-800' : 'text-zinc-700'
+                    }`}
+                  >
+                    {cxlRefundState}
+                    {refundRef && !cxlRefundFailed && cxlRefund?.status !== 'CONFIRMED' && (
+                      <> If it hasn&apos;t arrived after that, share the refund reference with your bank.</>
+                    )}
+                  </p>
+                )}
+                {modalRefundSummary.hasRefund && !cxlRefund && (
                   <div className="mt-1 pt-1.5 border-t border-rose-200/60 text-[10px] text-zinc-500 font-mono">
                     Status: {modalRefundSummary.paymentStatusLabel} ({modalRefundSummary.isPartial ? 'Partial Refund' : 'Full Refund'})
                   </div>

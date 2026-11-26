@@ -40,6 +40,34 @@ export interface CustomerRefundSummaryResult {
 }
 
 /**
+ * Turns an automatic cancellation refund (Razorpay) into the same shape as a return refund
+ * transaction, so customer refund summaries show its destination and reference.
+ * Failed refunds are left out: no money is on its way, so there is no destination to show.
+ */
+export function cancellationRefundAsTransaction(
+  refund: {
+    id: string;
+    amount: number | string | { toString(): string };
+    status: string;
+    razorpayRefundId: string | null;
+    processedAt: Date | null;
+    createdAt: Date;
+  } | null | undefined
+): RefundTransactionRecord | null {
+  if (!refund || refund.status === 'FAILED' || refund.status === 'RECONCILIATION_REQUIRED') return null;
+  return {
+    id: refund.id,
+    amount: Number(refund.amount),
+    mode: 'ORIGINAL_PAYMENT',
+    referenceNumber: refund.razorpayRefundId,
+    gatewayReference: refund.razorpayRefundId,
+    status: refund.status === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
+    processedAt: refund.processedAt ? refund.processedAt.toISOString() : null,
+    createdAt: refund.createdAt.toISOString(),
+  };
+}
+
+/**
  * Resolves verified refund destination from actual database records.
  * Never invents or assumes a destination (e.g. never assumes COD goes to UPI or Bank Account
  * unless a confirmed transaction mode exists).
@@ -134,7 +162,13 @@ export function formatCustomerRefundSummary(
 
   // 3. Combined Header Badge for Customer UI
   let badgeLabel = '';
-  if (isFull) {
+  // Money accepted by the gateway but not yet confirmed as credited.
+  const txs = order.refundTransactions || [];
+  const refundInFlight =
+    txs.length > 0 && !txs.some((tx) => tx.status === 'CONFIRMED' || tx.status === 'COMPLETED');
+  if (hasRefund && refundInFlight) {
+    badgeLabel = `Refund of ${formatINR(refunded)} initiated${destinationSuffix}`;
+  } else if (isFull) {
     badgeLabel = `Refunded ${formatINR(refunded)}${destinationSuffix}`;
   } else if (isPartial) {
     badgeLabel = `Partially Refunded ${formatINR(refunded)} of ${formatINR(total)}${destinationSuffix}`;

@@ -124,6 +124,15 @@ export interface Order {
   tax?: number;
   refundMode?: string;
   refundRef?: string;
+  /** Automatic Razorpay refund created when a paid order was cancelled. */
+  cancellationRefund?: {
+    status: 'INITIATED' | 'GATEWAY_PENDING' | 'CONFIRMED' | 'FAILED' | 'RECONCILIATION_REQUIRED';
+    amount: number;
+    reference: string | null;
+    initiatedBy: 'CUSTOMER' | 'ADMIN' | 'VENDOR' | 'SYSTEM' | string;
+    createdAt: string;
+    processedAt: string | null;
+  } | null;
   refundTransactions?: Array<{
     id: string;
     amount: number;
