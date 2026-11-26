@@ -129,14 +129,25 @@ export async function POST(request: Request, context: RouteContext) {
       }
     );
 
-    // Cancellation email to the customer. Never throws.
-    await afterOrderStatusChange(order.id, order.status, OrderStatus.CANCELLED, 'CUSTOMER');
+    // Automatic refund (online-paid orders) + cancellation email. Never throws.
+    const outcome = await afterOrderStatusChange(order.id, order.status, OrderStatus.CANCELLED, 'CUSTOMER');
+
+    // What the customer should be told about their money, straight from the refund result.
+    const refund =
+      outcome?.status === 'initiated'
+        ? { state: 'INITIATED' as const, amount: outcome.amount, reference: outcome.razorpayRefundId }
+        : outcome?.status === 'failed'
+        ? { state: 'PROCESSING' as const, amount: outcome.amount, reference: null }
+        : outcome?.status === 'already_handled'
+        ? { state: 'PROCESSING' as const, amount: null, reference: null }
+        : { state: 'NONE' as const, amount: 0, reference: null }; // COD or nothing was paid
 
     return apiSuccess({
       message: `Order #${order.orderNumber} has been successfully cancelled and inventory has been restored.`,
       orderNumber: order.orderNumber,
       cancellationReason: reason,
       status: OrderStatus.CANCELLED,
+      refund,
     });
   } catch (err: any) {
     if (err.name === 'AuthError') {

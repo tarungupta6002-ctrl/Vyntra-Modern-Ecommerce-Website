@@ -22,6 +22,7 @@ export async function GET(request: Request, context: RouteContext) {
       },
       include: {
         shippingAddress: true,
+        cancellationRefund: { select: { status: true, amount: true, razorpayRefundId: true, createdAt: true } },
         vendorShipments: {
           include: {
             vendor: {
@@ -88,6 +89,15 @@ export async function GET(request: Request, context: RouteContext) {
       tax: Number(order.tax || 0),
       totalAmount: Number(order.totalAmount),
       refundedAmount: Number(order.refundedAmount || 0),
+      // Automatic refund for a cancelled online-paid order (null when none was needed).
+      cancellationRefund: order.cancellationRefund
+        ? {
+            status: order.cancellationRefund.status,
+            amount: Number(order.cancellationRefund.amount),
+            reference: order.cancellationRefund.razorpayRefundId,
+            createdAt: order.cancellationRefund.createdAt.toISOString(),
+          }
+        : null,
       refundTransactions: order.items.flatMap((item) =>
         (item.returnRequest?.refundTransactions || []).map((t) => ({
           id: t.id,
