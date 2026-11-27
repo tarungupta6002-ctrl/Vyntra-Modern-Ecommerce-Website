@@ -28,11 +28,9 @@ import {
   Award,
   PackageCheck,
   Package,
-  Wallet,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import { useAddressStore, Address as SavedAddress, PINCODE_DIRECTORY } from '@/store/address-store';
-import { usePaymentVaultStore } from '@/store/payment-vault-store';
 import { createClient } from '@/lib/supabase/client';
 import { CartItem } from '@/types';
 import { formatINR } from '@/lib/utils';
@@ -99,25 +97,12 @@ export default function CheckoutPage() {
     isDefault: false,
   });
 
-  // Delivery Speed: 'express' | 'standard'
-  const [deliverySpeed, setDeliverySpeed] = useState<'express' | 'standard'>('express');
 
   // Payment Method: 'upi' | 'card' | 'netbanking' | 'cod'
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking' | 'cod'>('upi');
 
-  // Vyntra Vault Central Store Integration
-  const { savedCards, savedUpi, totalLiquidity: vaultBalance } = usePaymentVaultStore();
-  const [useVaultBalance, setUseVaultBalance] = useState(false);
-  const [selectedCardId, setSelectedCardId] = useState(savedCards[0]?.id || '');
 
   // Payment Form Sub-states
-  const [upiId, setUpiId] = useState('');
-  const [upiVerified, setUpiVerified] = useState(false);
-  const [cardCvv, setCardCvv] = useState('');
-  const [newCardNumber, setNewCardNumber] = useState('');
-  const [newCardExpiry, setNewCardExpiry] = useState('');
-  const [newCardCvv, setNewCardCvv] = useState('');
-  const [selectedBank, setSelectedBank] = useState('HDFC');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
 
@@ -177,30 +162,13 @@ export default function CheckoutPage() {
         items: CartItem[];
         itemCount: number;
         subtotal: number;
-        dispatchCity: string;
-        estimatedDelivery: string;
       }
     > = {};
 
     items.forEach((item) => {
       const seller = item.vendorName || item.brand || 'Vyntra Marketplace Collective';
       if (!groups[seller]) {
-        const isExpressArtisan =
-          seller.toLowerCase().includes('bhagalpur') ||
-          seller.toLowerCase().includes('phulia') ||
-          seller.toLowerCase().includes('jaipur');
-
-        groups[seller] = {
-          sellerName: seller,
-          items: [],
-          itemCount: 0,
-          subtotal: 0,
-          dispatchCity: isExpressArtisan ? 'Jaipur Atelier' : 'Bengaluru Hub',
-          estimatedDelivery:
-            deliverySpeed === 'express'
-              ? 'Guaranteed Tomorrow by 2:00 PM'
-              : 'Within 2 - 4 Business Days',
-        };
+        groups[seller] = { sellerName: seller, items: [], itemCount: 0, subtotal: 0 };
       }
       groups[seller].items.push(item);
       groups[seller].itemCount += item.quantity;
@@ -208,7 +176,7 @@ export default function CheckoutPage() {
     });
 
     return Object.values(groups);
-  }, [items, deliverySpeed]);
+  }, [items]);
 
   // Selected Active Address
   const activeAddress: SavedAddress | undefined =
@@ -236,9 +204,8 @@ export default function CheckoutPage() {
   const packagingFee = totalItems > 0 ? 49 : 0;
   const codFee = paymentMethod === 'cod' ? 49 : 0;
   const rawPayable = Math.max(0, subtotal - couponDiscount + packagingFee + codFee);
-  const vaultDeduction = useVaultBalance ? Math.min(rawPayable, vaultBalance) : 0;
-  const finalPayable = Math.max(0, rawPayable - vaultDeduction);
-  const totalSavings = rawSavings + couponDiscount + vaultDeduction;
+  const finalPayable = Math.max(0, rawPayable);
+  const totalSavings = rawSavings + couponDiscount;
 
   const handlePincodeChangeInCheckout = async (pinVal: string) => {
     const clean = pinVal.replace(/\D/g, '');
@@ -311,17 +278,6 @@ export default function CheckoutPage() {
     } catch (err) {
       showToast('Failed to save address. Please try again.', 'error');
     }
-  };
-
-  // UPI Verification Handler
-  const handleVerifyUpi = () => {
-    if (!upiId || !upiId.includes('@')) {
-      showToast('Please enter a valid UPI ID (e.g. user@okaxis or success@razorpay)', 'error');
-      return;
-    }
-    setUpiVerified(true);
-    showToast(`UPI ID ${upiId} verified! Proceeding to payment...`, 'success');
-    handlePlaceOrder();
   };
 
   // Real Checkout Execution for Phase 3 COD & Test Orders
@@ -563,9 +519,6 @@ export default function CheckoutPage() {
 
       if (chosenMethod === 'UPI') {
         prefillData.method = 'upi';
-        if (upiId && upiId.trim()) {
-          prefillData.vpa = upiId.trim();
-        }
       } else if (chosenMethod === 'CARD') {
         prefillData.method = 'card';
       } else if (chosenMethod === 'NETBANKING') {
@@ -738,7 +691,7 @@ export default function CheckoutPage() {
                 <span className="text-xs font-semibold text-[#007185] mt-1.5 text-center">1. Address</span>
               </div>
 
-              {/* Step 2: Delivery Speed (Completed) */}
+              {/* Step 2: Delivery (Completed) */}
               <div className="relative z-10 flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-[#007185] text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   <Check className="h-4 w-4 stroke-[3]" />
@@ -1050,89 +1003,23 @@ export default function CheckoutPage() {
               )}
             </section>
 
-            {/* STEP 2: Delivery Speed & Seller-wise Shipments Grouping */}
+            {/* STEP 2: Packages per seller */}
             <section className="bg-surface-container-lowest rounded-xl shadow-sm p-5 sm:p-6 border border-surface-container">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
                   <span className="w-6 h-6 rounded-full bg-primary text-on-primary font-headline font-bold text-xs flex items-center justify-center">
                     2
                   </span>
-                  <h2 className="font-headline font-bold text-base text-on-surface">Delivery Speed &amp; Packages</h2>
+                  <h2 className="font-headline font-bold text-base text-on-surface">Delivery &amp; packages</h2>
                 </div>
                 <span className="text-xs text-secondary font-bold bg-secondary-fixed/50 px-2.5 py-0.5 rounded-full">
                   {sellerShipments.length} Seller Shipment{sellerShipments.length > 1 ? 's' : ''}
                 </span>
               </div>
 
-              {/* Delivery Speed Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-5">
-                <label
-                  onClick={() => setDeliverySpeed('express')}
-                  className={`relative flex flex-col p-4 rounded-xl cursor-pointer transition-all border ${
-                    deliverySpeed === 'express'
-                      ? 'bg-surface-container-low border-primary ring-1 ring-primary'
-                      : 'bg-surface-container-lowest border-surface-container hover:bg-surface-container-low opacity-80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed text-[10px] font-bold uppercase tracking-wider rounded">
-                      Express Artisanal
-                    </span>
-                    <span
-                      className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                        deliverySpeed === 'express'
-                          ? 'bg-primary text-on-primary'
-                          : 'border border-surface-container-high'
-                      }`}
-                    >
-                      {deliverySpeed === 'express' && <Check className="h-3 w-3 stroke-[3]" />}
-                    </span>
-                  </div>
-
-                  <span className="font-headline font-bold text-sm text-primary">
-                    Guaranteed Tomorrow by 2 PM
-                  </span>
-                  <span className="text-xs text-on-surface-variant mt-1">
-                    Dispatched with bespoke protective craft packaging.
-                  </span>
-                  <div className="mt-3 pt-2 text-xs font-semibold text-secondary-container flex items-center gap-1">
-                    <Zap className="h-4 w-4" />
-                    <span>FREE with Royal Prime</span>
-                  </div>
-                </label>
-
-                <label
-                  onClick={() => setDeliverySpeed('standard')}
-                  className={`relative flex flex-col p-4 rounded-xl cursor-pointer transition-all border ${
-                    deliverySpeed === 'standard'
-                      ? 'bg-surface-container-low border-primary ring-1 ring-primary'
-                      : 'bg-surface-container-lowest border-surface-container hover:bg-surface-container-low opacity-80'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-semibold uppercase tracking-wider rounded">
-                      Standard
-                    </span>
-                    <span
-                      className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                        deliverySpeed === 'standard'
-                          ? 'bg-primary text-on-primary'
-                          : 'border border-surface-container-high'
-                      }`}
-                    >
-                      {deliverySpeed === 'standard' && <Check className="h-3 w-3 stroke-[3]" />}
-                    </span>
-                  </div>
-
-                  <span className="font-headline font-semibold text-sm text-on-surface">2 - 4 Business Days</span>
-                  <span className="text-xs text-on-surface-variant mt-1">
-                    Regular road courier with eco-friendly recycled carton.
-                  </span>
-                  <div className="mt-3 pt-2 text-xs font-semibold text-on-surface-variant">
-                    <span>FREE Delivery</span>
-                  </div>
-                </label>
-              </div>
+              <p className="mb-4 text-xs text-on-surface-variant">
+                Delivery is free. Each seller ships their items separately; you&apos;ll get tracking for each package once it ships.
+              </p>
 
               {/* Seller-wise Shipment Grouping Breakdown */}
               <div className="flex flex-col gap-3 pt-2 border-t border-surface-container">
@@ -1161,9 +1048,6 @@ export default function CheckoutPage() {
                           </div>
                           <span className="text-xs text-secondary font-semibold mt-0.5">
                             Dispatched by {shipment.sellerName}
-                          </span>
-                          <span className="text-[11px] text-on-surface-variant mt-0.5">
-                            {shipment.estimatedDelivery} via Express Priority Logistics
                           </span>
                         </div>
                       </div>
@@ -1204,40 +1088,6 @@ export default function CheckoutPage() {
                   <span>PCI-DSS Compliant</span>
                 </span>
               </div>
-
-              {/* Vyntra Vault Balance Toggle */}
-              {vaultBalance > 0 && (
-                <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 via-primary-container/5 to-transparent border border-primary/20 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0">
-                      <Wallet className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-headline font-bold text-sm text-on-surface">
-                          Apply Vyntra Vault Balance
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ffdcc3] text-[#2f1500]">
-                          {formatINR(vaultBalance)} Available
-                        </span>
-                      </div>
-                      <p className="text-xs text-on-surface-variant mt-0.5">
-                        Deduct up to {formatINR(Math.min(rawPayable, vaultBalance))} from your usable store credits &amp; bonuses.
-                      </p>
-                    </div>
-                  </div>
-
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={useVaultBalance}
-                      onChange={(e) => setUseVaultBalance(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
-                  </label>
-                </div>
-              )}
 
               {/* Payment Method Accordion */}
               <div className="flex flex-col gap-3">
@@ -1281,92 +1131,9 @@ export default function CheckoutPage() {
                   </div>
 
                   {paymentMethod === 'upi' && (
-                    <div className="px-4 pb-5 pt-1 animate-in fade-in">
-                      <div className="bg-surface-container-lowest p-4 rounded-xl flex flex-col sm:flex-row items-center gap-4 justify-between border border-surface-container">
-                        <div className="w-full sm:flex-1">
-                          {savedUpi.length > 0 && (
-                            <div className="mb-3.5 pb-3 border-b border-surface-container">
-                              <span className="text-[11px] font-semibold text-on-surface-variant block mb-1.5">
-                                Select from Saved Vyntra Vault UPI:
-                              </span>
-                              <div className="flex flex-wrap gap-2">
-                                {savedUpi.map((u) => (
-                                  <button
-                                    key={u.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setUpiId(u.vpa);
-                                      setUpiVerified(true);
-                                      showToast(`Selected saved UPI: ${u.vpa}`, 'info');
-                                    }}
-                                    className={`px-2.5 py-1 text-xs rounded-lg border flex items-center gap-1.5 transition-all ${
-                                      upiId === u.vpa
-                                        ? 'bg-primary text-on-primary border-primary shadow-sm'
-                                        : 'bg-surface-container-low text-on-surface hover:bg-surface-container border-surface-container'
-                                    }`}
-                                  >
-                                    <span className="font-bold text-[10px]">{u.app}</span>
-                                    <span className="font-mono text-[11px]">{u.vpa}</span>
-                                    {u.isDefault && (
-                                      <span className="text-[9px] px-1 py-0.2 bg-secondary-fixed text-on-secondary-fixed rounded font-bold">
-                                        Default
-                                      </span>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
-                            Enter Custom UPI ID / VPA
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={upiId}
-                              onChange={(e) => {
-                                setUpiId(e.target.value);
-                                setUpiVerified(false);
-                              }}
-                              placeholder="e.g. mobile@upi or username@okaxis"
-                              className="w-full h-10 px-3 bg-surface-container-low text-xs rounded-lg text-on-surface outline-none focus:ring-1 focus:ring-primary"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleVerifyUpi}
-                              className="h-10 px-4 bg-primary text-on-primary text-xs font-semibold rounded-lg hover:bg-primary-container transition-colors whitespace-nowrap"
-                            >
-                              {upiVerified ? 'Verified ✓' : 'Verify & Pay'}
-                            </button>
-                          </div>
-
-                          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                            <span className="text-[11px] text-on-surface-variant">Popular UPI:</span>
-                            {['@oksbi', '@okhdfcbank', '@ybl', '@paytm'].map((handle) => (
-                              <button
-                                key={handle}
-                                type="button"
-                                onClick={() => {
-                                  setUpiId((prev) => (prev.includes('@') ? prev.split('@')[0] + handle : `user${handle}`));
-                                  setUpiVerified(true);
-                                }}
-                                className="px-2 py-0.5 bg-surface-container text-primary font-medium text-[11px] rounded hover:bg-surface-container-high transition-colors"
-                              >
-                                {handle}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="hidden sm:flex flex-col items-center pl-4 border-l border-surface-container text-center">
-                          <div className="w-20 h-20 bg-surface-container-high rounded-lg p-1.5 flex items-center justify-center shadow-inner">
-                            <QrCode className="w-14 h-14 text-on-surface" />
-                          </div>
-                          <span className="text-[10px] text-on-surface-variant mt-1 font-medium">Scan QR &amp; Pay</span>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="px-4 pb-4 pt-1 text-xs text-on-surface-variant leading-relaxed">
+                      You&apos;ll pay with any UPI app (Google Pay, PhonePe, Paytm…) in Razorpay&apos;s secure window after you place the order.
+                    </p>
                   )}
                 </div>
 
@@ -1405,118 +1172,9 @@ export default function CheckoutPage() {
                   </div>
 
                   {paymentMethod === 'card' && (
-                    <div className="px-4 pb-5 pt-1 animate-in fade-in">
-                      <div className="bg-surface-container-low p-4 rounded-xl flex flex-col gap-3 border border-surface-container">
-                        {savedCards.length > 0 && (
-                          <div className="space-y-2">
-                            <span className="text-[11px] font-semibold text-on-surface-variant block">
-                              Select from Saved RBI Tokenized Cards:
-                            </span>
-                            {savedCards.map((c) => (
-                              <div
-                                key={c.id}
-                                className={`p-3 rounded-xl flex items-center justify-between border transition-all ${
-                                  selectedCardId === c.id
-                                    ? 'bg-surface-container-lowest border-primary shadow-sm'
-                                    : 'bg-surface-container-lowest/70 border-surface-container hover:bg-surface-container-lowest'
-                                }`}
-                              >
-                                <div
-                                  className="flex items-center gap-2.5 cursor-pointer flex-1"
-                                  onClick={() => setSelectedCardId(c.id)}
-                                >
-                                  <CreditCard className="h-5 w-5 text-primary" />
-                                  <div>
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-semibold text-on-surface">
-                                        {c.bankName} {c.cardName} •••• {c.last4}
-                                      </span>
-                                      {c.isDefault && (
-                                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-secondary-fixed text-on-secondary-fixed font-bold">
-                                          Default
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-[10px] text-on-surface-variant block">
-                                      Exp {c.expiryMonth}/{c.expiryYear} • {c.tokenizedBadge}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="password"
-                                    maxLength={3}
-                                    placeholder="CVV"
-                                    value={selectedCardId === c.id ? cardCvv : ''}
-                                    onChange={(e) => {
-                                      setSelectedCardId(c.id);
-                                      setCardCvv(e.target.value.replace(/\D/g, ''));
-                                    }}
-                                    className="w-16 h-8 px-2 text-center text-xs bg-surface-container rounded outline-none font-mono"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedCardId(c.id);
-                                      handlePlaceOrder();
-                                    }}
-                                    className="px-3 h-8 bg-primary text-on-primary text-xs font-semibold rounded hover:bg-primary-container"
-                                  >
-                                    Pay
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="text-center text-[11px] text-on-surface-variant uppercase font-semibold tracking-wider pt-2">
-                          or enter one-time card details
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-on-surface-variant mb-1">
-                              Card Number
-                            </label>
-                            <input
-                              type="text"
-                              maxLength={19}
-                              value={newCardNumber}
-                              onChange={(e) => setNewCardNumber(e.target.value)}
-                              placeholder="xxxx xxxx xxxx xxxx"
-                              className="w-full h-9 px-3 bg-surface-container-lowest text-xs rounded-lg outline-none border border-surface-container"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-on-surface-variant mb-1">
-                              Valid Thru (MM/YY)
-                            </label>
-                            <input
-                              type="text"
-                              maxLength={5}
-                              value={newCardExpiry}
-                              onChange={(e) => setNewCardExpiry(e.target.value)}
-                              placeholder="MM / YY"
-                              className="w-full h-9 px-3 bg-surface-container-lowest text-xs rounded-lg outline-none border border-surface-container"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-on-surface-variant mb-1">
-                              CVV
-                            </label>
-                            <input
-                              type="password"
-                              maxLength={4}
-                              value={newCardCvv}
-                              onChange={(e) => setNewCardCvv(e.target.value.replace(/\D/g, ''))}
-                              placeholder="123"
-                              className="w-full h-9 px-3 bg-surface-container-lowest text-xs rounded-lg outline-none border border-surface-container"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="px-4 pb-4 pt-1 text-xs text-on-surface-variant leading-relaxed">
+                      You&apos;ll enter your card details in Razorpay&apos;s secure window after you place the order. Vyntra never sees or stores your card number or CVV.
+                    </p>
                   )}
                 </div>
 
@@ -1551,24 +1209,9 @@ export default function CheckoutPage() {
                   </div>
 
                   {paymentMethod === 'netbanking' && (
-                    <div className="px-4 pb-4 pt-1 animate-in fade-in">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                        {['HDFC', 'ICICI', 'SBI', 'Axis', 'Kotak', 'PNB'].map((b) => (
-                          <button
-                            key={b}
-                            type="button"
-                            onClick={() => setSelectedBank(b)}
-                            className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all ${
-                              selectedBank === b
-                                ? 'bg-primary text-on-primary border-primary'
-                                : 'bg-surface-container-lowest text-on-surface border-surface-container hover:bg-surface-container'
-                            }`}
-                          >
-                            {b} Bank
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <p className="px-4 pb-4 pt-1 text-xs text-on-surface-variant leading-relaxed">
+                      You&apos;ll choose your bank and sign in through Razorpay&apos;s secure window after you place the order.
+                    </p>
                   )}
                 </div>
 
@@ -1774,7 +1417,7 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between text-on-surface-variant">
                   <span className="flex items-center gap-1">
-                    <span>Standard Express Shipping</span>
+                    <span>Delivery</span>
                     <Info className="h-3 w-3 text-on-surface-variant" />
                   </span>
                   <span className="font-bold text-secondary uppercase">FREE</span>
@@ -1787,15 +1430,6 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-on-surface-variant">
                     <span>Cash on Delivery Verification</span>
                     <span className="font-medium text-on-surface font-mono">₹49</span>
-                  </div>
-                )}
-                {vaultDeduction > 0 && (
-                  <div className="flex justify-between text-emerald-700 font-semibold">
-                    <span className="flex items-center gap-1">
-                      <Wallet className="h-3.5 w-3.5" />
-                      <span>Vyntra Vault Liquidity Applied</span>
-                    </span>
-                    <span className="font-mono">- {formatINR(vaultDeduction)}</span>
                   </div>
                 )}
 

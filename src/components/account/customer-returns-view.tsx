@@ -683,7 +683,7 @@ export function CustomerReturnsView() {
                             </div>
                           ) : (
                             <p className="text-[11px] text-[#565959] mt-1">
-                              Paise aapke account mein quality check pass hone ke 24-48 ghante ke andar credit ho jate hain.
+                              After the quality check, the refund goes to your original payment method. Banks usually take 5–7 business days.
                             </p>
                           )}
                         </div>

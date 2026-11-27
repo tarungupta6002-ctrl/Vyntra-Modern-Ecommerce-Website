@@ -52,9 +52,9 @@ export function Footer() {
               <Zap className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-[#0F1111]">Express Courier Delivery</h4>
+              <h4 className="text-xs font-bold text-[#0F1111]">Free delivery</h4>
               <p className="text-[11px] text-[#565959] mt-0.5 leading-tight">
-                Pan-India priority arrival in 24–48 hours
+                No shipping charge; ₹49 packaging fee per order
               </p>
             </div>
           </div>
@@ -64,9 +64,9 @@ export function Footer() {
               <RotateCcw className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-[#0F1111]">7-Day Easy Returns</h4>
+              <h4 className="text-xs font-bold text-[#0F1111]">7-day returns</h4>
               <p className="text-[11px] text-[#565959] mt-0.5 leading-tight">
-                Doorstep pickup &amp; instant bank refund
+                On eligible items; refunds to the original payment method
               </p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export function Footer() {
             <li><Link href="/account?tab=orders" className="hover:text-white hover:underline">Returns &amp; Replacements</Link></li>
             <li><Link href="/support" className="hover:text-white hover:underline">Customer Help Center</Link></li>
             <li><Link href="/account?tab=addresses" className="hover:text-white hover:underline">Manage Saved Addresses</Link></li>
-            <li><Link href="/account?tab=payments" className="hover:text-white hover:underline">Vyntra Payment Vault</Link></li>
+            <li><Link href="/account?tab=payments" className="hover:text-white hover:underline">Payments</Link></li>
             <li><Link href="/account?tab=profile" className="hover:text-white hover:underline">Security &amp; 2FA Settings</Link></li>
           </ul>
         </div>

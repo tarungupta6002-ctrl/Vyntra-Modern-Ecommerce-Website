@@ -70,7 +70,7 @@ interface HeaderProps {
   wishlistCount?: number;
 }
 
-export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) {
+export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -204,7 +204,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
         setTimeout(() => setLocationModalOpen(false), 900);
       } else {
         useAddressStore.getState().setDeliveryPincode(clean, 'India', 'India');
-        setPincodeMessage(`Express courier delivery verified for PIN ${clean}`);
+        setPincodeMessage(`Delivery location set to PIN ${clean}`);
         setTimeout(() => setLocationModalOpen(false), 900);
       }
     } catch {
@@ -610,9 +610,17 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             
             {/* Account & Lists Dropdown */}
             <div className="relative group">
+              {/* Small screens: an icon, so the cart isn't pushed off-screen */}
+              <Link
+                href={isUserLoggedIn ? '/account' : '/login'}
+                aria-label={isUserLoggedIn ? 'Your account' : 'Sign in'}
+                className="sm:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded text-white hover:outline hover:outline-1 hover:outline-white/60"
+              >
+                <User className="h-5 w-5" />
+              </Link>
               <Link
                 href={isUserLoggedIn ? "/account" : "/login"}
-                className="flex flex-col py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-left"
+                className="hidden sm:flex flex-col py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-left"
               >
                 <span className="text-[11px] text-[#CCCCCC] leading-tight">
                   {isUserLoggedIn ? `Hello, ${effectiveDisplayName.split(' ')[0]}` : 'Hello, sign in'}
@@ -629,7 +637,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
                     {isUserLoggedIn ? (
                       <>
                         <p className="font-bold text-sm text-[#0F1111]">{effectiveDisplayName}</p>
-                        <p className="text-[11px] text-[#565959]">Royal Member • {effectiveEmail || 'Active Session'}</p>
+                        <p className="text-[11px] text-[#565959]">{effectiveEmail || 'Signed in'}</p>
                         <Link
                           href="/account"
                           className="mt-2.5 w-full py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold rounded-md flex items-center justify-center transition-colors shadow-sm"
@@ -680,7 +688,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
                       href="/account?tab=payments"
                       className="block py-1 hover:text-[#007185] hover:underline"
                     >
-                      Payment Methods &amp; Vyntra Vault
+                      Payments
                     </Link>
                     <Link
                       href="/account?tab=profile"
@@ -755,7 +763,7 @@ export function Header({ initialUser = null, wishlistCount = 10 }: HeaderProps) 
             {/* Wishlist Icon Link */}
             <Link
               href="/account?tab=wishlist"
-              className="min-h-[44px] min-w-[44px] flex flex-col items-center justify-center py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-white relative group"
+              className="max-[359px]:hidden min-h-[44px] min-w-[44px] flex flex-col items-center justify-center py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-white relative group"
               title="Saved Wishlist"
               aria-label={`Saved Wishlist, ${activeWishlistCount} items`}
             >

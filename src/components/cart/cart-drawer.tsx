@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   Truck,
   RotateCcw,
-  Zap,
   CheckCircle,
   Tag,
 } from 'lucide-react';
@@ -232,26 +231,9 @@ export function CartDrawer() {
           </button>
         </div>
 
-        {/* Free Express Delivery Milestone Banner */}
-        <div className="px-6 py-3.5 bg-surface-container-low flex flex-col gap-2 shrink-0 border-b border-surface-container/60">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <div className="flex items-center gap-1.5 text-primary">
-              <Zap className="h-4 w-4 text-primary fill-current" />
-              <span>
-                You unlocked <strong className="font-bold">FREE Express Delivery!</strong>
-              </span>
-            </div>
-            <span className="text-[11px] font-bold text-secondary uppercase tracking-wider bg-secondary-fixed px-1.5 py-0.5 rounded">
-              Saved ₹199
-            </span>
-          </div>
-
-          {/* Progress Bar Meter */}
-          <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden relative">
-            <div
-              className="h-full bg-gradient-to-r from-primary to-secondary-container rounded-full transition-all duration-500 w-full"
-            />
-          </div>
+        {/* Delivery note: shipping is free; a packaging fee is added at checkout */}
+        <div className="px-6 py-2.5 bg-surface-container-low shrink-0 border-b border-surface-container/60 text-xs text-on-surface-variant">
+          <span className="font-semibold text-primary">Free delivery</span> · ₹49 packaging fee is added at checkout
         </div>
 
         {/* Drawer Scrollable Item List */}
@@ -450,14 +432,14 @@ export function CartDrawer() {
                 <div className="flex flex-col items-center">
                   <Truck className="h-4 w-4 text-primary" />
                   <span className="text-[10px] font-medium text-on-surface-variant mt-0.5">
-                    Express Dispatch
+                    Free delivery
                   </span>
                 </div>
                 <div className="w-px h-6 bg-surface-container-high" />
                 <div className="flex flex-col items-center">
                   <RotateCcw className="h-4 w-4 text-primary" />
                   <span className="text-[10px] font-medium text-on-surface-variant mt-0.5">
-                    Instant Refund
+                    7-day returns
                   </span>
                 </div>
               </div>

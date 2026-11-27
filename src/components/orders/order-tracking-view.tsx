@@ -202,7 +202,7 @@ export function OrderTrackingView({
             discount: it.discount || '',
             image: it.image,
             sellerName: it.sellerName || it.vendorName || 'Vyntra Royal Atelier',
-            shippingMethod: remoteOrder.courierPartner || 'Express Priority Courier',
+            shippingMethod: remoteOrder.courierPartner || 'Courier not assigned yet',
           })) || [],
         shippingAddress: remoteOrder.shippingAddress
           ? {
@@ -528,7 +528,7 @@ export function OrderTrackingView({
               className="flex items-center gap-2 px-3.5 py-2 bg-[#F7F8F8] hover:bg-[#D5D9D9] text-[#007185] text-xs font-bold rounded-xl shadow-sm transition-all"
             >
               <FileText className="h-4 w-4" />
-              <span>Download Tax Invoice</span>
+              <span>Invoice</span>
             </button>
             <button
               type="button"
@@ -642,7 +642,7 @@ export function OrderTrackingView({
                       className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#444653] hover:bg-[#F7F8F8] hover:text-[#0F1111] transition-all"
                     >
                       <CreditCard className="h-4 w-4 shrink-0" />
-                      <span>Saved Payments</span>
+                      <span>Payments</span>
                     </Link>
 
                     <Link
@@ -721,7 +721,7 @@ export function OrderTrackingView({
                   )}
                   <span className="opacity-40">•</span>
                   <span>
-                    Express Courier Mode:{' '}
+                    Courier:{' '}
                     <strong className="text-[#0F1111]">
                       {order.courierPartner || order.courierName || 'To be assigned upon dispatch'}
                     </strong>
@@ -1317,7 +1317,7 @@ export function OrderTrackingView({
                             Order Cancelled
                           </span>
                           <span className="text-[11px] text-stone-600">
-                            Refund has been processed to your destination account / Vyntra Vault
+                            Online payments are refunded to the original payment method
                           </span>
                         </div>
                       </div>
@@ -1333,10 +1333,10 @@ export function OrderTrackingView({
                         </div>
                         <div>
                           <span className="text-xs font-headline font-bold text-rose-900 block">
-                            Cancel Items &amp; Instant Refund
+                            Cancel order
                           </span>
                           <span className="text-[11px] text-rose-700">
-                            Eligible for 1-click cancellation with 0-sec Vyntra Vault credit
+                            Online payments are refunded to the original payment method
                           </span>
                         </div>
                       </div>
@@ -1635,7 +1635,7 @@ export function OrderTrackingView({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 3: Tax Invoice Modal */}
+      {/* MODAL 3: Invoice Modal */}
       {/* ========================================================= */}
       {invoiceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
@@ -1644,7 +1644,7 @@ export function OrderTrackingView({
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#007185]" />
                 <h4 className="text-base font-headline font-bold text-[#0F1111]">
-                  Official Tax Invoice #{order.orderNumber}
+                  Invoice #{order.orderNumber}
                 </h4>
               </div>
               <button

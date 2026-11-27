@@ -62,7 +62,7 @@ const ProfileSecurityView = dynamic(
   { loading: TabLoadingSkeleton, ssr: false }
 );
 const SavedPaymentsVaultView = dynamic(
-  () => import('@/components/account/saved-payments-vault-view').then((mod) => mod.SavedPaymentsVaultView),
+  () => import('@/components/account/payment-methods-view').then((mod) => mod.PaymentMethodsView),
   { loading: TabLoadingSkeleton, ssr: false }
 );
 const HelpSupportView = dynamic(
@@ -84,7 +84,6 @@ const CustomerReturnsView = dynamic(
 import { createClient } from '@/lib/supabase/client';
 import { useAddressStore } from '@/store/address-store';
 import { useWishlistStore } from '@/store/wishlist-store';
-import { usePaymentVaultStore } from '@/store/payment-vault-store';
 import { useUserProfileStore } from '@/store/user-profile-store';
 import { useOrderStore } from '@/store/order-store';
 
@@ -115,7 +114,6 @@ function AccountDashboardContent() {
 
   const { addresses: storeAddresses, getDefaultAddress, fetchAddresses } = useAddressStore();
   const { items: wishlistStoreItems } = useWishlistStore();
-  const { totalLiquidity: vaultBalance } = usePaymentVaultStore();
   const { orders: userOrders, totalCount: totalOrderCount, fetchOrders: fetchUserOrders } = useOrderStore();
   const profileStore = useUserProfileStore();
 
@@ -146,10 +144,6 @@ function AccountDashboardContent() {
     name: '',
     email: '',
     phone: '',
-    tier: 'Royal Member',
-    memberSince: 'October 2023',
-    points: 2400,
-    walletBalance: 1450,
   });
 
   const displayName = user.name || (mounted && profileStore.fullName && profileStore.fullName !== 'Patron' ? profileStore.fullName : '') || 'Patron';
@@ -165,7 +159,6 @@ function AccountDashboardContent() {
   // Modal / Drawer state
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [orderSummaryModalOpen, setOrderSummaryModalOpen] = useState(false);
-  const [tierBenefitsModalOpen, setTierBenefitsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   // Wishlist state
@@ -215,7 +208,6 @@ function AccountDashboardContent() {
                 name: u.name || prev.name,
                 email: u.email || prev.email,
                 phone: u.phone || prev.phone,
-                tier: u.tier || prev.tier,
               }));
               useUserProfileStore.getState().updateProfile({
                 fullName: u.name,
@@ -334,10 +326,6 @@ function AccountDashboardContent() {
                   </span>
                   <span className="text-xs text-on-surface-variant truncate">
                     {displayEmail}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-secondary-container mt-0.5">
-                    <Sparkles className="h-3 w-3" />
-                    {user.tier}
                   </span>
                 </div>
               </div>
@@ -508,11 +496,8 @@ function AccountDashboardContent() {
                   >
                     <div className="flex items-center gap-3">
                       <CreditCard className="h-4 w-4 shrink-0" />
-                      <span>Saved Payments</span>
+                      <span>Payments</span>
                     </div>
-                    <span suppressHydrationWarning className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      {mounted ? formatINR(vaultBalance) : '₹1,450.00'}
-                    </span>
                   </button>
 
                   <button
@@ -572,116 +557,19 @@ function AccountDashboardContent() {
 
                   <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container text-white text-[11px] font-headline font-bold uppercase tracking-wider shadow-sm">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          {user.tier}
-                        </span>
-                        <span className="text-xs text-on-surface-variant font-medium">
-                          Patron since {user.memberSince}
-                        </span>
-                        <span className="text-xs text-outline">•</span>
-                        <span className="inline-flex items-center text-xs font-semibold text-secondary-container gap-1">
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Priority Concierge Active
-                        </span>
-                      </div>
-
                       <h1 className="font-headline font-extrabold text-2xl sm:text-3xl lg:text-4xl text-on-surface tracking-tight">
                         {displayName && displayName !== 'Patron' ? `Welcome back, ${displayName}!` : 'Welcome back to Vyntra!'}
                       </h1>
                       <p className="text-xs sm:text-sm text-on-surface-variant max-w-2xl leading-relaxed">
-                        Explore your curated luxury updates, ongoing shipments, and early festive access privileges tailored to your bespoke wardrobe.
+                        Track your orders, manage returns and addresses, and keep your profile up to date.
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 self-start lg:self-center">
-                      <button
-                        type="button"
-                        onClick={() => setTierBenefitsModalOpen(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-[#0F1111] text-xs font-bold shadow-sm hover:bg-[#F7FAFA] transition-all border border-[#D5D9D9]"
-                      >
-                        <Award className="h-4 w-4 text-[#007185]" />
-                        <span>Tier Benefits</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => showNotification('Claimed 2x Festive Points! 500 bonus coins credited.', 'success')}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF9900] hover:bg-[#FA8900] text-[#0F1111] text-xs font-bold shadow-sm border border-[#FF8F00] transition-all"
-                      >
-                        <Sparkles className="h-4 w-4 text-[#0F1111]" />
-                        <span>Claim 2x Festive Points</span>
-                      </button>
-                    </div>
                   </div>
                 </section>
 
-                {/* Profile Completion Section */}
-                <section className="rounded-2xl bg-surface-container-lowest p-6 shadow-sm border border-surface-container">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <ShieldCheck className="h-5 w-5 text-[#007185]" />
-                          <span className="font-headline font-bold text-sm sm:text-base text-on-surface">
-                            Profile Strength: 85% Completed
-                          </span>
-                        </div>
-                        <span className="text-xs font-semibold text-[#007185]">
-                          2 steps left to unlock 500 bonus coins
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-[#EAEDED] h-2.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-[#007185] h-full rounded-full transition-all duration-700 ease-out"
-                          style={{ width: '85%' }}
-                        />
-                      </div>
-
-                      {/* Remaining Steps Chips */}
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => handleTabChange('profile')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors"
-                        >
-                          <Phone className="h-3.5 w-3.5 text-secondary-container" />
-                          <span>Add Alternate Phone</span>
-                          <span className="text-secondary-container font-bold">(+5%)</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleTabChange('profile')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-xs font-medium text-on-surface hover:bg-surface-container-high transition-colors"
-                        >
-                          <Calendar className="h-3.5 w-3.5 text-secondary-container" />
-                          <span>Save Birthday for Special Perks</span>
-                          <span className="text-secondary-container font-bold">(+10%)</span>
-                        </button>
-                        <span className="text-[11px] text-on-surface-variant flex items-center gap-1 pl-1">
-                          <CheckCircle className="h-3.5 w-3.5 text-[#067D62]" />
-                          Email Verified &amp; Address Linked
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleTabChange('profile')}
-                        className="w-full lg:w-auto px-5 py-2 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold border border-[#FCD200] transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
-                      >
-                        <span>Complete Now</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Quick Stats Grid (4 Metric Cards) */}
-                <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {/* Quick Stats Grid */}
+                <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {/* Stat 1: Total Orders */}
                   <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-sm border border-surface-container hover:shadow-md transition-all flex flex-col justify-between">
                     <div className="flex items-start justify-between">
@@ -723,9 +611,6 @@ function AccountDashboardContent() {
                       <div className="w-11 h-11 rounded-xl bg-secondary-fixed/50 text-secondary-container flex items-center justify-center">
                         <Heart className="h-5 w-5 fill-secondary-container" />
                       </div>
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container/10 text-secondary-container text-[11px] font-bold uppercase tracking-wider">
-                        Festive Deal
-                      </span>
                     </div>
                     <div className="mt-4">
                       <div suppressHydrationWarning className="font-headline font-extrabold text-2xl text-on-surface">
@@ -787,36 +672,6 @@ function AccountDashboardContent() {
                     </div>
                   </div>
 
-                  {/* Stat 4: Rewards & Wallet */}
-                  <div className="rounded-2xl bg-surface-container-lowest p-5 shadow-sm border border-surface-container hover:shadow-md transition-all flex flex-col justify-between">
-                    <div className="flex items-start justify-between">
-                      <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5" />
-                      </div>
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-fixed/50 text-secondary-container text-[11px] font-bold uppercase tracking-wider">
-                        {user.points} Coins
-                      </span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="font-headline font-extrabold text-2xl text-on-surface">
-                        {formatINR(user.walletBalance)} Balance
-                      </div>
-                      <p className="text-xs text-on-surface-variant mt-0.5">
-                        Auto-applies at checkout
-                      </p>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => handleTabChange('payments')}
-                        className="text-xs font-headline font-bold text-secondary-container hover:underline inline-flex items-center gap-1 transition-colors"
-                      >
-                        Redeem
-                        <Sparkles className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="text-[11px] text-on-surface-variant">100 Coins = ₹60</span>
-                    </div>
-                  </div>
                 </section>
 
                 {/* Active Order In-Transit Card (Shown only while order is active & NOT delivered) */}
@@ -1090,10 +945,10 @@ function AccountDashboardContent() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-headline font-bold text-sm text-on-surface truncate group-hover:text-primary transition-colors">
-                          Saved UPI &amp; Cards
+                          Payments
                         </h3>
                         <p className="text-xs text-on-surface-variant truncate">
-                          2 Cards &amp; GPay linked
+                          How you pay on Vyntra
                         </p>
                       </div>
                     </button>
@@ -1284,64 +1139,6 @@ function AccountDashboardContent() {
         </div>
       )}
 
-      {/* ============================================================= */}
-      {/* MODAL 2: TIER BENEFITS MODAL */}
-      {/* ============================================================= */}
-      {tierBenefitsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-container">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-secondary-container" />
-                <h3 className="font-headline font-bold text-base text-on-surface">
-                  Royal Insider Elite Privileges
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setTierBenefitsModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-surface-container">
-                <Truck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-on-surface block">Complimentary Priority Air Shipping</strong>
-                  <span className="text-on-surface-variant">Zero delivery fee on all orders, with no minimum cart value.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-surface-container">
-                <Sparkles className="h-4 w-4 text-secondary-container shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-on-surface block">2x Festive Royalty Coins</strong>
-                  <span className="text-on-surface-variant">Earn 10 coins on every ₹100 spent across couture brands.</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-surface-container">
-                <Headphones className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-on-surface block">Dedicated Artisan Concierge</strong>
-                  <span className="text-on-surface-variant">Personal styling consultations &amp; custom bespoke sizing requests.</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setTierBenefitsModalOpen(false)}
-              className="w-full py-2.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold border border-[#FCD200] transition-all shadow-sm"
-            >
-              Acknowledge Privileges
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ============================================================= */}
       {/* MODAL 3: ORDER SUMMARY MODAL */}
@@ -1424,16 +1221,16 @@ function AccountDashboardContent() {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  showNotification(`Downloading GST Tax Invoice for Order #${selectedOrder.id}...`, 'info');
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-surface-container text-primary hover:bg-surface-container-high text-xs font-headline font-bold transition-all flex items-center justify-center gap-1.5 border border-surface-container"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download Tax Invoice</span>
-              </button>
+              {String(selectedOrder.status || '').toUpperCase() !== 'CANCELLED' && (
+                <Link
+                  href={`/orders/${encodeURIComponent(String(selectedOrder.orderNumber || selectedOrder.id).replace(/^#/, ''))}/invoice`}
+                  target="_blank"
+                  className="flex-1 py-2.5 rounded-xl bg-surface-container text-primary hover:bg-surface-container-high text-xs font-headline font-bold transition-all flex items-center justify-center gap-1.5 border border-surface-container"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>View invoice</span>
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => setOrderSummaryModalOpen(false)}

@@ -368,7 +368,6 @@ export function WishlistManagementView({
             <span className="text-[#0F1111] font-semibold">
               {activeAddress ? `${activeAddress.city} ${activeAddress.pincode}` : 'Pan-India Delivery'}
             </span>
-            <span className="text-[#FF9900] font-bold text-[10px]">Express 24H</span>
           </div>
         </div>
       </div>

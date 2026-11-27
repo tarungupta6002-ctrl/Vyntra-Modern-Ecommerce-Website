@@ -1252,7 +1252,7 @@ function LoginContent() {
           </div>
           <div className="flex items-center gap-1.5 text-on-surface-variant">
             <Truck className="h-4 w-4 text-primary" />
-            <span className="font-medium">Express Assured Delivery</span>
+            <span className="font-medium">Free delivery across India</span>
           </div>
         </div>
 

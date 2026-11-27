@@ -339,16 +339,13 @@ export default function CartPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-headline font-bold text-sm sm:text-base text-on-surface">
-                    Complimentary Express Delivery
-                  </span>
-                  <span className="bg-secondary-container text-on-secondary-container text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Fast Lane
+                    Free delivery
                   </span>
                 </div>
                 <p className="text-xs text-on-surface-variant mt-0.5">
                   <span className="font-bold text-primary flex items-center gap-1">
                     <CheckCircle className="h-3.5 w-3.5 text-secondary" />
-                    Congratulations! Express Courier Shipping is 100% Free on this order.
+                    No shipping charge on this order. A ₹49 packaging fee is added at checkout.
                   </span>
                 </p>
               </div>
@@ -479,7 +476,7 @@ export default function CartPage() {
 
                         <div className="flex items-center gap-3 text-xs">
                           <span className="font-semibold text-secondary bg-secondary-fixed/50 px-2.5 py-0.5 rounded-full text-[11px]">
-                            {group.shippingFee === 0 ? 'FREE Express Delivery' : `Shipping: ${formatINR(group.shippingFee)}`}
+                            {group.shippingFee === 0 ? 'Free delivery' : `Shipping: ${formatINR(group.shippingFee)}`}
                           </span>
                           <span className="font-mono font-bold text-on-surface hidden sm:inline">
                             Subtotal: {formatINR(group.subtotal)}
@@ -659,12 +656,6 @@ export default function CartPage() {
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-1.5 text-xs text-primary font-semibold bg-primary-fixed/40 px-3 py-1 rounded-full">
-                                    <Zap className="h-3.5 w-3.5 text-primary" />
-                                    <span>
-                                      Express Delivery SLA
-                                    </span>
-                                  </div>
                                 </div>
                               </div>
                             </div>

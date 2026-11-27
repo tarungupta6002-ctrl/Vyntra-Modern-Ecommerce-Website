@@ -3,9 +3,9 @@ import { Metadata } from 'next';
 import { OrderCancellationView } from '@/components/orders/order-cancellation-view';
 
 export const metadata: Metadata = {
-  title: 'Cancel Order & Instant Refund Flow — VYNTRA',
+  title: 'Cancel order | Vyntra',
   description:
-    '1-Click order cancellation, item selection, and instant refund via Vyntra Vault or source bank.',
+    'Cancel an order. Online payments are refunded to the original payment method.',
 };
 
 interface SearchProps {

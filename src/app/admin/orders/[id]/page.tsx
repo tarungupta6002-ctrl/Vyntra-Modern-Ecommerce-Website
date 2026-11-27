@@ -300,15 +300,17 @@ export default function AdminOrderDetailPage() {
             <span>Manage in Shipments</span>
           </Link>
 
-          <Link
-            href={`/orders/${encodeURIComponent(order.orderNumber)}/invoice`}
-            target="_blank"
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F7F8F8] border border-[#D5D9D9] text-[#0F1111] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            title="Open official GST Tax Invoice"
-          >
-            <FileText className="h-3.5 w-3.5 text-[#007185]" />
-            <span>Tax Invoice</span>
-          </Link>
+          {!isCancelled && (
+            <Link
+              href={`/orders/${encodeURIComponent(order.orderNumber)}/invoice`}
+              target="_blank"
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F7F8F8] border border-[#D5D9D9] text-[#0F1111] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
+              title="Open the order invoice"
+            >
+              <FileText className="h-3.5 w-3.5 text-[#007185]" />
+              <span>Invoice</span>
+            </Link>
+          )}
 
           <Link
             href={`/orders/${encodeURIComponent(order.id)}/track`}
@@ -699,7 +701,7 @@ export default function AdminOrderDetailPage() {
               )}
 
               <div className="flex justify-between items-center text-[#565959]">
-                <span>Express Courier Shipping</span>
+                <span>Shipping</span>
                 <span className="font-bold text-emerald-700 uppercase">
                   {order.financials.shippingFee === 0 ? 'FREE' : formatINR(order.financials.shippingFee)}
                 </span>
@@ -863,7 +865,7 @@ export default function AdminOrderDetailPage() {
                 className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-stone-50 border border-[#D5D9D9] text-[#0F1111] font-bold text-center block shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <FileText className="h-4 w-4 text-[#007185]" />
-                <span>Print Official GST Tax Invoice</span>
+                <span>Print invoice</span>
               </Link>
                 </>
               )}

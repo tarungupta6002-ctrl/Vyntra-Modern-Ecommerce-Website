@@ -304,21 +304,21 @@ export default function VyntraHomepage() {
               {/* Trust & Proof Points */}
               <div className="pt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center gap-2.5 border border-outline-variant/30 hover:border-outline-variant/80 hover:-translate-y-0.5 transition-all duration-200">
-                  <Star className="h-5 w-5 text-secondary-container fill-secondary-container shrink-0" />
+                  <Truck className="h-5 w-5 text-secondary-container shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-on-surface">4.9 / 5.0</span>
+                    <span className="text-xs font-bold text-on-surface">Free delivery</span>
                     <span className="text-[10px] text-on-surface-variant font-medium">
-                      100k+ Indian Buyers
+                      ₹49 packaging fee
                     </span>
                   </div>
                 </div>
 
                 <div className="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center gap-2.5 border border-outline-variant/30 hover:border-outline-variant/80 hover:-translate-y-0.5 transition-all duration-200">
-                  <Zap className="h-5 w-5 text-[#B45309] shrink-0" />
+                  <RotateCcw className="h-5 w-5 text-[#B45309] shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-on-surface">Same-Day Metro</span>
+                    <span className="text-xs font-bold text-on-surface">7-day returns</span>
                     <span className="text-[10px] text-on-surface-variant font-medium">
-                      12 Cities in India
+                      On eligible items
                     </span>
                   </div>
                 </div>
@@ -326,9 +326,9 @@ export default function VyntraHomepage() {
                 <div className="bg-surface-container-lowest p-3 rounded-lg shadow-sm col-span-2 sm:col-span-1 flex items-center gap-2.5 border border-outline-variant/30 hover:border-outline-variant/80 hover:-translate-y-0.5 transition-all duration-200">
                   <ShieldCheck className="h-5 w-5 text-secondary-container shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-on-surface">100% Genuine</span>
+                    <span className="text-xs font-bold text-on-surface">Secure payments</span>
                     <span className="text-[10px] text-on-surface-variant font-medium">
-                      Zero-Counterfeit
+                      Through Razorpay
                     </span>
                   </div>
                 </div>
@@ -1018,9 +1018,9 @@ export default function VyntraHomepage() {
               <Truck className="h-6 w-6" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-on-surface">Express 24-48h Delivery</h4>
+              <h4 className="text-sm font-bold text-on-surface">Free delivery across India</h4>
               <p className="text-xs text-on-surface-variant mt-1">
-                Priority transit hubs across Mumbai, Delhi NCR, Bangalore, Hyderabad &amp; 15,000+ pin codes.
+                No shipping charge on any order. A ₹49 packaging fee is added at checkout.
               </p>
             </div>
           </div>

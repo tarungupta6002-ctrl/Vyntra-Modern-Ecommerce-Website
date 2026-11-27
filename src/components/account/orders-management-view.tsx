@@ -625,7 +625,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                       {/* Multi-Vendor Seller Badge */}
                       <div className="flex sm:flex-col items-center sm:items-end gap-1.5 shrink-0 self-end sm:self-auto">
                         <span className="text-xs font-medium text-on-surface-variant">
-                          {item.shippingMethod || (order as any).courierPartner || 'Express Priority'}
+                          {item.shippingMethod || (order as any).courierPartner || 'Courier not assigned yet'}
                         </span>
                         <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
                           Seller: {item.sellerName || (item as any).vendorName || 'Vyntra Atelier'}

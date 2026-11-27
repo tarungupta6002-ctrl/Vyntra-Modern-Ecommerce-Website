@@ -295,7 +295,7 @@ function OrderConfirmationContent() {
                 )}
 
                 <div className="flex justify-between text-on-surface-variant">
-                  <span>Express Courier Shipping</span>
+                  <span>Delivery</span>
                   <span className="text-secondary font-bold uppercase">FREE</span>
                 </div>
 

@@ -7,7 +7,7 @@ import { HelpSupportView } from '@/components/account/help-support-view';
 export const metadata: Metadata = {
   title: 'Customer Care & Support Concierge — VYNTRA Luxury Marketplace',
   description:
-    'Dedicated 24/7 Royal Concierge, doorstep size swaps, instant refund settlements, order telemetry, and official grievance redressal.',
+    'Help with orders, returns, refunds and payments on Vyntra.',
 };
 
 export default function GeneralSupportPage() {

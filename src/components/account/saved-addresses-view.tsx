@@ -16,10 +16,6 @@ import {
   Info,
   Check,
   X,
-  Truck,
-  ShieldCheck,
-  KeyRound,
-  HandMetal,
   ChevronRight,
   AlertTriangle,
   Sparkles,
@@ -562,82 +558,6 @@ export function SavedAddressesView({ embeddedInAccount = false }: SavedAddresses
         </section>
       )}
 
-      {/* Visual Banner / Festive Express Delivery Note (from Stitch) */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#007185] via-[#004B57] to-[#002e81] p-6 lg:p-8 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-start gap-4 z-10">
-          <div className="p-3 rounded-xl bg-white/10 backdrop-blur-md shrink-0">
-            <Truck className="h-8 w-8 text-[#FFE4B5]" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-headline font-bold text-lg text-white">
-                Festive Guaranteed Same-Day Hub Dispatches
-              </span>
-              <span className="px-2 py-0.5 rounded text-[11px] font-label font-bold bg-[#FF9900] text-white">
-                EXPRESS
-              </span>
-            </div>
-            <p className="text-sm text-white/80 max-w-xl font-body leading-relaxed">
-              Orders shipped to your verified default delivery address qualify for morning luxury concierge hand-delivery during the Grand Festive Sale.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 shrink-0 z-10 w-full md:w-auto">
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="w-full md:w-auto px-5 py-2.5 rounded-xl bg-white text-[#007185] font-label font-bold text-xs hover:bg-[#e2e7ff] transition-colors text-center cursor-pointer shadow-sm"
-          >
-            Add Another Location
-          </button>
-        </div>
-      </div>
-
-      {/* Trust & Doorstep Security Strip (from Stitch) */}
-      <footer className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-        <div className="p-4 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-full bg-[#dae2fd] flex items-center justify-center text-[#007185] shrink-0">
-            <ShieldCheck className="h-5 w-5 text-[#007185]" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-xs font-label font-bold text-[#0F1111]">
-              100% Verified Delivery Fleet
-            </h4>
-            <p className="text-[11px] font-body text-[#444653]">
-              Background-verified white-glove couriers.
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-full bg-[#FFE4B5] flex items-center justify-center text-[#904d00] shrink-0">
-            <KeyRound className="h-5 w-5 text-[#904d00]" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-xs font-label font-bold text-[#0F1111]">
-              Doorstep OTP Verification
-            </h4>
-            <p className="text-[11px] font-body text-[#444653]">
-              Secure two-factor handovers on all orders.
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-full bg-[#dae2fd] flex items-center justify-center text-[#002e81] shrink-0">
-            <HandMetal className="h-5 w-5 text-[#002e81]" />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="text-xs font-label font-bold text-[#0F1111]">
-              Contactless Option Always
-            </h4>
-            <p className="text-[11px] font-body text-[#444653]">
-              Leave-at-door instruction supported on every address.
-            </p>
-          </div>
-        </div>
-      </footer>
-
       {/* ========================================================= */}
       {/* ADD / EDIT ADDRESS SLIDE-OVER DRAWER MODAL */}
       {/* ========================================================= */}
@@ -701,11 +621,7 @@ export function SavedAddressesView({ embeddedInAccount = false }: SavedAddresses
                 </div>
                 {formErrors.pincode ? (
                   <span className="text-[11px] text-rose-600 font-medium">{formErrors.pincode}</span>
-                ) : (
-                  <span className="text-[11px] text-[#007185] flex items-center gap-1 font-medium">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Serviced by Express Courier Network
-                  </span>
-                )}
+                ) : null}
               </div>
 
               {/* Name & Mobile Number */}

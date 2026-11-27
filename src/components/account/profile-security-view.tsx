@@ -17,7 +17,6 @@ import {
   MapPin,
   Calendar,
   Sparkles,
-  Award,
   Headphones,
   MessageSquare,
   Download,
@@ -26,7 +25,6 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
-  Coins,
   Camera,
   Edit2,
   Info,
@@ -253,15 +251,11 @@ export function ProfileSecurityView({
 
   const handleExportDataArchive = () => {
     const dataDossier = {
-      vyntraDossierId: store.memberId,
       exportedAt: new Date().toISOString(),
       clientIdentity: {
         legalName: store.fullName,
         email: store.email,
         phone: store.phone,
-        tier: store.tier,
-        rank: store.rankStatus,
-        vaultCoins: store.vaultCoins,
         dob: store.dob,
         gender: store.gender,
       },
@@ -435,44 +429,10 @@ export function ProfileSecurityView({
                 </button>
               </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#FFE4B5] text-[#0F1111] text-[11px] font-bold tracking-wider uppercase mb-2">
-                <Award className="h-3.5 w-3.5 text-[#904d00]" />
-                <span>{store.tier}</span>
-              </div>
 
               <h2 className="text-xl font-headline font-bold text-[#0F1111]">{store.fullName}</h2>
               <p className="text-xs text-[#444653] font-mono mt-0.5">{store.email}</p>
 
-              <div className="flex items-center gap-2 mt-4 text-xs text-[#565959] font-medium">
-                <span>
-                  ID: <strong className="text-[#0F1111]">{store.memberId}</strong>
-                </span>
-                <span>•</span>
-                <span>Since {store.memberSince}</span>
-              </div>
-
-              {/* Vault Metrics Grid */}
-              <div className="grid grid-cols-2 gap-3 w-full mt-6 pt-6 bg-[#F7F8F8] rounded-xl p-4 border border-[#D5D9D9]">
-                <div className="flex flex-col items-start">
-                  <span className="text-[11px] font-semibold text-[#565959] uppercase tracking-wider">
-                    Vault Balance
-                  </span>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Coins className="h-5 w-5 text-[#FF9900]" />
-                    <span className="text-lg font-headline font-bold text-[#0F1111]">{store.vaultCoins}</span>
-                    <span className="text-[10px] font-bold text-[#904d00]">COINS</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-[11px] font-semibold text-[#565959] uppercase tracking-wider">
-                    Rank Status
-                  </span>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Sparkles className="h-4 w-4 text-[#007185]" />
-                    <span className="text-xs font-headline font-bold text-[#0F1111]">{store.rankStatus}</span>
-                  </div>
-                </div>
-              </div>
 
               {/* Photo Actions */}
               <div className="flex items-center justify-center gap-4 mt-4 w-full text-xs">
@@ -703,10 +663,6 @@ export function ProfileSecurityView({
                   onChange={(e) => setDob(e.target.value)}
                   className="w-full h-11 px-3.5 bg-[#F7F8F8] rounded-xl text-sm text-[#0F1111] font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#007185]/20 transition-all border border-[#D5D9D9]"
                 />
-                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[#904d00] font-medium">
-                  <Sparkles className="h-3 w-3 shrink-0" />
-                  <span>Receive 2x Royal Coins automatically during your birthday month.</span>
-                </div>
               </div>
             </div>
 
@@ -1334,15 +1290,10 @@ export function ProfileSecurityView({
                   <div className="p-5 pt-0 text-xs text-[#444653] space-y-4 animate-in fade-in duration-200">
                     <div className="p-4 rounded-xl bg-white text-[#0F1111] border border-[#ffdad6]">
                       <strong className="text-[#ba1a1a] font-headline block mb-1">
-                        Permanent VIP Benefits Forfeiture Notice
+                        Before you delete your account
                       </strong>
-                      By deactivating or requesting deletion of your VYNTRA dossier, you permanently forfeit your{' '}
-                      <strong className="text-[#FF9900]">{store.vaultCoins} Royal Coins</strong>, historical invoice
-                      archives, and exclusive{' '}
-                      <strong className="text-[#007185]">
-                        {store.tier} ({store.rankStatus})
-                      </strong>
-                      . Active orders will still complete fulfillment.
+                      Deleting your account removes your profile, saved addresses and access to your order history.
+                      Orders that are already placed will still be delivered.
                     </div>
                     <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
                       <button
@@ -1598,8 +1549,8 @@ export function ProfileSecurityView({
             </div>
             <p className="text-xs text-[#444653] leading-relaxed">
               {deactivateConfirmModal === 'suspend'
-                ? 'Your profile, royal coins, and VIP privileges will be temporarily frozen. You can reactivate at any time by logging in.'
-                : 'Warning: This action cannot be undone. All purchase lineage, 850 Royal Coins, and Royal Gold Tier status will be permanently erased.'}
+                ? 'Your profile will be paused. You can reactivate it any time by signing in.'
+                : 'This can’t be undone. Your profile, saved addresses and access to your order history will be deleted.'}
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button

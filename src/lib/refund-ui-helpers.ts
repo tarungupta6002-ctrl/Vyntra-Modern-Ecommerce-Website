@@ -89,7 +89,7 @@ export function resolveRefundDestination(
     return 'Verified Bank Account';
   }
   if (mode === 'STORE_CREDIT') {
-    return 'Vyntra Vault';
+    return 'Store credit';
   }
   if (mode === 'ORIGINAL_PAYMENT' || mode === 'ORIGINAL_PAYMENT_METHOD') {
     const pm = (paymentMethod || '').toUpperCase();

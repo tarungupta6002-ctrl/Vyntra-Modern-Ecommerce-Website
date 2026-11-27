@@ -660,7 +660,7 @@ export function AdminReturnDetailsModal({
                                   {tx.mode === 'MANUAL_BANK_TRANSFER'
                                     ? 'Verified Bank Account'
                                     : tx.mode === 'STORE_CREDIT'
-                                    ? 'Vyntra Vault'
+                                    ? 'Store credit'
                                     : tx.mode === 'ORIGINAL_PAYMENT'
                                     ? 'Original Payment Source'
                                     : 'Refund destination not recorded'}
