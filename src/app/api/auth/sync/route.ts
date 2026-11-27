@@ -68,7 +68,8 @@ export async function POST(request: Request) {
 
     // Secure Upsert:
     // 1. If new user: role is strictly CUSTOMER (never trust browser role)
-    // 2. If existing user: DO NOT overwrite role! Only update name/phone/email
+    // 2. If existing user: DO NOT overwrite role, name or phone (the user edits those in
+    //    their profile; signup metadata must not undo that). Only keep the email in sync.
     const user = await prisma.user.upsert({
       where: { id: authUser.id },
       create: {
@@ -81,8 +82,6 @@ export async function POST(request: Request) {
       },
       update: {
         email: authUser.email,
-        name: trustedName,
-        ...(trustedPhone ? { phone: trustedPhone } : {}),
       },
       select: {
         id: true,

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { createClient } from '@/lib/supabase/client';
+import { PASSWORD_HINT, passwordProblem } from '@/lib/password-rules';
 import { useUserProfileStore } from '@/store/user-profile-store';
 import { useCartStore } from '@/store/cart-store';
 
@@ -39,7 +40,8 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect') || '/';
-  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'mobile';
+  // Mobile OTP needs an SMS provider in Supabase; until one is set up, sign-in is by email.
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'email';
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -79,6 +81,14 @@ function LoginContent() {
   const hideNotification = () => {
     setToast((prev) => ({ ...prev, show: false }));
   };
+
+  // /auth/callback sends people here when an email link (signup or password reset) has expired or was used.
+  useEffect(() => {
+    if (searchParams.get('error') === 'confirmation_failed') {
+      showNotification('That email link has expired or was already used. Please request a new one.', 'error');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Resend timer countdown
   useEffect(() => {
@@ -341,8 +351,8 @@ function LoginContent() {
       setEmailError('');
     }
 
-    if (!password || password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+    if (!password) {
+      setPasswordError('Enter your password');
       hasErr = true;
     } else {
       setPasswordError('');
@@ -439,8 +449,9 @@ function LoginContent() {
       setPhoneError('');
     }
 
-    if (!password || password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+    const passwordIssue = passwordProblem(password);
+    if (passwordIssue) {
+      setPasswordError(passwordIssue);
       hasErr = true;
     } else {
       setPasswordError('');
@@ -533,41 +544,18 @@ function LoginContent() {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/account/profile`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/reset-password')}`,
       });
       if (error) {
         showNotification(error.message, 'error');
       } else {
-        showNotification(`Password reset instructions sent to ${email}.`, 'success');
+        showNotification(`If an account exists for ${email.trim()}, we've emailed a link to reset the password. Open it in this browser.`, 'success');
       }
     } catch (err: any) {
       showNotification(err.message || 'Failed to send reset link.', 'error');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Social Login Mock
-  const triggerSocialAuth = (provider: string) => {
-    showNotification(`Initiating secure authentication with ${provider}...`, 'info');
-    setTimeout(() => {
-      showNotification(`Connected via ${provider}. Welcome to VYNTRA!`, 'success');
-      try {
-        localStorage.setItem(
-          'vyntra-user',
-          JSON.stringify({
-            name: `${provider} Patron`,
-            provider,
-            isLoggedIn: true,
-          })
-        );
-      } catch (err) {
-        // Storage ignore
-      }
-      setTimeout(() => {
-        router.push(redirectParam);
-      }, 1200);
-    }, 1000);
   };
 
   return (
@@ -608,17 +596,6 @@ function LoginContent() {
               {/* Gradient Scrim for Contrast */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#131921] via-[#232F3E]/85 to-transparent" />
 
-              {/* Top Badge */}
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container/20 backdrop-blur-md text-secondary-fixed text-xs font-semibold tracking-wide border border-secondary-container/30">
-                  <Sparkles className="h-3.5 w-3.5 text-secondary-container" />
-                  <span>Festive Curation 2025</span>
-                </div>
-                <span className="text-xs uppercase tracking-widest text-primary-fixed-dim font-mono font-medium">
-                  Edition 08
-                </span>
-              </div>
-
               {/* Center Editorial Quote & Stats */}
               <div className="relative z-10 my-auto py-8">
                 <div className="w-10 h-1 bg-secondary-container mb-6 rounded-full" />
@@ -626,53 +603,14 @@ function LoginContent() {
                   Celebrate India’s Finest Craftsmanship
                 </h2>
                 <p className="font-body text-sm text-primary-fixed-dim leading-relaxed max-w-sm">
-                  Discover over 4,500 master weavers, heritage jewelers, and avant-garde couture labels hand-picked for festive living.
+                  Fashion, electronics, home and more from independent Indian sellers.
                 </p>
 
-                {/* Artisanal Highlight Stats */}
-                <div className="grid grid-cols-3 gap-3 mt-8 pt-6 bg-surface-container-lowest/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/10">
-                  <div className="flex flex-col">
-                    <span className="font-headline font-bold text-lg text-white">100%</span>
-                    <span className="text-[10px] text-primary-fixed-dim uppercase tracking-wider mt-0.5">
-                      Authentic
-                    </span>
-                  </div>
-                  <div className="flex flex-col border-l border-white/15 pl-3">
-                    <span className="font-headline font-bold text-lg text-white">24 Hr</span>
-                    <span className="text-[10px] text-primary-fixed-dim uppercase tracking-wider mt-0.5">
-                      Dispatch
-                    </span>
-                  </div>
-                  <div className="flex flex-col border-l border-white/15 pl-3">
-                    <span className="font-headline font-bold text-lg text-white">4.9 ★</span>
-                    <span className="text-[10px] text-primary-fixed-dim uppercase tracking-wider mt-0.5">
-                      Top Rated
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Testimonial Footer */}
-              <div className="relative z-10 pt-4 bg-surface-container-lowest/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-secondary-fixed text-on-surface font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
-                    AR
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white/95 italic line-clamp-2">
-                      “The handwoven Chanderi kurta exceeded expectations. Pure regal luxury with seamless doorstep delivery.”
-                    </p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-[11px] font-semibold text-primary-fixed-dim">
-                        Ananya Roy, New Delhi
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-secondary-fixed text-[10px] font-medium">
-                        <CheckCircle className="h-3 w-3 text-secondary-container" />
-                        Verified Patron
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <ul className="mt-8 space-y-2 text-sm text-white/90">
+                  <li>Free delivery, with a ₹49 packaging fee per order</li>
+                  <li>7-day returns on eligible items</li>
+                  <li>Pay by UPI, card, net banking or Cash on Delivery</li>
+                </ul>
               </div>
             </div>
 
@@ -689,10 +627,6 @@ function LoginContent() {
                       VYNTRA
                     </span>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-secondary bg-secondary-fixed/50 px-2.5 py-1 rounded-full border border-secondary-container/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse" />
-                    Festive Access Active
-                  </span>
                 </div>
 
                 {/* Dynamic Greeting Block */}
@@ -715,7 +649,7 @@ function LoginContent() {
                     {mode === 'email' &&
                       'Sign in using your registered email address and secure password.'}
                     {mode === 'signup' &&
-                      'Join over 1.2M patrons discovering India’s finest artisanal living.'}
+                      'Create an account to place orders, track deliveries and save a wishlist.'}
                   </p>
                 </div>
 
@@ -855,7 +789,6 @@ function LoginContent() {
                           </button>
                         )}
                       </span>
-                      <span className="text-[11px] text-outline">Simulated OTP: Any 6 digits</span>
                     </div>
 
                     {/* Verify CTA */}
@@ -894,7 +827,7 @@ function LoginContent() {
                           setEmail(e.target.value);
                           if (emailError) setEmailError('');
                         }}
-                        placeholder="patron@example.com"
+                        placeholder="you@example.com"
                         className="w-full bg-surface-container-low rounded-xl py-3 px-3.5 text-sm font-body text-on-surface placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 border border-outline-variant/40 focus:outline-none"
                         autoFocus
                         required
@@ -1066,7 +999,9 @@ function LoginContent() {
                             setPassword(e.target.value);
                             if (passwordError) setPasswordError('');
                           }}
-                          placeholder="At least 6 characters"
+                          placeholder="Create a password"
+                          autoComplete="new-password"
+                          aria-describedby="signup-pass-hint"
                           className="w-full bg-surface-container-low rounded-xl py-2.5 pl-3.5 pr-10 text-sm font-body text-on-surface placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 border border-outline-variant/40 focus:outline-none"
                           required
                         />
@@ -1078,10 +1013,14 @@ function LoginContent() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      {passwordError && (
+                      {passwordError ? (
                         <p className="text-xs text-error mt-1 flex items-center gap-1">
                           <AlertCircle className="h-3.5 w-3.5" />
                           <span>{passwordError}</span>
+                        </p>
+                      ) : (
+                        <p id="signup-pass-hint" className="text-xs text-on-surface-variant mt-1">
+                          {PASSWORD_HINT}
                         </p>
                       )}
                     </div>
@@ -1103,74 +1042,10 @@ function LoginContent() {
                   </form>
                 )}
 
-                {/* Divider with Text */}
-                <div className="relative my-6 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full bg-surface-container-high h-[1px]" />
-                  </div>
-                  <span className="relative px-3 bg-surface-container-lowest text-[11px] font-semibold uppercase tracking-wider text-outline">
-                    Or continue with
-                  </span>
-                </div>
-
-                {/* Social & Alternate Options */}
-                <div className="space-y-3">
-                  {/* Google Auth Button */}
-                  <button
-                    type="button"
-                    onClick={() => triggerSocialAuth('Google')}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-all text-on-surface font-body text-xs sm:text-sm font-medium shadow-sm hover:shadow active:scale-[0.99] border border-outline-variant/40"
-                  >
-                    {/* Google Official Logo Vector */}
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                      <path
-                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.14z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    <span>Continue with Google</span>
-                  </button>
-
+                <div className="space-y-3 mt-6">
                   {/* Mode Switching Secondary Links */}
                   <div className="flex items-center justify-between text-xs pt-1 px-1">
-                    {mode !== 'email' ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMode('email');
-                          setPhoneError('');
-                        }}
-                        className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline transition-colors"
-                      >
-                        <Mail className="h-3.5 w-3.5" />
-                        <span>Login using Email ID</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMode('mobile');
-                          setEmailError('');
-                          setPasswordError('');
-                        }}
-                        className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline transition-colors"
-                      >
-                        <Smartphone className="h-3.5 w-3.5" />
-                        <span>Login with Mobile Number</span>
-                      </button>
-                    )}
+                    <span />
 
                     {mode !== 'signup' ? (
                       <button
@@ -1187,7 +1062,7 @@ function LoginContent() {
                       <button
                         type="button"
                         onClick={() => {
-                          setMode('mobile');
+                          setMode('email');
                           setNameError('');
                           setPhoneError('');
                           setPasswordError('');
@@ -1216,23 +1091,6 @@ function LoginContent() {
                   .
                 </p>
 
-                {/* Trust Row */}
-                <div className="flex items-center justify-center flex-wrap gap-y-2 gap-x-4 text-[11px] text-on-surface-variant font-medium pt-1">
-                  <span className="inline-flex items-center gap-1">
-                    <Lock className="h-3 w-3 text-primary" />
-                    256-bit Encryption
-                  </span>
-                  <span className="text-outline-variant">•</span>
-                  <span className="inline-flex items-center gap-1">
-                    <ShieldCheck className="h-3 w-3 text-primary" />
-                    100% Genuine Brands
-                  </span>
-                  <span className="text-outline-variant">•</span>
-                  <span className="inline-flex items-center gap-1">
-                    <Sparkles className="h-3 w-3 text-primary" />
-                    Instant OTP Login
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -1244,11 +1102,11 @@ function LoginContent() {
         <div className="flex items-center flex-wrap justify-center gap-6">
           <div className="flex items-center gap-1.5 text-on-surface-variant">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <span className="font-medium">100% Genuine Products</span>
+            <span className="font-medium">7-day returns on eligible items</span>
           </div>
           <div className="flex items-center gap-1.5 text-on-surface-variant">
             <Lock className="h-4 w-4 text-primary" />
-            <span className="font-medium">256-bit Secure Encryption</span>
+            <span className="font-medium">Secure payments by Razorpay</span>
           </div>
           <div className="flex items-center gap-1.5 text-on-surface-variant">
             <Truck className="h-4 w-4 text-primary" />
@@ -1271,7 +1129,7 @@ function LoginContent() {
         </div>
 
         <p className="text-[11px] text-outline">
-          © {new Date().getFullYear()} VYNTRA Marketplace Inc. All rights reserved.
+          © {new Date().getFullYear()} Vyntra. All rights reserved.
         </p>
       </footer>
 

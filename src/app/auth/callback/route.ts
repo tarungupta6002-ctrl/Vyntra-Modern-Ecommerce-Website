@@ -34,8 +34,6 @@ export async function GET(request: Request) {
           where: { id: data.user.id },
           update: {
             email: data.user.email!,
-            name: data.user.user_metadata?.full_name || data.user.email!.split('@')[0],
-            phone: data.user.user_metadata?.phone || null,
           },
           create: {
             id: data.user.id,
@@ -63,8 +61,6 @@ export async function GET(request: Request) {
           where: { id: data.user.id },
           update: {
             email: data.user.email!,
-            name: data.user.user_metadata?.full_name || data.user.email!.split('@')[0],
-            phone: data.user.user_metadata?.phone || null,
           },
           create: {
             id: data.user.id,
