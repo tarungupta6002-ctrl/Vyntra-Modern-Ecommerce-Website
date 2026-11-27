@@ -2,50 +2,6 @@ import { CategoryProductItem } from '@/hooks/use-category-products';
 import { DetailedProduct } from './products';
 import { SellerOfferItem } from '@/types/multiseller';
 
-export interface BookSubCategory {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-  badge?: string;
-}
-
-export const BOOK_SUBCATEGORIES: BookSubCategory[] = [
-  { id: 'all', name: 'All Books', slug: 'all', icon: 'Sparkles' },
-  { id: 'self-help-books', name: 'Self-Help & Mindset', slug: 'self-help-books', icon: 'Sparkles', badge: '#1 Bestseller' },
-  { id: 'business-finance-books', name: 'Business & Finance', slug: 'business-finance-books', icon: 'TrendingUp', badge: 'Top Rated' },
-  { id: 'fiction-literature-books', name: 'Fiction & Literature', slug: 'fiction-literature-books', icon: 'BookOpen' },
-  { id: 'indian-literature-books', name: 'Indian Authors', slug: 'indian-literature-books', icon: 'Flame', badge: 'Popular' },
-  { id: 'exam-prep-books', name: 'Exam Prep & Academic', slug: 'exam-prep-books', icon: 'GraduationCap' },
-  { id: 'comics-manga-books', name: 'Comics & Manga', slug: 'comics-manga-books', icon: 'BookMarked' },
-];
-
-export const BOOK_AUTHORS = [
-  'All Authors',
-  'James Clear',
-  'Morgan Housel',
-  'Robert T. Kiyosaki',
-  'Amish Tripathi',
-  'Sudha Murty',
-  'Héctor García',
-  'Chetan Bhagat',
-  'Munshi Premchand',
-  'APJ Abdul Kalam',
-];
-
-export const BOOK_FORMATS = [
-  'Paperback',
-  'Hardcover',
-  'Deluxe Edition',
-  'Box Set',
-];
-
-export const BOOK_LANGUAGES = [
-  'English',
-  'Hindi',
-  'Sanskrit',
-];
-
 // Demo products removed: catalog pages show only real products from the database.
 export const FALLBACK_BOOKS: CategoryProductItem[] = [];
 

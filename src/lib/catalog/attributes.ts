@@ -662,6 +662,46 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
       },
     ],
   },
+
+  /* ------------------------------- Books ------------------------------- */
+  {
+    id: 'book',
+    // The same title is often sold as paperback and hardcover at different prices.
+    variantKeys: ['format'],
+    name: 'Book',
+    categorySlugs: ['books'],
+    attributes: [
+      {
+        key: 'format',
+        label: 'Format',
+        type: 'enum',
+        options: ['Paperback', 'Hardcover', 'Board book', 'Box set'],
+        required: true,
+      },
+      {
+        key: 'language',
+        label: 'Language',
+        type: 'enum',
+        options: ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Gujarati', 'Kannada', 'Malayalam', 'Other'],
+        required: true,
+      },
+      {
+        key: 'pages',
+        label: 'Length',
+        type: 'number',
+        unit: 'pages',
+        min: 1,
+        max: 5000,
+        step: 1,
+        buckets: [
+          { label: 'Up to 200 pages', min: 0, max: 200.01 },
+          { label: '201 – 400 pages', min: 200.01, max: 400.01 },
+          { label: 'Over 400 pages', min: 400.01, max: Infinity },
+        ],
+      },
+      { key: 'reading_age', label: 'Reading age', type: 'enum', options: ['Children', 'Teens', 'Adults'] },
+    ],
+  },
 ];
 
 /* ------------------------------------------------------------------ */

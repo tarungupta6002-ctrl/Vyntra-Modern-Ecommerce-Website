@@ -76,6 +76,8 @@ export interface DepartmentConfig {
   facetsForAll?: boolean;
   /** Parent page in the breadcrumb (e.g. Electronics for Mobiles). */
   parent?: { label: string; href: string };
+  /** What "brand" means here (e.g. "Author" for books). */
+  brandLabel?: string;
 }
 
 /** All attribute value sets of a listing: the listing itself plus each variant (Amazon: any child matches). */
@@ -551,6 +553,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   };
 
   const brandCount = new Set(products.map((p) => p.brand).filter(Boolean)).size;
+  const hasProducts = isLoading || products.length > 0;
 
   // A real product photo for each tile (link tiles use the products on the page they open).
   const tileImage = (slug: string, href?: string): string | undefined => {
@@ -601,7 +604,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
       ))}
 
       {brandFacets.length > 0 && (
-        <FilterSection title="Brand">
+        <FilterSection title={config.brandLabel || 'Brand'}>
           <div className="space-y-0.5 max-h-56 overflow-y-auto pr-1">
             {brandFacets.map(({ name, count }) => (
               <CheckRow
@@ -878,7 +881,8 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
         <div className="flex gap-6 items-start">
-          {/* Desktop sidebar */}
+          {/* Desktop sidebar (nothing to filter while the department is empty) */}
+          {hasProducts && (
           <aside className="hidden lg:block w-[264px] shrink-0 sticky top-24">
             <div className="rounded-2xl border border-stone-200 bg-white p-5">
               <div className="flex items-center justify-between pb-4 mb-1 border-b border-stone-200/80">
@@ -894,6 +898,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
               <div className="pt-4">{filtersPanel}</div>
             </div>
           </aside>
+          )}
 
           <div id="department-results" className="flex-1 min-w-0">
             {/* Toolbar */}
@@ -910,6 +915,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
                 )}
               </p>
               <div className="flex items-center gap-2">
+                {hasProducts && (
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(true)}
@@ -923,6 +929,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
                     </span>
                   )}
                 </button>
+                )}
                 <label htmlFor="department-sort" className="sr-only">Sort by</label>
                 <div className="relative">
                   <select
