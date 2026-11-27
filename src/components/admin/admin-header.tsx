@@ -20,6 +20,7 @@ import {
   Tag,
   Trophy,
   TrendingUp,
+  LifeBuoy,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/layout/brand-logo';
 
@@ -86,6 +87,12 @@ export function AdminHeader({ user }: AdminHeaderProps) {
       href: '/admin/returns',
       icon: RefreshCw,
       isActive: pathname.startsWith('/admin/returns'),
+    },
+    {
+      name: 'Support',
+      href: '/admin/support',
+      icon: LifeBuoy,
+      isActive: pathname.startsWith('/admin/support'),
     },
     {
       name: 'Reviews',

@@ -162,7 +162,7 @@ export function evaluateItemReturnEligibility(params: {
       remedyAllowed: 'NONE',
       policyBadge: '7_DAY_RETURN',
       reasonCode: 'DELIVERY_TIMESTAMP_UNVERIFIED',
-      userMessage: 'Verified carrier delivery timestamp missing. Please contact Concierge Support.',
+      userMessage: 'We could not confirm the delivery date for this item. Please contact Customer Service from Help & Support.',
     };
   }
 

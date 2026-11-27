@@ -700,7 +700,7 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
                       href="/account?tab=support"
                       className="block py-1 text-[#007185] font-semibold hover:underline"
                     >
-                      Customer Help &amp; Support 24/7
+                      Customer Help &amp; Support
                     </Link>
                     {isVendor ? (
                       <Link

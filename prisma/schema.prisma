@@ -214,6 +214,7 @@ model User {
   vendorApplications VendorApplication[]
   returnRequests     ReturnRequest[]
   refundTransactions RefundTransaction[]
+  supportTickets     SupportTicket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -666,6 +667,7 @@ model Order {
   returnRequests     ReturnRequest[]
   refundTransactions RefundTransaction[]
   cancellationRefund CancellationRefund?
+  supportTickets     SupportTicket[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1258,6 +1260,56 @@ model PaymentWebhookEvent {
   @@index([createdAt])
 }
 
+// ------------------------------------------------------------------------------
+// CUSTOMER SUPPORT TICKETS
+// ------------------------------------------------------------------------------
 
+enum SupportTicketStatus {
+  OPEN     // waiting for the support team
+  ANSWERED // support replied, waiting for the customer
+  RESOLVED
+}
 
+enum SupportTopic {
+  ORDER
+  DELIVERY
+  RETURN_REFUND
+  PAYMENT
+  ACCOUNT
+  OTHER
+}
 
+model SupportTicket {
+  id            String              @id @default(cuid())
+  ticketNumber  String              @unique
+  userId        String
+  user          User                @relation(fields: [userId], references: [id])
+  orderId       String?
+  order         Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  topic         SupportTopic
+  subject       String
+  status        SupportTicketStatus @default(OPEN)
+  lastMessageAt DateTime            @default(now())
+  resolvedAt    DateTime?
+  messages      SupportMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status, lastMessageAt])
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  fromStaff  Boolean       @default(false)
+  authorName String
+  body       String
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}

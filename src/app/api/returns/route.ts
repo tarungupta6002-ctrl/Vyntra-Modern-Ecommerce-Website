@@ -465,7 +465,7 @@ export async function POST(request: Request) {
           message:
             type === ReturnType.REPLACEMENT
               ? 'Your replacement request has been submitted. The artisan will inspect and reserve replacement stock.'
-              : 'Your return request has been submitted. Our concierge courier will arrange doorstep pickup upon vendor approval.',
+              : 'Your return request has been submitted. Pickup will be arranged once the seller approves it.',
           nextStep: 'Awaiting vendor review and approval.',
         },
       },

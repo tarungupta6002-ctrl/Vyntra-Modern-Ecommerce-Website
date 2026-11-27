@@ -59,7 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (!cancellableStatuses.includes(order.status as OrderStatus)) {
       return apiError(
-        `Orders that are already ${order.status.toLowerCase()} cannot be cancelled online. Please initiate a return upon receipt or contact 24/7 Concierge Support.`,
+        `Orders that are already ${order.status.toLowerCase()} cannot be cancelled online. You can return it after delivery, or contact Customer Service from Help & Support.`,
         400,
         { currentStatus: order.status },
         'ORDER_NOT_CANCELLABLE'

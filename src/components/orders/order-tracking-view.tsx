@@ -73,7 +73,6 @@ export function OrderTrackingView({
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState('Tomorrow, 10 AM - 2 PM');
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-  const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [verifyCertModalOpen, setVerifyCertModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedReturnItem, setSelectedReturnItem] = useState<any>(null);
@@ -530,14 +529,13 @@ export function OrderTrackingView({
               <FileText className="h-4 w-4" />
               <span>Invoice</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setSupportModalOpen(true)}
+            <Link
+              href={`/support?topic=DELIVERY&order=${encodeURIComponent(order.orderNumber)}#support-contact-form`}
               className="flex items-center gap-2 px-4 py-2 bg-[#007185] text-white hover:bg-[#004B57] text-xs font-bold rounded-xl shadow-sm transition-all"
             >
               <Headphones className="h-4 w-4" />
-              <span>Shipment Support</span>
-            </button>
+              <span>Get help</span>
+            </Link>
           </div>
         </div>
 
@@ -1258,24 +1256,20 @@ export function OrderTrackingView({
                       </span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        showToast('Connecting to live delivery concierge desk...', 'info');
-                        setSupportModalOpen(true);
-                      }}
+                    <Link
+                      href={`/support?topic=DELIVERY&order=${encodeURIComponent(order.orderNumber)}#support-contact-form`}
                       className="p-4 rounded-xl bg-[#F7F8F8] hover:bg-[#D5D9D9] flex flex-col gap-2 text-left transition-all group border border-[#D5D9D9]"
                     >
                       <div className="w-8 h-8 rounded-lg bg-white text-[#FF9900] flex items-center justify-center group-hover:bg-[#FF9900] group-hover:text-white transition-all shadow-sm">
                         <MessageSquare className="h-4 w-4" />
                       </div>
                       <span className="text-xs font-headline font-bold text-[#0F1111]">
-                        Live Concierge
+                        Get help with this order
                       </span>
                       <span className="text-[11px] text-[#444653] leading-tight">
-                        Direct support with logistics supervisor
+                        Send us a request; we reply in your account and by email
                       </span>
-                    </button>
+                    </Link>
                   </div>
 
                   {/* Cancel / Return / Instant Refund Options based on Order Status */}
@@ -1700,62 +1694,6 @@ export function OrderTrackingView({
                 <FileText className="h-4 w-4" />
                 <span>Open &amp; Print Official Invoice</span>
               </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* MODAL 4: Shipment Support Desk */}
-      {/* ========================================================= */}
-      {supportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 border border-[#D5D9D9]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
-              <div className="flex items-center gap-2">
-                <Headphones className="h-5 w-5 text-[#007185]" />
-                <h4 className="text-base font-headline font-bold text-[#0F1111]">
-                  Vyntra Care Logistics Desk
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSupportModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#F7F8F8] text-[#565959]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs text-[#444653]">
-              <p>
-                Our 24/7 dedicated logistics desk oversees your consignment packaging, courier dispatch, and doorstep handover.
-              </p>
-              <div className="p-3 bg-[#F7F8F8] rounded-xl space-y-1.5">
-                <div className="font-bold text-[#0F1111]">Vyntra Priority Care:</div>
-                <div className="text-[11px] text-[#007185]">Toll Free: 1800-419-VYNTRA</div>
-                <div className="text-[11px] text-[#565959]">Email: care@vyntra.luxury</div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setSupportModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-[#444653] hover:bg-[#F7F8F8] rounded-lg"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  showToast('Connecting to customer care executive...', 'info');
-                  setSupportModalOpen(false);
-                }}
-                className="px-4 py-2 text-xs font-semibold bg-[#007185] text-white hover:bg-[#004B57] rounded-lg shadow-sm"
-              >
-                Start Live Chat
-              </button>
             </div>
           </div>
         </div>

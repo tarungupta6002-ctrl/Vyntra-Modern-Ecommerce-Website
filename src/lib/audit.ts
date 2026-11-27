@@ -48,7 +48,7 @@ const MOCK_AUDIT_LOGS: AuditLogItem[] = [
 export async function logAdminAction(params: {
   adminId: string;
   adminEmail: string;
-  entity: 'VENDOR' | 'OFFER' | 'PRODUCT' | 'SHIPMENT' | 'PAYOUT' | 'SETTING' | 'ORDER';
+  entity: 'VENDOR' | 'OFFER' | 'PRODUCT' | 'SHIPMENT' | 'PAYOUT' | 'SETTING' | 'ORDER' | 'SUPPORT';
   entityId: string;
   action: string;
   details?: Record<string, any>;

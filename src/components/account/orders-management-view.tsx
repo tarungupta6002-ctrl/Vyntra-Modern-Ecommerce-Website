@@ -647,13 +647,12 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                       >
                         <X className="h-4 w-4" /> Cancel Order
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => showToast('Opening Elite Concierge live desk for Order #' + order.id, 'info')}
+                      <Link
+                        href={`/support?topic=ORDER&order=${encodeURIComponent(order.orderNumber || order.id)}#support-contact-form`}
                         className="text-xs font-headline font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors flex items-center gap-1"
                       >
                         <HelpCircle className="h-4 w-4" /> Need Help?
-                      </button>
+                      </Link>
                     </>
                   )}
 
@@ -949,38 +948,20 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
         )}
       </div>
 
-      {/* Assistance Banner (Editorial Bottom Hook from Stitch) */}
-      <section className="mt-12 bg-gradient-to-r from-primary via-primary-container to-secondary-container/80 rounded-2xl p-6 lg:p-8 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-secondary-fixed">
-            <Headphones className="h-4 w-4" />
-            <span className="text-xs font-headline font-bold uppercase tracking-wider">
-              VYNTRA Concierge Care
-            </span>
-          </div>
-          <h3 className="font-headline font-bold text-xl text-white">
-            Need assistance with an item or return?
-          </h3>
-          <p className="text-xs text-blue-100 max-w-xl leading-relaxed">
-            Our dedicated luxury shopping consultants are available 24/7 to resolve disputes, arrange priority door-step pick-up, or process expedited refunds.
+      {/* Help banner */}
+      <section className="mt-12 rounded-2xl border border-[#D5D9D9] bg-white p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h3 className="font-headline font-bold text-lg text-[#0F1111]">Need help with an order or return?</h3>
+          <p className="text-xs text-[#565959] max-w-xl leading-relaxed">
+            Send us a request from Help &amp; Support. Our team replies in your account and by email.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => showToast('Connecting to 24/7 Live Concierge chat...', 'info')}
-            className="bg-white text-primary hover:bg-surface-container-lowest px-4 py-2.5 rounded-xl text-xs font-headline font-bold shadow-sm transition-all"
-          >
-            Live Chat Support
-          </button>
-          <button
-            type="button"
-            onClick={() => showToast('Priority Dialing 1800-VYNTRA...', 'info')}
-            className="bg-secondary-container text-white px-4 py-2.5 rounded-xl text-xs font-headline font-bold hover:brightness-105 shadow-sm transition-all border border-white/20"
-          >
-            Call 1800-VYNTRA
-          </button>
-        </div>
+        <Link
+          href="/support#support-contact-form"
+          className="shrink-0 rounded-full bg-[#FFD814] px-5 py-2.5 text-xs font-headline font-bold text-[#0F1111] hover:bg-[#F7CA00]"
+        >
+          Contact Customer Service
+        </Link>
       </section>
 
       {/* ============================================================= */}
