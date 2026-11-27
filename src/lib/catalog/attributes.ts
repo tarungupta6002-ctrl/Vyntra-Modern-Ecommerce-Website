@@ -93,6 +93,43 @@ const capacityLitres = (buckets: NumberBucket[], max = 2000, required = true): N
   required,
 });
 
+const ramGb = (buckets: NumberBucket[], required = true): NumberAttribute => ({
+  key: 'ram_gb',
+  label: 'RAM',
+  type: 'number',
+  unit: 'GB',
+  min: 1,
+  max: 256,
+  step: 1,
+  buckets,
+  required,
+});
+
+const storageGb = (buckets: NumberBucket[], required = true): NumberAttribute => ({
+  key: 'storage_gb',
+  label: 'Storage',
+  type: 'number',
+  unit: 'GB',
+  min: 4,
+  max: 16384,
+  step: 1,
+  hint: 'In GB: 1 TB = 1024',
+  buckets,
+  required,
+});
+
+const screenInch = (buckets: NumberBucket[], required = true): NumberAttribute => ({
+  key: 'screen_inch',
+  label: 'Screen size',
+  type: 'number',
+  unit: 'inch',
+  min: 1,
+  max: 100,
+  step: 0.1,
+  buckets,
+  required,
+});
+
 /* ------------------------------------------------------------------ */
 /* Templates                                                           */
 /* ------------------------------------------------------------------ */
@@ -441,6 +478,188 @@ export const ATTRIBUTE_TEMPLATES: AttributeTemplate[] = [
         ],
       },
       { key: 'filter_type', label: 'Filter', type: 'enum', options: ['HEPA', 'HEPA + Carbon', 'Ionic', 'Other'] },
+    ],
+  },
+
+  /* ---------------------------- Electronics ---------------------------- */
+  {
+    id: 'laptop',
+    variantKeys: ['ram_gb', 'storage_gb'],
+    name: 'Laptop',
+    categorySlugs: ['laptops'],
+    attributes: [
+      {
+        key: 'processor_brand',
+        label: 'Processor brand',
+        type: 'enum',
+        options: ['Intel', 'AMD', 'Apple', 'Qualcomm', 'MediaTek', 'Other'],
+        required: true,
+      },
+      ramGb([
+        { label: 'Up to 8 GB', min: 0, max: 8.01 },
+        { label: '16 GB', min: 8.01, max: 16.01 },
+        { label: '32 GB & above', min: 16.01, max: Infinity },
+      ]),
+      storageGb([
+        { label: 'Up to 256 GB', min: 0, max: 256.01 },
+        { label: '512 GB', min: 256.01, max: 512.01 },
+        { label: '1 TB', min: 512.01, max: 1024.01 },
+        { label: 'Above 1 TB', min: 1024.01, max: Infinity },
+      ]),
+      screenInch([
+        { label: 'Under 13 inch', min: 0, max: 13 },
+        { label: '13 – 14.9 inch', min: 13, max: 15 },
+        { label: '15 – 15.9 inch', min: 15, max: 16 },
+        { label: '16 inch & above', min: 16, max: Infinity },
+      ]),
+      { key: 'os', label: 'Operating system', type: 'enum', options: ['Windows', 'macOS', 'ChromeOS', 'Linux', 'None'] },
+    ],
+  },
+  {
+    id: 'mobile',
+    variantKeys: ['ram_gb', 'storage_gb'],
+    name: 'Mobile phone',
+    categorySlugs: ['mobiles', 'smartphones'],
+    attributes: [
+      ramGb([
+        { label: 'Up to 4 GB', min: 0, max: 4.01 },
+        { label: '6 GB', min: 4.01, max: 6.01 },
+        { label: '8 GB', min: 6.01, max: 8.01 },
+        { label: '12 GB & above', min: 8.01, max: Infinity },
+      ]),
+      storageGb([
+        { label: 'Up to 64 GB', min: 0, max: 64.01 },
+        { label: '128 GB', min: 64.01, max: 128.01 },
+        { label: '256 GB', min: 128.01, max: 256.01 },
+        { label: '512 GB & above', min: 256.01, max: Infinity },
+      ]),
+      { key: 'network', label: 'Network', type: 'enum', options: ['5G', '4G'], required: true },
+      { key: 'os', label: 'Operating system', type: 'enum', options: ['Android', 'iOS', 'Other'], required: true },
+      screenInch(
+        [
+          { label: 'Under 6 inch', min: 0, max: 6 },
+          { label: '6 – 6.4 inch', min: 6, max: 6.5 },
+          { label: '6.5 inch & above', min: 6.5, max: Infinity },
+        ],
+        false
+      ),
+    ],
+  },
+  {
+    id: 'audio',
+    name: 'Audio',
+    categorySlugs: ['audio-headphones'],
+    attributes: [
+      {
+        key: 'audio_type',
+        label: 'Type',
+        type: 'enum',
+        options: ['Over-ear', 'On-ear', 'In-ear / TWS', 'Neckband', 'Speaker', 'Soundbar'],
+        required: true,
+      },
+      { key: 'connectivity', label: 'Connectivity', type: 'enum', options: ['Wireless', 'Wired', 'Wireless & wired'], required: true },
+      { key: 'noise_cancellation', label: 'Noise cancellation', type: 'enum', options: ['Active (ANC)', 'None'] },
+      {
+        key: 'battery_hours',
+        label: 'Battery life',
+        type: 'number',
+        unit: 'hours',
+        min: 1,
+        max: 500,
+        step: 1,
+        buckets: [
+          { label: 'Up to 20 hours', min: 0, max: 20.01 },
+          { label: '21 – 40 hours', min: 20.01, max: 40.01 },
+          { label: 'Above 40 hours', min: 40.01, max: Infinity },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'smartwatch',
+    name: 'Smartwatch',
+    categorySlugs: ['smartwatches-wearables'],
+    attributes: [
+      { key: 'display_type', label: 'Display', type: 'enum', options: ['AMOLED', 'LCD', 'Other'], required: true },
+      {
+        key: 'dial_mm',
+        label: 'Dial size',
+        type: 'number',
+        unit: 'mm',
+        min: 20,
+        max: 60,
+        step: 1,
+        buckets: [
+          { label: 'Under 40 mm', min: 0, max: 40 },
+          { label: '40 – 44 mm', min: 40, max: 45 },
+          { label: '45 mm & above', min: 45, max: Infinity },
+        ],
+      },
+      { key: 'calling', label: 'Calling', type: 'enum', options: ['Bluetooth calling', 'No calling'], required: true },
+      { key: 'compatibility', label: 'Works with', type: 'enum', options: ['Android & iOS', 'iOS only', 'Android only'] },
+    ],
+  },
+  {
+    id: 'tablet',
+    variantKeys: ['storage_gb'],
+    name: 'Tablet',
+    categorySlugs: ['tablets-ipads'],
+    attributes: [
+      screenInch([
+        { label: 'Under 9 inch', min: 0, max: 9 },
+        { label: '9 – 11 inch', min: 9, max: 11.01 },
+        { label: 'Above 11 inch', min: 11.01, max: Infinity },
+      ]),
+      storageGb([
+        { label: 'Up to 64 GB', min: 0, max: 64.01 },
+        { label: '128 GB', min: 64.01, max: 128.01 },
+        { label: '256 GB & above', min: 128.01, max: Infinity },
+      ]),
+      { key: 'connectivity', label: 'Connectivity', type: 'enum', options: ['Wi-Fi', 'Wi-Fi + Cellular'], required: true },
+      { key: 'os', label: 'Operating system', type: 'enum', options: ['Android', 'iPadOS', 'Windows', 'Other'] },
+    ],
+  },
+  {
+    id: 'gaming',
+    name: 'Gaming & PC accessory',
+    categorySlugs: ['gaming-accessories'],
+    attributes: [
+      {
+        key: 'gaming_type',
+        label: 'Type',
+        type: 'enum',
+        options: ['Console', 'Controller', 'Keyboard', 'Mouse', 'Headset', 'Monitor', 'Other'],
+        required: true,
+      },
+      { key: 'connectivity', label: 'Connectivity', type: 'enum', options: ['Wireless', 'Wired', 'Wireless & wired'] },
+    ],
+  },
+  {
+    id: 'camera',
+    name: 'Camera',
+    categorySlugs: ['cameras-photography'],
+    attributes: [
+      {
+        key: 'camera_type',
+        label: 'Type',
+        type: 'enum',
+        options: ['DSLR', 'Mirrorless', 'Action', 'Point & shoot', 'Instant', 'Lens', 'Accessory'],
+        required: true,
+      },
+      {
+        key: 'megapixels',
+        label: 'Resolution',
+        type: 'number',
+        unit: 'MP',
+        min: 1,
+        max: 200,
+        step: 0.1,
+        buckets: [
+          { label: 'Up to 20 MP', min: 0, max: 20.01 },
+          { label: '20.1 – 30 MP', min: 20.01, max: 30.01 },
+          { label: 'Above 30 MP', min: 30.01, max: Infinity },
+        ],
+      },
     ],
   },
 ];
