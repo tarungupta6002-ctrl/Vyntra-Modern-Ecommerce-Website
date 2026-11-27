@@ -2,37 +2,6 @@ import { CategoryProductItem } from '@/hooks/use-category-products';
 import { DetailedProduct } from './products';
 import { SellerOfferItem } from '@/types/multiseller';
 
-export interface ElectronicsSubCategory {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-  badge?: string;
-}
-
-export const ELECTRONICS_SUBCATEGORIES: ElectronicsSubCategory[] = [
-  { id: 'all', name: 'All Electronics', slug: 'all', icon: 'Sparkles' },
-  { id: 'laptops', name: 'Laptops & MacBooks', slug: 'laptops', icon: 'Laptop', badge: 'Up to 35% Off' },
-  { id: 'audio-headphones', name: 'Audio & Headphones', slug: 'audio-headphones', icon: 'Headphones', badge: 'Hot Deals' },
-  { id: 'tablets-ipads', name: 'Tablets & iPads', slug: 'tablets-ipads', icon: 'Tablet' },
-  { id: 'gaming-accessories', name: 'Gaming & PC', slug: 'gaming-accessories', icon: 'Gamepad2', badge: 'Top Rated' },
-  { id: 'cameras-photography', name: 'Cameras', slug: 'cameras-photography', icon: 'Camera' },
-];
-
-export const ELECTRONICS_BRANDS = [
-  'All Brands',
-  'Apple',
-  'Sony',
-  'Dell',
-  'ASUS',
-  'boAt',
-  'Samsung',
-  'Lenovo',
-  'HP',
-  'Bose',
-  'Logitech',
-];
-
 export const FALLBACK_ELECTRONICS: CategoryProductItem[] = [];
 
 const ELECTRONICS_MAP = new Map<string, CategoryProductItem>();
