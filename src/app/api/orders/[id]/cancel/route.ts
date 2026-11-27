@@ -3,8 +3,9 @@ import { requireAuth, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
-import { OrderStatus, OrderItemStatus } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
 import { afterOrderStatusChange } from '@/lib/orders/after-status-change';
+import { cancelOrderTx, OrderNotCancellableError, PRE_SHIPMENT_STATUSES } from '@/lib/orders/cancel-order';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,9 +33,6 @@ export async function POST(request: Request, context: RouteContext) {
     const order = await prisma.order.findFirst({
       where: {
         OR: [{ id }, { orderNumber: id }],
-      },
-      include: {
-        items: true,
       },
     });
 
@@ -68,66 +66,24 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
-    // Atomic Cancellation and Inventory Restoration in the SAME Prisma Transaction
-    await prisma.$transaction(
-      async (tx) => {
-        // 1. Mark Order as CANCELLED
-        await tx.order.update({
-          where: { id: order.id },
-          data: {
-            status: OrderStatus.CANCELLED,
-          },
-        });
-
-        // 2. Mark all OrderItems as CANCELLED
-        await tx.orderItem.updateMany({
-          where: { orderId: order.id },
-          data: {
-            status: OrderItemStatus.CANCELLED,
-          },
-        });
-
-        // 3. Mark all VendorShipments as CANCELLED
-        await tx.vendorShipment.updateMany({
-          where: { orderId: order.id },
-          data: {
-            status: 'CANCELLED',
-          },
-        });
-
-        // 4. Atomically restore inventory for each item (both OfferInventory and ProductInventory)
-        for (const item of order.items) {
-          if (item.offerVariantId) {
-            await tx.$executeRaw`
-              UPDATE "OfferInventory"
-              SET "quantity" = "quantity" + ${item.quantity},
-                  "updatedAt" = NOW()
-              WHERE "offerVariantId" = ${item.offerVariantId}
-            `;
-          }
-
-          const inventory = await tx.productInventory.findFirst({
-            where: {
-              productId: item.productId,
-              ...(item.variantId ? { variantId: item.variantId } : {}),
-            },
-          });
-
-          if (inventory) {
-            await tx.$executeRaw`
-              UPDATE "ProductInventory"
-              SET "quantity" = "quantity" + ${item.quantity},
-                  "updatedAt" = NOW()
-              WHERE "id" = ${inventory.id}
-            `;
-          }
-        }
-      },
-      {
+    // Order, items, shipments and stock in one transaction (shared with admin cancellation).
+    try {
+      await prisma.$transaction((tx) => cancelOrderTx(tx, order.id, PRE_SHIPMENT_STATUSES), {
         maxWait: 5000,
         timeout: 10000,
+      });
+    } catch (err) {
+      if (err instanceof OrderNotCancellableError) {
+        // Lost a race (e.g. cancelled from another tab, or just shipped).
+        return apiError(
+          err.message,
+          400,
+          { currentStatus: err.currentStatus },
+          err.currentStatus === OrderStatus.CANCELLED ? 'ALREADY_CANCELLED' : 'ORDER_NOT_CANCELLABLE'
+        );
       }
-    );
+      throw err;
+    }
 
     // Automatic refund (online-paid orders) + cancellation email. Never throws.
     const outcome = await afterOrderStatusChange(order.id, order.status, OrderStatus.CANCELLED, 'CUSTOMER');

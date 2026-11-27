@@ -4,6 +4,16 @@ import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OrderStatus, OrderItemStatus, PaymentStatus, ShipmentStatus } from '@prisma/client';
 import { afterOrderStatusChange } from '@/lib/orders/after-status-change';
+import { cancelOrderTx, OrderNotCancellableError, type CancelOrderResult } from '@/lib/orders/cancel-order';
+
+/** Admins can cancel any order that hasn't been delivered, returned or already cancelled. */
+const ADMIN_CANCELLABLE_FROM: OrderStatus[] = [
+  OrderStatus.PENDING,
+  OrderStatus.CONFIRMED,
+  OrderStatus.PROCESSING,
+  OrderStatus.SHIPPED,
+  OrderStatus.OUT_FOR_DELIVERY,
+];
 
 export const dynamic = 'force-dynamic';
 
@@ -67,9 +77,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       );
     }
 
+    const isCancelling = status === OrderStatus.CANCELLED && order.status !== OrderStatus.CANCELLED;
+    let cancelResult: CancelOrderResult | null = null;
+
     // Atomic update within transaction
     // Enforces canonical lock order L2 (Order) -> L3 (OrderItem) to prevent deadlocks
     const updated = await prisma.$transaction(async (tx) => {
+      // Cancellation: order, items, shipments and stock, the same way a customer cancel does.
+      if (isCancelling) {
+        cancelResult = await cancelOrderTx(tx, order.id, ADMIN_CANCELLABLE_FROM);
+      }
+
       const orderUpdateData: any = {};
 
       if (courierPartner !== undefined) {
@@ -79,15 +97,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         orderUpdateData.trackingNumber = trackingNumber ? String(trackingNumber).trim() : null;
       }
 
-      if (status) {
+      if (status && !isCancelling) {
         orderUpdateData.status = status;
       }
 
       // Step 1: Update/Lock Order first (L2 in canonical lock hierarchy)
-      await tx.order.update({
-        where: { id: order.id },
-        data: orderUpdateData,
-      });
+      if (Object.keys(orderUpdateData).length > 0) {
+        await tx.order.update({
+          where: { id: order.id },
+          data: orderUpdateData,
+        });
+      }
 
       // Step 2: Update OrderItems second (L3 in canonical lock hierarchy)
       if (status === OrderStatus.DELIVERED) {
@@ -130,9 +150,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       } else if (status === OrderStatus.DELIVERED) {
         shipmentData.status = ShipmentStatus.DELIVERED;
         shipmentData.deliveredAt = new Date();
-      } else if (status === OrderStatus.CANCELLED) {
-        shipmentData.status = ShipmentStatus.CANCELLED;
       }
+      // (Cancellation already updated the shipments above.)
 
       if (Object.keys(shipmentData).length > 0) {
         await tx.vendorShipment.updateMany({
@@ -166,6 +185,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return apiSuccess({
       order: responseOrder,
+      ...(cancelResult ? { cancellation: cancelResult } : {}),
       updatedBy: {
         adminId: admin.userId,
         role: admin.role,
@@ -174,6 +194,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   } catch (err: any) {
     if (err.name === 'AuthError') {
       return handleAuthError(err);
+    }
+    if (err instanceof OrderNotCancellableError) {
+      return apiError(err.message, 400, { currentStatus: err.currentStatus }, 'ORDER_NOT_CANCELLABLE');
     }
     return handleApiError(err);
   }

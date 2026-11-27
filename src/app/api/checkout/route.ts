@@ -311,7 +311,8 @@ export async function POST(request: Request) {
             },
             variant: {
               include: {
-                inventories: true,
+                // Oldest row first: cancellations restore stock to the same row (see cancelOrderTx).
+                inventories: { orderBy: { createdAt: 'asc' } },
               },
             },
             sellerOffer: {
@@ -321,7 +322,8 @@ export async function POST(request: Request) {
             },
             offerVariant: {
               include: {
-                inventories: true,
+                // Oldest row first: cancellations restore stock to the same row (see cancelOrderTx).
+                inventories: { orderBy: { createdAt: 'asc' } },
               },
             },
           },
