@@ -8,6 +8,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { matchesSearchQuery } from '@/lib/search';
 import {
@@ -51,7 +52,6 @@ export interface DepartmentConfig {
   /** Root category slug; products come from this branch of the catalog tree. */
   departmentSlug: string;
   basePath: string;
-  eyebrow: string;
   title: string;
   description: string;
   /** e.g. { one: 'appliance', many: 'appliances' } */
@@ -65,6 +65,17 @@ export interface DepartmentConfig {
   priceBuckets: ReadonlyArray<{ id: string; label: string; min: number; max: number }>;
   /** Show the BEE energy-rating facet. */
   energyRating?: boolean;
+  /**
+   * What the tiles under the heading are: child categories (default) or the brands on sale
+   * (for a department without sub-categories, e.g. Mobiles). Brand tiles set the brand filter.
+   */
+  tiles?: 'categories' | 'brands';
+  /** Icon for brand tiles without a photo. */
+  brandIcon?: React.ElementType;
+  /** Show attribute filters without choosing a type (all products share one template, e.g. phones). */
+  facetsForAll?: boolean;
+  /** Parent page in the breadcrumb (e.g. Electronics for Mobiles). */
+  parent?: { label: string; href: string };
 }
 
 /** All attribute value sets of a listing: the listing itself plus each variant (Amazon: any child matches). */
@@ -183,12 +194,37 @@ function CheckRow({
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 
+/** "1024 GB" reads better as "1 TB". */
+function formatSpecValue(def: AttributeDef, v: string | number): string {
+  if (def.type !== 'number') return String(v);
+  const n = Number(v);
+  if (def.unit === 'GB' && n >= 1024 && n % 1024 === 0) return `${n / 1024} TB`;
+  return `${n.toLocaleString('en-IN')} ${def.unit}`;
+}
+
+/** The listing's real specs from its template (variant values combined, e.g. "512 GB / 1 TB"). */
+function specRowsOf(p: CategoryProductItem): Array<{ label: string; value: string }> {
+  const tpl = templateOf(p);
+  if (!tpl) return [];
+  return tpl.attributes
+    .map((def) => {
+      const vals = Array.from(
+        new Set(attributeSets(p).map((a) => a[def.key]).filter((v) => v !== undefined && v !== ''))
+      ) as Array<string | number>;
+      if (vals.length === 0) return null;
+      if (def.type === 'number') vals.sort((a, b) => Number(a) - Number(b));
+      return { label: def.label, value: vals.map((v) => formatSpecValue(def, v)).join(' / ') };
+    })
+    .filter((r): r is { label: string; value: string } => r !== null);
+}
+
 export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const PRICE_BUCKETS = config.priceBuckets;
   const filterTypes = config.types.filter((t) => !t.href);
-  const TILES = [{ slug: 'all', name: config.allLabel, icon: LayoutGrid } as DepartmentType, ...config.types];
+  const brandMode = config.tiles === 'brands';
+  const BRAND_PREFIX = 'brand:';
   const { one: nounOne, many: nounMany } = config.noun;
 
   /** Which type (child category) a product belongs to: from its category path, else from its text. */
@@ -266,8 +302,21 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
     [liveProducts] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
+  // Tiles: child categories, or (brand mode) the brands on sale, most products first.
+  const TILES: DepartmentType[] = useMemo(() => {
+    const all = { slug: 'all', name: config.allLabel, icon: LayoutGrid } as DepartmentType;
+    if (!brandMode) return [all, ...config.types];
+    const byBrand = new Map<string, number>();
+    products.forEach((p) => p.brand && byBrand.set(p.brand, (byBrand.get(p.brand) || 0) + 1));
+    const brandsOnSale = Array.from(byBrand.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([name]) => ({ slug: `${BRAND_PREFIX}${name}`, name, icon: config.brandIcon || LayoutGrid }));
+    return [all, ...brandsOnSale];
+  }, [products]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = { all: products.length };
+    if (brandMode) products.forEach((p) => (counts[`${BRAND_PREFIX}${p.brand}`] = (counts[`${BRAND_PREFIX}${p.brand}`] || 0) + 1));
     products.forEach((p) => {
       const t = typeOf(p);
       if (t) counts[t] = (counts[t] || 0) + 1;
@@ -288,11 +337,12 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   // Attribute facets appear once a type is chosen (like Amazon): the fields of the templates its products use.
   // Each facet belongs to one template, so a product only matches facets of its own template.
   type Facet = { id: string; tpl: AttributeTemplate; def: AttributeDef; title: string };
+  const inTypeScope = (p: CategoryProductItem) => type === 'all' || typeOf(p) === type;
   const attributeDefs: Facet[] = (() => {
-    if (type === 'all') return [];
+    if (type === 'all' && !config.facetsForAll) return [];
     const templates: AttributeTemplate[] = [];
     products
-      .filter((p) => typeOf(p) === type)
+      .filter(inTypeScope)
       .forEach((p) => {
         const t = templateOf(p);
         if (t && !templates.some((x) => x.id === t.id)) templates.push(t);
@@ -390,7 +440,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
       const { def } = facet;
       const base = applyFilters(products, `attr:${facet.id}`);
       const allOptions = def.type === 'enum' ? def.options : def.buckets.map((b) => b.label);
-      const inType = products.filter((p) => typeOf(p) === type);
+      const inType = products.filter(inTypeScope);
       const selected = attrFilters[facet.id] || [];
       const options = allOptions
         .filter((o) => selected.includes(o) || inType.some((p) => facetOptionsOf(p, facet).includes(o)))
@@ -501,6 +551,30 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   };
 
   const brandCount = new Set(products.map((p) => p.brand).filter(Boolean)).size;
+
+  // A real product photo for each tile (link tiles use the products on the page they open).
+  const tileImage = (slug: string, href?: string): string | undefined => {
+    if (slug === 'all') return undefined;
+    if (slug.startsWith(BRAND_PREFIX)) {
+      const b = slug.slice(BRAND_PREFIX.length);
+      return products.find((p) => p.brand === b && p.image)?.image;
+    }
+    const pool = href ? liveProducts.filter((p) => pathOf(p).includes(slug)) : products.filter((p) => typeOf(p) === slug);
+    return pool.find((p) => p.image)?.image;
+  };
+
+  // The hero shows one real listing with its real specs, from the chosen category (all when none is
+  // chosen): the in-stock one with the most detail. An empty category shows no card.
+  const spotlight = useMemo(() => {
+    const inScope = products.filter(
+      (p) => inTypeScope(p) && (!brandMode || brands.length === 0 || brands.includes(p.brand))
+    );
+    const withImage = inScope.filter((p) => p.image);
+    const pool = withImage.filter((p) => p.inStock).length > 0 ? withImage.filter((p) => p.inStock) : withImage;
+    return [...pool].sort((a, b) => specRowsOf(b).length - specRowsOf(a).length)[0] || null;
+  }, [products, type, brands]); // eslint-disable-line react-hooks/exhaustive-deps
+  const spotlightSpecs = spotlight ? specRowsOf(spotlight).slice(0, 5) : [];
+  const spotlightType = spotlight ? TILES.find((t) => t.slug === typeOf(spotlight))?.name : undefined;
   const selectedTypeName = TILES.find((t) => t.slug === type)?.name;
 
   /* ----------------------------- Filters panel ----------------------------- */
@@ -652,16 +726,18 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   /* --------------------------------- View --------------------------------- */
   return (
     <div className="min-h-screen bg-[#F5F6F7] text-[#0F1111]">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-stone-200 bg-white">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_20rem_at_85%_-10%,rgba(0,113,133,0.10),transparent),radial-gradient(40rem_16rem_at_0%_120%,rgba(255,216,20,0.14),transparent)]"
-        />
-        <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 pb-6">
+      {/* Hero: what the department holds, and one real listing with its real specs */}
+      <section className="border-b border-stone-200 bg-white">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-4 pb-8">
           <nav aria-label="Breadcrumb" className="text-xs text-stone-500 flex items-center gap-1.5">
             <Link href="/" className="hover:text-[#007185] hover:underline">Home</Link>
             <ChevronRight className="h-3 w-3" />
+            {config.parent && (
+              <>
+                <Link href={config.parent.href} className="hover:text-[#007185] hover:underline">{config.parent.label}</Link>
+                <ChevronRight className="h-3 w-3" />
+              </>
+            )}
             <Link href={config.basePath} className="hover:text-[#007185] hover:underline">{config.title}</Link>
             {type !== 'all' && (
               <>
@@ -671,53 +747,103 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
             )}
           </nav>
 
-          <div className="mt-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#007185]">{config.eyebrow}</p>
-              <h1 className="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight font-headline">{config.title}</h1>
-              <p className="mt-2 max-w-xl text-sm text-stone-600">{config.description}</p>
+          <div className="mt-6 grid gap-8 lg:grid-cols-12 lg:items-center">
+            <div className={spotlight ? 'lg:col-span-6 xl:col-span-7' : 'lg:col-span-12'}>
+              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight font-headline leading-[1.05]">
+                {config.title}
+              </h1>
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-stone-600">{config.description}</p>
+              {!isLoading && products.length > 0 && (
+                <p className="mt-4 text-sm text-stone-500">
+                  <span className="font-semibold text-[#0F1111]">{products.length}</span>{' '}
+                  {products.length === 1 ? 'product' : 'products'} from{' '}
+                  <span className="font-semibold text-[#0F1111]">{brandCount}</span> {brandCount === 1 ? 'brand' : 'brands'}
+                </p>
+              )}
             </div>
-            {!isLoading && products.length > 0 && (
-              <dl className="flex gap-6 text-sm">
-                <div>
-                  <dt className="text-xs text-stone-500">Products</dt>
-                  <dd className="text-xl font-extrabold tabular-nums">{products.length}</dd>
+
+            {spotlight && (
+              <Link
+                href={`/products/${spotlight.slug}`}
+                className="group lg:col-span-6 xl:col-span-5 grid grid-cols-1 sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] overflow-hidden rounded-3xl border border-stone-200 bg-[#F7F8F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007185]"
+              >
+                <div className="relative bg-white aspect-[16/10] sm:aspect-auto">
+                  <Image
+                    src={spotlight.image}
+                    alt={spotlight.title}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 1024px) 45vw, 260px"
+                    className="object-contain p-5 transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                  />
                 </div>
-                <div>
-                  <dt className="text-xs text-stone-500">Brands</dt>
-                  <dd className="text-xl font-extrabold tabular-nums">{brandCount}</dd>
+                <div className="flex flex-col p-5 min-w-0">
+                  <p className="text-xs font-semibold text-[#007185]">
+                    {`${
+                      spotlightType && spotlightType !== config.allLabel
+                        ? spotlightType
+                        : nounOne.charAt(0).toUpperCase() + nounOne.slice(1)
+                    } by ${spotlight.brand}`}
+                  </p>
+                  <p className="mt-1 text-[15px] font-bold leading-snug line-clamp-2 group-hover:underline">{spotlight.title}</p>
+                  {spotlightSpecs.length > 0 && (
+                    <dl className="mt-3 space-y-1.5 text-[13px]">
+                      {spotlightSpecs.map((r) => (
+                        <div key={r.label} className="flex items-baseline justify-between gap-3 border-b border-dashed border-stone-300 pb-1">
+                          <dt className="text-stone-500 shrink-0">{r.label}</dt>
+                          <dd className="font-semibold text-right truncate">{r.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                  <p className="mt-auto pt-4 flex items-baseline gap-2">
+                    <span className="text-2xl font-extrabold tabular-nums">{formatINR(spotlight.price)}</span>
+                    {spotlight.originalPrice > spotlight.price && (
+                      <span className="text-xs text-stone-500 line-through tabular-nums">{formatINR(spotlight.originalPrice)}</span>
+                    )}
+                  </p>
+                  <span className="mt-2 text-[13px] font-semibold text-[#007185]">See full specs</span>
                 </div>
-              </dl>
+              </Link>
             )}
           </div>
 
-          {/* Category tiles */}
-          <div className="mt-6 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+          {/* Category tiles with real product photos */}
+          <div className="mt-8 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
             <div
-              className={`grid grid-flow-col auto-cols-[minmax(150px,1fr)] sm:grid-flow-row sm:grid-cols-3 gap-3 ${
-                TILES.length > 6 ? 'lg:grid-cols-4 xl:grid-cols-8' : 'lg:grid-cols-6'
+              className={`grid grid-flow-col auto-cols-[140px] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-4 gap-3 ${
+                TILES.length > 6 ? 'lg:grid-cols-8' : 'lg:grid-cols-6'
               }`}
             >
               {TILES.map(({ slug, name, icon: Icon, href }) => {
-                const selected = type === slug;
+                const isBrandTile = slug.startsWith(BRAND_PREFIX);
+                const selected = brandMode
+                  ? slug === 'all'
+                    ? brands.length === 0
+                    : brands.length === 1 && brands[0] === name
+                  : type === slug;
                 const count = typeCounts[slug] || 0;
-                const tileClass = `group flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-all ${
-                  selected
-                    ? 'border-[#007185] bg-[#007185] text-white shadow-md shadow-[#007185]/20'
-                    : 'border-stone-200 bg-white hover:border-[#007185]/50 hover:shadow-sm'
+                const img = tileImage(slug, href);
+                const tileClass = `group flex flex-col overflow-hidden rounded-2xl border bg-white text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007185] ${
+                  selected ? 'border-[#007185] ring-2 ring-[#007185]' : 'border-stone-200 hover:border-[#007185]/60'
                 }`;
                 const inner = (
                   <>
-                    <span
-                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                        selected ? 'bg-white/15' : 'bg-[#007185]/[0.08] text-[#007185] group-hover:bg-[#007185]/[0.14]'
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
+                    <span className={`relative block aspect-[4/3] ${img ? 'bg-white' : 'bg-[#007185]/[0.06]'}`}>
+                      {img ? (
+                        <Image src={img} alt="" fill unoptimized sizes="160px" className="object-contain p-3" />
+                      ) : (
+                        <span className="absolute inset-0 grid place-items-center text-[#007185]">
+                          <Icon className="h-8 w-8" strokeWidth={1.5} />
+                        </span>
+                      )}
                     </span>
-                    <span className="min-w-0">
-                      <span className="block text-[13px] font-bold leading-tight">{name}</span>
-                      <span className={`block text-xs mt-0.5 ${selected ? 'text-white/80' : 'text-stone-500'}`}>
+                    <span className="block border-t border-stone-100 px-3 py-2.5">
+                      <span className="block text-[13px] font-bold leading-tight">
+                        {name}
+                        {href && <span className="sr-only"> (opens the {name} page)</span>}
+                      </span>
+                      <span className="block text-xs mt-0.5 text-stone-500">
                         {isLoading ? '…' : count > 0 ? `${count} product${count === 1 ? '' : 's'}` : 'Coming soon'}
                         {href && <span aria-hidden="true"> ↗</span>}
                       </span>
@@ -733,7 +859,12 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
                     key={slug}
                     type="button"
                     aria-pressed={selected}
-                    onClick={() => setUrlParam('subcategory', slug === 'all' ? null : slug)}
+                    onClick={() => {
+                      if (!brandMode) return setUrlParam('subcategory', slug === 'all' ? null : slug);
+                      // Brand tiles pick one brand (or all), mirrored in the URL so the page can be shared.
+                      setBrands(isBrandTile ? [name] : []);
+                      setUrlParam('brand', isBrandTile ? name : null);
+                    }}
                     className={tileClass}
                   >
                     {inner}

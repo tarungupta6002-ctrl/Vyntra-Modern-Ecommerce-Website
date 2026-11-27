@@ -8,7 +8,6 @@ import { DEPARTMENT_WORDS } from '@/lib/search';
 const ELECTRONICS: DepartmentConfig = {
   departmentSlug: 'electronics',
   basePath: '/electronics',
-  eyebrow: 'Tech & gadgets',
   title: 'Electronics',
   description:
     'Laptops, audio, smartwatches, tablets, gaming gear and cameras from verified sellers. Compare specs and prices in one place.',

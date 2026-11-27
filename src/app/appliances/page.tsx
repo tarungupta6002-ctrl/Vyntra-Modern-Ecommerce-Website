@@ -8,7 +8,6 @@ import { DEPARTMENT_WORDS } from '@/lib/search';
 const APPLIANCES: DepartmentConfig = {
   departmentSlug: 'appliances',
   basePath: '/appliances',
-  eyebrow: 'Home & kitchen',
   title: 'Appliances',
   description:
     'Refrigerators, washing machines, air conditioners and kitchen appliances from verified sellers. Compare energy ratings, prices and specs in one place.',
