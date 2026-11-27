@@ -509,10 +509,10 @@ export default function CheckoutPage() {
       // Step 2: Open Official Razorpay Checkout Modal
       const rawPhone = activeAddress.phone || userPhone || '';
       const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
-      const customerEmail = userEmail || 'customer@vyntra.luxury';
+      const customerEmail = userEmail || undefined;
 
       const prefillData: any = {
-        name: activeAddress.name || 'Valued Patron',
+        name: activeAddress.name || undefined,
         contact: cleanPhone ? cleanPhone : undefined,
         email: customerEmail,
       };

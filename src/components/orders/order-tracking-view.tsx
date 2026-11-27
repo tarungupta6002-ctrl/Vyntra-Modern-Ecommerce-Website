@@ -67,13 +67,7 @@ export function OrderTrackingView({
 
   // Modals
   const [copiedAwb, setCopiedAwb] = useState(false);
-  const [instructionModalOpen, setInstructionModalOpen] = useState(false);
-  const [selectedInstruction, setSelectedInstruction] = useState('Hand over directly to recipient');
-  const [customInstruction, setCustomInstruction] = useState('');
-  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState('Tomorrow, 10 AM - 2 PM');
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-  const [verifyCertModalOpen, setVerifyCertModalOpen] = useState(false);
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedReturnItem, setSelectedReturnItem] = useState<any>(null);
 
@@ -200,7 +194,7 @@ export function OrderTrackingView({
             originalPrice: Number(it.originalPrice || it.price || 0),
             discount: it.discount || '',
             image: it.image,
-            sellerName: it.sellerName || it.vendorName || 'Vyntra Royal Atelier',
+            sellerName: it.sellerName || it.vendorName || 'Seller',
             shippingMethod: remoteOrder.courierPartner || 'Courier not assigned yet',
           })) || [],
         shippingAddress: remoteOrder.shippingAddress
@@ -223,8 +217,8 @@ export function OrderTrackingView({
   const isRealOrder = Boolean(remoteOrder);
 
   // User details for sidebar
-  const customerName = profileStore.fullName && profileStore.fullName !== 'Patron' ? profileStore.fullName : 'Customer';
-  const customerEmail = profileStore.email && !profileStore.email.includes('patron@vyntra') ? profileStore.email : 'customer@vyntra.luxury';
+  const customerName = profileStore.fullName || 'Customer';
+  const customerEmail = profileStore.email || '';
 
   const userInitials = customerName
     ? customerName
@@ -246,17 +240,6 @@ export function OrderTrackingView({
     setCopiedAwb(true);
     showToast(`AWB Tracking Number copied: ${code}`, 'success');
     setTimeout(() => setCopiedAwb(false), 2000);
-  };
-
-  const handleSaveInstructions = () => {
-    const text = customInstruction.trim() || selectedInstruction;
-    showToast(`Instruction saved: "${text}" will be relayed to courier partner.`, 'success');
-    setInstructionModalOpen(false);
-  };
-
-  const handleConfirmReschedule = () => {
-    showToast(`Delivery window preference saved for ${selectedSlot}.`, 'success');
-    setRescheduleModalOpen(false);
   };
 
   const handleSelectOrSearchOrder = (idToTrack: string) => {
@@ -434,23 +417,23 @@ export function OrderTrackingView({
             id: 1,
             title: 'Order Confirmed',
             timestamp: order.datePlaced,
-            location: 'Vyntra Order Verification Desk',
-            description: 'Order confirmed and registered with the fulfillment artisan atelier.',
+            location: 'Vyntra',
+            description: 'We received your order and sent it to the seller.',
             status: 'completed' as const,
           },
           {
             id: 2,
-            title: 'Artisan Crafting & Packaging',
+            title: 'Seller preparing your package',
             timestamp: order.status === 'processing' ? 'In Progress' : order.datePlaced,
-            location: order.items[0]?.sellerName || 'Artisan Atelier',
-            description: 'Handcrafted items inspected for quality certification and prepared in tamper-evident sealing.',
+            location: order.items[0]?.sellerName || 'Seller',
+            description: 'The seller is packing your items for dispatch.',
             status: (order.status === 'processing' ? 'current' : ['shipped', 'out_for_delivery', 'delivered'].includes(order.status) || order.rawStatus === 'OUT_FOR_DELIVERY' ? 'completed' : 'upcoming') as any,
           },
           {
             id: 3,
-            title: 'Dispatched to Courier Partner',
+            title: 'Shipped',
             timestamp: hasTracking ? `AWB: ${order.trackingNumber || order.awb}` : 'Pending Dispatch',
-            location: order.courierPartner || 'Logistics Partner',
+            location: order.courierPartner || 'Courier',
             description: order.courierPartner
               ? `Consignment handed over to ${order.courierPartner}.`
               : 'Courier and tracking ID will appear once your order is dispatched.',
@@ -461,16 +444,16 @@ export function OrderTrackingView({
             id: 4,
             title: 'Out for Delivery',
             timestamp: order.status === 'out_for_delivery' || order.rawStatus === 'OUT_FOR_DELIVERY' ? 'Today' : 'Upcoming',
-            location: order.shippingAddress?.cityStateZip?.split(',')[0] || 'Local Logistics Hub',
-            description: 'Local delivery partner departs from regional logistics hub for doorstep handover.',
+            location: order.shippingAddress?.cityStateZip?.split(',')[0] || 'Your city',
+            description: 'The courier is on the way to your address.',
             status: (order.status === 'out_for_delivery' || order.rawStatus === 'OUT_FOR_DELIVERY' ? 'current' : order.status === 'delivered' ? 'completed' : 'upcoming') as any,
           },
           {
             id: 5,
-            title: 'Delivered to Doorstep',
+            title: 'Delivered',
             timestamp: order.deliveredDate || (order.status === 'delivered' ? 'Delivered' : 'Pending'),
             location: order.shippingAddress?.name || 'Customer Address',
-            description: 'Package successfully delivered and received with authentication.',
+            description: 'Your package was delivered.',
             status: (order.status === 'delivered' ? 'completed' : 'upcoming') as any,
           },
         ];
@@ -558,10 +541,6 @@ export function OrderTrackingView({
                     </span>
                     <span className="text-xs text-[#565959] truncate">
                       {customerEmail}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#B12704] mt-0.5">
-                      <Sparkles className="h-3 w-3 text-[#FF9900]" />
-                      {profileStore.tier || 'Royal Member'}
                     </span>
                   </div>
                 </div>
@@ -784,7 +763,7 @@ export function OrderTrackingView({
                           </span>
                         </div>
                         <p className="text-xs font-bold text-[#007185] truncate mt-1">
-                          {shp.vendor?.storeName || 'Artisan Atelier'}
+                          {shp.vendor?.storeName || 'Seller'}
                         </p>
                         <p className="text-[10px] text-[#565959] mt-0.5 font-mono">
                           {shp.trackingNumber ? `AWB: ${shp.trackingNumber}` : 'Pending Dispatch'}
@@ -1063,7 +1042,7 @@ export function OrderTrackingView({
                           ? 'Dispatched / In Transit'
                           : order.status === 'cancelled'
                           ? 'Cancelled'
-                          : 'At Artisan Atelier'}
+                          : 'With the seller'}
                       </span>
                     </div>
                     <div className="w-full bg-[#e2e7ff] rounded-full h-2 overflow-hidden">
@@ -1084,7 +1063,7 @@ export function OrderTrackingView({
                       />
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-[#565959]">
-                      <span>Seller Atelier</span>
+                      <span>Seller</span>
                       <span className="font-bold text-[#904d00]">
                         {order.status === 'delivered'
                           ? 'Completed'
@@ -1216,46 +1195,9 @@ export function OrderTrackingView({
 
                 {/* Shipment Management Options (Self-Service Hub) */}
                 <div className="bg-white rounded-2xl p-6 shadow-md border border-[#D5D9D9] flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-headline font-bold text-[#0F1111]">
-                      Shipment Management Options
-                    </h3>
-                    <span className="text-xs text-[#565959]">Self-Service Hub</span>
-                  </div>
+                  <h3 className="text-sm font-headline font-bold text-[#0F1111]">Need help with this order?</h3>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setInstructionModalOpen(true)}
-                      className="p-4 rounded-xl bg-[#F7F8F8] hover:bg-[#D5D9D9] flex flex-col gap-2 text-left transition-all group border border-[#D5D9D9]"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-white text-[#007185] flex items-center justify-center group-hover:bg-[#007185] group-hover:text-white transition-all shadow-sm">
-                        <Edit3 className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-headline font-bold text-[#0F1111]">
-                        Special Delivery Note
-                      </span>
-                      <span className="text-[11px] text-[#444653] leading-tight">
-                        Leave at door, gate code, or neighbor drop-off
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRescheduleModalOpen(true)}
-                      className="p-4 rounded-xl bg-[#F7F8F8] hover:bg-[#D5D9D9] flex flex-col gap-2 text-left transition-all group border border-[#D5D9D9]"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-white text-[#007185] flex items-center justify-center group-hover:bg-[#007185] group-hover:text-white transition-all shadow-sm">
-                        <Calendar className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-headline font-bold text-[#0F1111]">
-                        Reschedule Slot
-                      </span>
-                      <span className="text-[11px] text-[#444653] leading-tight">
-                        Pick an alternate date or custom evening slot
-                      </span>
-                    </button>
-
+                  <div className="grid grid-cols-1 gap-3">
                     <Link
                       href={`/support?topic=DELIVERY&order=${encodeURIComponent(order.orderNumber)}#support-contact-form`}
                       className="p-4 rounded-xl bg-[#F7F8F8] hover:bg-[#D5D9D9] flex flex-col gap-2 text-left transition-all group border border-[#D5D9D9]"
@@ -1291,7 +1233,7 @@ export function OrderTrackingView({
                             Return or Exchange Item
                           </span>
                           <span className="text-[11px] text-amber-700">
-                            Delivered to doorstep • 7-day hassle-free returns &amp; size exchanges
+                            Eligible items can be returned within 7 days of delivery
                           </span>
                         </div>
                       </div>
@@ -1417,11 +1359,11 @@ export function OrderTrackingView({
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-[#444653]">
-                      <span>Packaging &amp; Courier Fee</span>
+                      <span>Packaging &amp; other fees</span>
                       <span className="text-[#904d00] font-semibold">
                         {Number(order.totalAmount) > Number(order.subtotal || 0)
                           ? formatINR(Number(order.totalAmount) - Number(order.subtotal || 0))
-                          : 'FREE (Complimentary)'}
+                          : 'None'}
                       </span>
                     </div>
                     <div className="h-px bg-[#dae2fd] my-1" />
@@ -1440,193 +1382,17 @@ export function OrderTrackingView({
                           ? 'bg-amber-100 text-amber-900 border border-amber-300'
                           : 'bg-[#dae2fd] text-[#007185]'
                       }`}>
-                        {(order as any).paymentMethod === 'COD' ? 'CASH ON DELIVERY (COD)' : '100% PREPAID'}
+                        {(order as any).paymentMethod === 'COD' ? 'CASH ON DELIVERY (COD)' : 'PAID ONLINE'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Vyntra Royal Authenticity Guarantee Card */}
-                <div className="bg-gradient-to-br from-[#007185] to-[#004B57] text-white rounded-2xl p-6 shadow-md flex flex-col gap-4 relative overflow-hidden">
-                  <div className="absolute -right-10 -bottom-10 w-36 h-36 bg-white/10 rounded-full blur-2xl" />
-                  <div className="flex items-center gap-3 relative z-10">
-                    <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-headline font-bold text-white">
-                        Vyntra Royal Authenticity Guarantee
-                      </span>
-                      <span className="text-[11px] text-white/80">
-                        100% Genuine Handcrafted Pieces
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-white/90 leading-relaxed font-body relative z-10">
-                    Every artisanal item in this order undergoes rigorous quality verification at verified ateliers prior to tamper-sealed dispatch.
-                  </p>
-                  <div className="flex items-center justify-between text-[11px] pt-1 text-white/80 relative z-10">
-                    <span>Certificate ID: #VYN-{order.orderNumber.replace(/[^a-zA-Z0-9]/g, '')}</span>
-                    <button
-                      type="button"
-                      onClick={() => setVerifyCertModalOpen(true)}
-                      className="underline hover:text-white font-semibold transition-colors"
-                    >
-                      Verify Certificate
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </main>
         </div>
       </div>
-
-      {/* ========================================================= */}
-      {/* MODAL 1: Special Delivery Instructions Modal */}
-      {/* ========================================================= */}
-      {instructionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 border border-[#D5D9D9]">
-            <div className="flex items-center justify-between">
-              <h4 className="text-base font-headline font-bold text-[#0F1111]">
-                Delivery Instructions
-              </h4>
-              <button
-                type="button"
-                onClick={() => setInstructionModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#F7F8F8] text-[#565959]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <p className="text-xs text-[#444653]">
-              Select delivery instructions to transmit to the courier partner upon dispatch:
-            </p>
-            <div className="flex flex-col gap-2">
-              {[
-                'Hand over directly to recipient',
-                'Leave package with building security gate',
-                'Do not ring doorbell (Baby sleeping)',
-                'Call before arriving at doorstep',
-              ].map((opt) => (
-                <label
-                  key={opt}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                    selectedInstruction === opt
-                      ? 'bg-[#F7F8F8] border-[#007185] text-[#007185]'
-                      : 'bg-white border-[#D5D9D9] text-[#0F1111] hover:bg-[#F7F8F8]'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="delivery-instruction"
-                    checked={selectedInstruction === opt}
-                    onChange={() => setSelectedInstruction(opt)}
-                    className="text-[#007185] focus:ring-0"
-                  />
-                  <span className="text-xs font-semibold">{opt}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-1 mt-1">
-              <span className="text-xs font-bold text-[#0F1111]">Add custom note:</span>
-              <input
-                type="text"
-                placeholder="e.g. Leave with security desk if unavailable"
-                value={customInstruction}
-                onChange={(e) => setCustomInstruction(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-[#c4c5d5] focus:outline-none focus:border-[#007185]"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D5D9D9]">
-              <button
-                type="button"
-                onClick={() => setInstructionModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-[#444653] hover:bg-[#F7F8F8] rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveInstructions}
-                className="px-4 py-2 text-xs font-semibold bg-[#007185] text-white hover:bg-[#004B57] rounded-lg shadow-sm"
-              >
-                Save Instructions
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* MODAL 2: Reschedule Delivery Modal */}
-      {/* ========================================================= */}
-      {rescheduleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 border border-[#D5D9D9]">
-            <div className="flex items-center justify-between">
-              <h4 className="text-base font-headline font-bold text-[#0F1111]">
-                Delivery Preference Window
-              </h4>
-              <button
-                type="button"
-                onClick={() => setRescheduleModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#F7F8F8] text-[#565959]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <p className="text-xs text-[#444653]">
-              Select your preferred arrival slot once your consignment is dispatched:
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                { day: 'Morning', date: '9:00 AM – 1:00 PM' },
-                { day: 'Afternoon', date: '1:00 PM – 5:00 PM' },
-                { day: 'Evening', date: '5:00 PM – 8:00 PM' },
-                { day: 'Weekend Only', date: 'Saturday & Sunday' },
-              ].map((slot) => {
-                const label = `${slot.day} (${slot.date})`;
-                const isSelected = selectedSlot === label;
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => setSelectedSlot(label)}
-                    className={`p-3 rounded-xl text-left border transition-all ${
-                      isSelected
-                        ? 'bg-[#007185] text-white border-[#007185] shadow-sm'
-                        : 'bg-[#F7F8F8] hover:bg-[#D5D9D9] border-[#D5D9D9] text-[#0F1111]'
-                    }`}
-                  >
-                    <span className="block text-xs font-bold">{slot.day}</span>
-                    <span className="text-[11px] opacity-80">{slot.date}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D5D9D9]">
-              <button
-                type="button"
-                onClick={() => setRescheduleModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-[#444653] hover:bg-[#F7F8F8] rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReschedule}
-                className="px-4 py-2 text-xs font-semibold bg-[#FF9900] text-white hover:bg-[#e07f20] rounded-lg shadow-sm"
-              >
-                Save Preference
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================= */}
       {/* MODAL 3: Invoice Modal */}
@@ -1694,64 +1460,6 @@ export function OrderTrackingView({
                 <FileText className="h-4 w-4" />
                 <span>Open &amp; Print Official Invoice</span>
               </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* MODAL 5: Authenticity Certificate Modal */}
-      {/* ========================================================= */}
-      {verifyCertModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 border border-[#D5D9D9]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-[#FF9900]" />
-                <h4 className="text-base font-headline font-bold text-[#0F1111]">
-                  Vyntra Authenticity Certificate
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setVerifyCertModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[#F7F8F8] text-[#565959]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-[#F7F8F8] rounded-xl border border-[#D5D9D9] flex flex-col gap-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-[#565959]">Certificate ID:</span>
-                <span className="font-mono font-bold text-[#007185]">
-                  #VYN-{order.orderNumber.replace(/[^a-zA-Z0-9]/g, '')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#565959]">Artisan Atelier:</span>
-                <span className="font-semibold text-[#0F1111]">
-                  {order.items[0]?.sellerName || 'Vyntra Royal Atelier'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#565959]">Inspection Status:</span>
-                <span className="font-bold text-emerald-700">Verified &amp; Quality Certified</span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-[#444653] leading-relaxed">
-              This certificate affirms that every item in this order has been verified for textile purity and artisanal authenticity.
-            </p>
-
-            <div className="flex items-center justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setVerifyCertModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold bg-[#007185] text-white hover:bg-[#004B57] rounded-lg shadow-sm"
-              >
-                Understood
-              </button>
             </div>
           </div>
         </div>

@@ -225,7 +225,7 @@ export function CustomerDisputeModal({
             <ShieldAlert className="h-5 w-5 text-amber-400" />
             <div>
               <h2 id="customer-dispute-heading" className="text-base font-bold tracking-wide">
-                Raise Return Dispute — Concierge Arbitration
+                Dispute the return decision
               </h2>
               <p className="text-[11px] text-amber-200/80">
                 Order #{order.orderNumber} • Return #{returnRequest.id.slice(-8)}
@@ -392,11 +392,11 @@ export function CustomerDisputeModal({
               ))}
             </div>
 
-            {/* Concierge Guarantee Notice */}
+            {/* Review notice */}
             <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg flex items-start gap-2.5 text-xs text-amber-900">
               <CheckCircle2 className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
-                Vyntra Concierge Arbitration independently audits vendor quality inspection photographs and physical return records. Determinations are issued within 24–48 business hours.
+                Our team reviews the seller's inspection notes and photos along with what you send, then decides. You'll see the decision on this return.
               </p>
             </div>
           </div>

@@ -628,7 +628,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                           {item.shippingMethod || (order as any).courierPartner || 'Courier not assigned yet'}
                         </span>
                         <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
-                          Seller: {item.sellerName || (item as any).vendorName || 'Vyntra Atelier'}
+                          Seller: {item.sellerName || (item as any).vendorName || 'Seller'}
                         </span>
                       </div>
                     </div>
@@ -827,7 +827,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                                       })
                                     }
                                     className="text-xs font-bold text-white bg-amber-800 hover:bg-amber-900 px-3 py-1.5 rounded-md transition-all shadow-sm flex items-center gap-1.5"
-                                    title="File formal dispute for Concierge arbitration"
+                                    title="Dispute the seller's decision"
                                   >
                                     <ShieldAlert className="h-3.5 w-3.5 text-amber-300" />
                                     <span>Raise Dispute</span>
@@ -1000,7 +1000,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
                   >
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span className="text-primary">
-                        Package {sIdx + 1}: {shp.vendor?.storeName || 'Artisan Atelier'}
+                        Package {sIdx + 1}: {shp.vendor?.storeName || 'Seller'}
                       </span>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full ${
@@ -1627,7 +1627,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
         />
       )}
 
-      {/* Concierge Dispute Filing Modal */}
+      {/* Dispute Filing Modal */}
       {disputeModal && (
         <CustomerDisputeModal
           isOpen={true}
@@ -1637,7 +1637,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
           onClose={() => setDisputeModal(null)}
           onSuccess={() => {
             showToast(
-              'Dispute submitted successfully. Vyntra Concierge Arbitration will review records within 24-48 hrs.',
+              'Dispute submitted. Our team will review it and reply in your account.',
               'success'
             );
             fetchOrders({ page: currentPage, status: selectedStatus, search: searchQuery });

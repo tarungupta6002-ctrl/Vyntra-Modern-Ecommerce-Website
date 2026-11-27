@@ -556,7 +556,7 @@ export function formatDetailedProduct(product: any): DetailedProduct {
 
   const reviewsList = (product.reviews || []).map((r: any) => ({
     id: r.id,
-    author: r.user?.name || 'Verified Patron',
+    author: r.user?.name || 'Vyntra customer',
     initials: (r.user?.name || 'VP')
       .split(' ')
       .map((s: string) => s[0])

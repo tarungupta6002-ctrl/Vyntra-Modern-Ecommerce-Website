@@ -219,7 +219,7 @@ export function CustomerReviewsView() {
             My Product Reviews
           </h2>
           <p className="text-xs text-on-surface-variant mt-0.5">
-            Manage your submitted ratings, patron feedback, and moderation statuses
+            Your reviews and whether they are published
           </p>
         </div>
         <div className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">

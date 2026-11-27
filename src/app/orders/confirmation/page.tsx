@@ -168,7 +168,7 @@ function OrderConfirmationContent() {
                   <MapPin className="h-4 w-4 text-on-surface-variant shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-on-surface block">
-                      {order?.shippingAddress?.fullName || 'Valued Patron'}
+                      {order?.shippingAddress?.fullName || ''}
                     </span>
                     <p className="text-on-surface-variant mt-0.5 leading-relaxed">
                       {order?.shippingAddress

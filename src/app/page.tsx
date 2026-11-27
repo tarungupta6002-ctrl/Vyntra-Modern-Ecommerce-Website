@@ -996,7 +996,7 @@ export default function VyntraHomepage() {
             <div>
               <h4 className="text-sm font-bold text-on-surface">Secure UPI &amp; Cards</h4>
               <p className="text-xs text-on-surface-variant mt-1">
-                256-bit encrypted checkout with Google Pay, PhonePe, Paytm, and all major Indian cards.
+                Pay by UPI, cards or net banking through Razorpay, or Cash on Delivery.
               </p>
             </div>
           </div>
@@ -1040,73 +1040,25 @@ export default function VyntraHomepage() {
       </section>
 
       {/* ======================================================== */}
-      {/* 9. VIP CLUB NEWSLETTER & PROMO COPY */}
+      {/* 9. FIRST ORDER COUPON (the one checkout actually accepts) */}
       {/* ======================================================== */}
-      <section className="reveal-on-scroll w-full max-w-[1360px] mx-auto px-4 lg:px-10 py-10 mb-8">
-        <div className="bg-gradient-to-br from-[#0F2756] via-[#1A3A78] to-[#1E3A8A] text-white rounded-2xl p-6 lg:p-12 shadow-xl relative overflow-hidden">
-          <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-primary rounded-full blur-3xl opacity-40 pointer-events-none" />
-          <div className="absolute top-0 right-1/3 w-64 h-64 bg-secondary-container rounded-full blur-3xl opacity-20 pointer-events-none" />
-
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            <div className="lg:col-span-7">
-              <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 rounded-md text-[11px] text-amber-300 mb-3 border border-white/15">
-                <Sparkles className="h-4 w-4 text-amber-400" />
-                <span className="font-bold tracking-wide">VYNTRA Insider Club</span>
-              </div>
-
-              <h2 className="font-display text-3xl sm:text-4xl leading-tight font-extrabold text-white mb-2">
-                Get the Good Stuff First.
-              </h2>
-              <p className="text-sm sm:text-base text-blue-100/90 max-w-lg">
-                Join 120,000+ design lovers receiving private Friday drops, artisan spotlight edits, and unannounced sale alerts.
-              </p>
-
-              {/* Click-to-copy Coupon Strip */}
-              <div
-                onClick={() => handleCopyCoupon('FIRST15')}
-                className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-lg border border-white/15 hover:bg-white/20 transition-all cursor-pointer group active:scale-95 select-none"
-              >
-                <span className="text-xs text-amber-300 font-bold">First Order Benefit:</span>
-                <span className="text-xs font-mono bg-amber-400 text-slate-900 px-2 py-0.5 rounded font-extrabold shadow-sm flex items-center gap-1">
-                  FIRST15
-                  <Copy className="h-3 w-3 opacity-70" />
-                </span>
-                <span className="text-[11px] text-blue-100/90 font-medium">
-                  flat 15% instant off (Click to copy)
-                </span>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  showToast(
-                    'Welcome to the VIP Club! Use code FIRST15 on checkout.',
-                    'celebration'
-                  );
-                }}
-                className="flex flex-col sm:flex-row gap-2"
-              >
-                <input
-                  type="email"
-                  placeholder="Enter your email or WhatsApp number"
-                  required
-                  className="flex-1 h-12 bg-surface-container-lowest text-on-surface px-4 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary-container shadow-md"
-                />
-                <button
-                  type="submit"
-                  className="h-12 px-6 bg-secondary-container hover:bg-secondary text-white text-sm font-bold rounded-lg shadow-md transition-all duration-200 active:scale-95 whitespace-nowrap flex items-center justify-center gap-1.5 group"
-                >
-                  <span>Join Club</span>
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-                </button>
-              </form>
-              <p className="text-[10px] text-blue-200/70 mt-2">
-                Zero spam. One weekly email every Thursday evening. Unsubscribe with 1-click anytime.
-              </p>
-            </div>
+      <section className="w-full max-w-[1360px] mx-auto px-4 lg:px-10 py-10 mb-8">
+        <div className="rounded-2xl border border-[#D5D9D9] bg-white p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#0F1111]">10% off your first order</h2>
+            <p className="mt-1 text-sm text-[#565959] max-w-xl">
+              Use code VYNTRAFIRST at checkout on your first order of ₹1,499 or more. Maximum discount ₹1,000.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={() => handleCopyCoupon('VYNTRAFIRST')}
+            className="inline-flex items-center gap-2 self-start md:self-auto rounded-lg border-2 border-dashed border-[#007185] bg-[#F0F8F9] px-4 py-2.5 font-mono text-sm font-bold text-[#0F1111] hover:bg-[#E3F1F3]"
+          >
+            VYNTRAFIRST
+            <Copy className="h-4 w-4 text-[#007185]" />
+            <span className="sr-only">Copy code</span>
+          </button>
         </div>
       </section>
 

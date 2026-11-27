@@ -1006,7 +1006,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               >
                 {isBook
                   ? `by ${product.brand} (Author)`
-                  : `Visit the ${product.brand} ${isAppliance ? 'Appliances Store' : isMobileOrElectronic ? 'Official Store' : 'Atelier Store'}`}
+                  : `Visit the ${product.brand} ${isAppliance ? 'Appliances Store' : 'Store'}`}
               </Link>
               <h1 className="text-xl sm:text-2xl font-headline font-bold text-[#0F1111] leading-snug mt-1">
                 {product.title}
@@ -1657,52 +1657,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
             brandName={product.brand}
             brandStoreHref={brandStoreHref}
           />
-        ) : !isMobileOrElectronic && product.category === 'ethnic' ? (
-          /* Fallback Atelier Narrative for Ethnic products */
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
-              <Store className="h-5 w-5 text-[#800020]" />
-              <h2 className="text-xl font-headline font-bold text-[#0F1111]">
-                From the Manufacturer &amp; Artisan Guild
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-[#F7F8F8] rounded-2xl p-6 sm:p-10 border border-[#D5D9D9]">
-              <div className="space-y-4">
-                <span className="bg-[#800020] text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full inline-block">
-                  Artisanal Provenance
-                </span>
-                <h3 className="text-2xl font-headline font-bold text-[#0F1111]">
-                  Master Craftsmanship from {product.brand}
-                </h3>
-                <p className="text-xs sm:text-sm text-[#0F1111] leading-relaxed">
-                  {product.subtitle ||
-                    product.tabs?.story?.description?.[0] ||
-                    'Each piece is crafted in limited batches in accordance with traditional handloom techniques. By directly connecting verified master weavers to patrons, Vyntra eliminates intermediaries and guarantees authenticity.'}
-                </p>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="bg-white p-3.5 rounded-xl border border-[#D5D9D9]">
-                    <span className="text-[10px] text-[#565959] uppercase font-bold">Standard</span>
-                    <p className="text-sm font-extrabold text-[#0F1111] mt-0.5">100% GI Handloom</p>
-                  </div>
-                  <div className="bg-white p-3.5 rounded-xl border border-[#D5D9D9]">
-                    <span className="text-[10px] text-[#565959] uppercase font-bold">Guild</span>
-                    <p className="text-sm font-extrabold text-[#007185] mt-0.5 truncate">{product.vendorName}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Atelier Imagery */}
-              <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-white border border-[#D5D9D9] shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={product.images[1]?.src || activeImage.src}
-                  alt="Artisan Craftsmanship"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
         ) : null}
 
         {/* 2. Technical Product Specifications Matrix */}

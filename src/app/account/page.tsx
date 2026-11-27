@@ -146,8 +146,8 @@ function AccountDashboardContent() {
     phone: '',
   });
 
-  const displayName = user.name || (mounted && profileStore.fullName && profileStore.fullName !== 'Patron' ? profileStore.fullName : '') || 'Patron';
-  const displayEmail = user.email || (mounted && profileStore.email && !profileStore.email.includes('patron@vyntra') ? profileStore.email : '') || 'patron@vyntra.luxury';
+  const displayName = user.name || (mounted ? profileStore.fullName : '') || '';
+  const displayEmail = user.email || (mounted ? profileStore.email : '') || '';
   const initials = displayName
     .split(' ')
     .filter(Boolean)
@@ -558,7 +558,7 @@ function AccountDashboardContent() {
                   <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                     <div className="space-y-2">
                       <h1 className="font-headline font-extrabold text-2xl sm:text-3xl lg:text-4xl text-on-surface tracking-tight">
-                        {displayName && displayName !== 'Patron' ? `Welcome back, ${displayName}!` : 'Welcome back to Vyntra!'}
+                        {displayName ? `Welcome back, ${displayName}!` : 'Welcome back to Vyntra!'}
                       </h1>
                       <p className="text-xs sm:text-sm text-on-surface-variant max-w-2xl leading-relaxed">
                         Track your orders, manage returns and addresses, and keep your profile up to date.
@@ -720,7 +720,7 @@ function AccountDashboardContent() {
                               {activeTransitOrder.items[0]?.brand || 'Vyntra Collective'}
                             </span>
                             <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                              Seller: {activeTransitOrder.items[0]?.sellerName || (activeTransitOrder.items[0] as any)?.vendorName || 'Vyntra Royal Atelier'}
+                              Seller: {activeTransitOrder.items[0]?.sellerName || (activeTransitOrder.items[0] as any)?.vendorName || 'Seller'}
                             </span>
                           </div>
                           <h2 className="font-headline font-bold text-sm sm:text-base text-on-surface leading-snug">
@@ -967,7 +967,7 @@ function AccountDashboardContent() {
                           Support Tickets
                         </h3>
                         <p className="text-xs text-secondary-container font-semibold truncate">
-                          0 Open • 24/7 Elite desk
+                          Get help or see your requests
                         </p>
                       </div>
                     </button>
@@ -1092,9 +1092,9 @@ function AccountDashboardContent() {
 
               <div className="relative pl-4">
                 <span className={`absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full ${selectedOrder.status === 'processing' ? 'bg-secondary-container' : selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered' ? 'bg-primary' : 'bg-surface-container-highest'}`} />
-                <span className="font-bold text-on-surface block">Artisan Crafting &amp; Packaging</span>
+                <span className="font-bold text-on-surface block">Seller preparing your package</span>
                 <span className="text-[11px] text-outline">
-                  {selectedOrder.status === 'processing' ? 'In progress at fulfillment atelier' : selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered' ? 'Completed & tamper sealed' : 'Pending artisan start'}
+                  {selectedOrder.status === 'processing' ? 'In progress' : selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered' ? 'Done' : 'Not started'}
                 </span>
               </div>
 
@@ -1177,10 +1177,10 @@ function AccountDashboardContent() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold uppercase text-secondary-container">
-                    {selectedOrder.items?.[0]?.brand || selectedOrder.brand || 'Vyntra Atelier'}
+                    {selectedOrder.items?.[0]?.brand || selectedOrder.brand || ''}
                   </span>
                   <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.2 rounded">
-                    Seller: {selectedOrder.items?.[0]?.sellerName || (selectedOrder.items?.[0] as any)?.vendorName || 'Vyntra Royal Atelier'}
+                    Seller: {selectedOrder.items?.[0]?.sellerName || (selectedOrder.items?.[0] as any)?.vendorName || 'Seller'}
                   </span>
                 </div>
                 <h4 className="font-headline font-bold text-xs text-on-surface truncate">
@@ -1201,7 +1201,7 @@ function AccountDashboardContent() {
                 <span>{formatINR(Number(selectedOrder.subtotal || selectedOrder.items?.[0]?.price || selectedOrder.totalAmount))}</span>
               </div>
               <div className="flex justify-between text-on-surface-variant">
-                <span>Royal Member Shipping</span>
+                <span>Delivery</span>
                 <span className="text-emerald-700 font-semibold">FREE</span>
               </div>
               {Number(selectedOrder.totalAmount) > Number(selectedOrder.subtotal || 0) && (

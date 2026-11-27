@@ -182,8 +182,8 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
   // Pre-mount / SSR uses initialUser from server cookies; post-mount uses client auth state.
   const isUserLoggedIn = mounted ? isAuthenticated : Boolean(initialUser);
   const effectiveDisplayName =
-    (fullName && fullName !== 'Patron' ? fullName : initialUser?.fullName) || 'Patron';
-  const effectiveEmail = email && email !== 'patron@vyntra.luxury' ? email : (initialUser?.email || '');
+    fullName || initialUser?.fullName || '';
+  const effectiveEmail = email || initialUser?.email || '';
 
   const handleQuickPincodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -623,7 +623,7 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
                 className="hidden sm:flex flex-col py-1.5 px-2 rounded hover:outline hover:outline-1 hover:outline-white/60 transition-all text-left"
               >
                 <span className="text-[11px] text-[#CCCCCC] leading-tight">
-                  {isUserLoggedIn ? `Hello, ${effectiveDisplayName.split(' ')[0]}` : 'Hello, sign in'}
+                  {isUserLoggedIn ? (effectiveDisplayName ? `Hello, ${effectiveDisplayName.split(' ')[0]}` : 'Hello') : 'Hello, sign in'}
                 </span>
                 <span className="text-[14px] font-bold text-white flex items-center gap-0.5 leading-tight">
                   Account &amp; Lists <ChevronDown className="h-3 w-3 text-[#CCCCCC]" />
@@ -904,7 +904,7 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-[#FF9900]" />
               <span className="text-sm font-bold">
-                {mounted && isAuthenticated ? `Hello, ${(fullName || 'Patron').split(' ')[0]}` : 'Hello, Sign in'}
+                {mounted && isAuthenticated ? (fullName ? `Hello, ${fullName.split(' ')[0]}` : 'Hello') : 'Hello, Sign in'}
               </span>
             </div>
             <Link

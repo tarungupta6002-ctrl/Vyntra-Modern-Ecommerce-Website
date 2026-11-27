@@ -104,35 +104,6 @@ export function Footer() {
             India&apos;s premier multi-category lifestyle discovery marketplace. Curated luxury fashion, high-performance electronics, and mindful home essentials engineered for modern living.
           </p>
 
-          <div className="pt-2">
-            <h5 className="text-xs font-bold text-white mb-1">
-              Join Vyntra Insider Club
-            </h5>
-            <p className="text-[11px] text-[#CCCCCC] mb-2">
-              Get exclusive festive drop alerts &amp; early coupon access.
-            </p>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                alert('Welcome to VYNTRA Insider Club! Use code FIRST15.');
-              }}
-              className="flex max-w-sm gap-1.5"
-            >
-              <input
-                type="text"
-                placeholder="Enter email or mobile no."
-                className="flex-1 h-9 bg-white rounded-[4px] px-3 text-xs text-[#0F1111] placeholder:text-[#565959] focus:outline-none focus:ring-1 focus:ring-[#FF9900]"
-                required
-              />
-              <button
-                type="submit"
-                className="h-9 px-4 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold rounded-[4px] transition-colors flex items-center gap-1 shrink-0"
-              >
-                <span>Join</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </form>
-          </div>
         </div>
 
         {/* Popular Categories */}
@@ -161,7 +132,7 @@ export function Footer() {
             <li><Link href="/support" className="hover:text-white hover:underline">Customer Help Center</Link></li>
             <li><Link href="/account?tab=addresses" className="hover:text-white hover:underline">Manage Saved Addresses</Link></li>
             <li><Link href="/account?tab=payments" className="hover:text-white hover:underline">Payments</Link></li>
-            <li><Link href="/account?tab=profile" className="hover:text-white hover:underline">Security &amp; 2FA Settings</Link></li>
+            <li><Link href="/account?tab=profile" className="hover:text-white hover:underline">Login &amp; Security</Link></li>
           </ul>
         </div>
 

@@ -147,7 +147,7 @@ export async function POST(request: Request, context: RouteContext) {
     // 5. Duplicate Dispute Guard (Rule 9)
     if (returnRequest.isDisputed) {
       return apiError(
-        'A formal dispute has already been filed for this return request and is currently pending concierge review.',
+        'A formal dispute has already been filed for this return request and is waiting for review.',
         400,
         {
           isDisputed: true,
@@ -199,8 +199,8 @@ export async function POST(request: Request, context: RouteContext) {
       },
       instructions: {
         message:
-          'Your formal dispute has been logged. Vyntra Concierge Arbitration will review inspection records and photographic evidence within 24-48 business hours.',
-        nextStep: 'Awaiting Concierge Admin Arbitration.',
+          'Your dispute has been logged. Our team will review the inspection records and photos and decide.',
+        nextStep: 'Awaiting review by Vyntra.',
       },
     });
   } catch (err: any) {

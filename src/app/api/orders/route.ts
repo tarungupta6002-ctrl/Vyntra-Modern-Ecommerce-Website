@@ -259,7 +259,7 @@ export async function GET(request: Request) {
                 shippingFee: Number(vs.shippingFee),
                 dispatchedAt: vs.dispatchedAt ? vs.dispatchedAt.toISOString() : null,
                 deliveredAt: vs.deliveredAt ? vs.deliveredAt.toISOString() : null,
-                vendor: vs.vendor || { id: vs.vendorId, storeName: 'Artisan Atelier' },
+                vendor: vs.vendor || { id: vs.vendorId, storeName: 'Seller' },
                 itemsCount: vs.items?.length || 0,
               }))
             : [
@@ -296,7 +296,7 @@ export async function GET(request: Request) {
 
           const resolvedSize = item.selectedSize || item.variant?.size || 'N/A';
           const resolvedColor = item.selectedColor || item.variant?.color || 'N/A';
-          const resolvedVendor = item.vendor?.storeName || item.product?.brand || 'Vyntra Atelier';
+          const resolvedVendor = item.vendor?.storeName || item.product?.brand || 'Seller';
 
           return {
             id: item.id,

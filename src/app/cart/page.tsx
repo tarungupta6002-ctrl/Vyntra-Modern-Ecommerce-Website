@@ -156,7 +156,7 @@ export default function CartPage() {
       if (!map.has(key)) {
         const newGroup = {
           vendorKey: key,
-          vendorName: item.vendorName || 'Vyntra Atelier',
+          vendorName: item.vendorName || 'Seller',
           vendorId: item.vendorId,
           shippingFee: item.shippingFee ?? 0,
           handlingDays: item.handlingDays || 2,
@@ -448,7 +448,7 @@ export default function CartPage() {
                     <div className="p-3.5 bg-primary-fixed/30 rounded-xl border border-primary/20 flex items-center gap-2.5 text-xs text-on-surface">
                       <Truck className="h-4 w-4 text-primary shrink-0" />
                       <span>
-                        Multi-Vendor Order: Your items will arrive in <strong>{vendorGroups.length} independent packages</strong> dispatched by their respective artisan ateliers.
+                        Multi-Vendor Order: Your items will arrive in <strong>{vendorGroups.length} independent packages</strong> shipped separately by each seller.
                       </span>
                     </div>
                   )}

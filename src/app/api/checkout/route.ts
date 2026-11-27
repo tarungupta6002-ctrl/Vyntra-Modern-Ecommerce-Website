@@ -773,26 +773,11 @@ export async function POST(request: Request) {
         let shipmentIdx = 1;
 
         for (const [vendorId, group] of Array.from(vendorGroups.entries())) {
-          // Resolve default warehouse for this vendor (or synthesize if needed)
-          let warehouse = await tx.vendorWarehouse.findFirst({
+          // The vendor's default pickup warehouse. If the seller has not added one, the shipment
+          // has no warehouse yet; never invent an address (it would appear on invoices and pages).
+          const warehouse = await tx.vendorWarehouse.findFirst({
             where: { vendorId, isDefault: true },
           });
-
-          if (!warehouse) {
-            warehouse = await tx.vendorWarehouse.create({
-              data: {
-                vendorId,
-                warehouseCode: `WH-${vendorId.slice(-6).toUpperCase()}`,
-                facilityName: `${group.storeName} Primary Atelier`,
-                streetAddress: 'Commercial Artisan Atelier Hub',
-                city: 'Bengaluru',
-                state: 'Karnataka',
-                postalCode: '560001',
-                contactPhone: '+91 9999999999',
-                isDefault: true,
-              },
-            });
-          }
 
           const shipmentNumber = `VYN-SHP-${orderTimestamp}-${vendorId.slice(-4).toUpperCase()}-${shipmentIdx++}`;
 
@@ -800,7 +785,7 @@ export async function POST(request: Request) {
             data: {
               orderId: order.id,
               vendorId,
-              warehouseId: warehouse.id,
+              warehouseId: warehouse?.id ?? null,
               shipmentNumber,
               status: ShipmentStatus.PENDING,
               subtotal: group.subtotal,

@@ -161,7 +161,7 @@ export function SavedAddressesView({ embeddedInAccount = false }: SavedAddresses
   const handleOpenAdd = () => {
     setEditingAddressId(null);
     setPincode('');
-    setName(profileStore.fullName && profileStore.fullName !== 'Patron' ? profileStore.fullName : '');
+    setName(profileStore.fullName || '');
     setPhone(profileStore.phone || '');
     setFlat('');
     setArea('');

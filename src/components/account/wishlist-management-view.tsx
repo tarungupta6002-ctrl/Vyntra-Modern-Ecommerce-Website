@@ -75,7 +75,6 @@ export function WishlistManagementView({
   const [selectedSize, setSelectedSize] = useState<string>('');
 
   // Restock alert state
-  const [restockAlertIds, setRestockAlertIds] = useState<Record<string, boolean>>({});
 
   const { getDefaultAddress, getSelectedAddress } = useAddressStore();
   const activeAddress = getSelectedAddress() || getDefaultAddress();
@@ -176,16 +175,6 @@ export function WishlistManagementView({
   const handleQuickMoveToBag = (item: WishlistItem) => {
     moveItemToCart(item, item.selectedSize);
     showToast(`Added ${item.title} to your Bag!`, 'success');
-  };
-
-  const handleToggleRestock = (item: WishlistItem) => {
-    const isSubscribed = !!restockAlertIds[item.id];
-    setRestockAlertIds((prev) => ({ ...prev, [item.id]: !isSubscribed }));
-    if (!isSubscribed) {
-      showToast(`Restock alert set for ${item.title}. You'll receive instant notification!`, 'info');
-    } else {
-      showToast(`Restock alert turned off for ${item.title}.`, 'info');
-    }
   };
 
   const handleRemove = async (item: WishlistItem) => {
@@ -414,7 +403,6 @@ export function WishlistManagementView({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredItems.map((item) => {
-            const hasRestockAlert = !!restockAlertIds[item.id];
 
             return (
               <div
@@ -547,31 +535,9 @@ export function WishlistManagementView({
                       </>
                     ) : (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleRestock(item)}
-                          className={`flex-1 h-9 rounded-xl text-xs font-label font-bold transition-all flex items-center justify-center gap-1.5 ${
-                            hasRestockAlert
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-[#D5D9D9] text-[#0F1111] hover:bg-[#dae2fd]'
-                          }`}
-                        >
-                          <Bell className="h-3.5 w-3.5 text-[#007185]" />
-                          <span>{hasRestockAlert ? 'Alert Set' : 'Notify Restock'}</span>
-                        </button>
-
-                        {item.sizeOptions && (
-                          <select
-                            defaultValue={item.selectedSize || item.sizeOptions[0]}
-                            className="h-9 px-2 bg-[#F7F8F8] rounded-xl text-xs font-label text-[#0F1111] focus:outline-none border border-[#D5D9D9]"
-                          >
-                            {item.sizeOptions.map((sz) => (
-                              <option key={sz} value={sz}>
-                                {sz}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        <span className="flex-1 h-9 rounded-xl bg-[#F7F8F8] text-xs font-label font-bold text-[#565959] flex items-center justify-center">
+                          Currently out of stock
+                        </span>
                       </>
                     )}
                   </div>
@@ -642,44 +608,6 @@ export function WishlistManagementView({
           </div>
         </div>
 
-        {/* Private Shopping Assistant Concierge */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-6 bg-gradient-to-br from-[#004B57] to-[#007185] text-white rounded-2xl shadow-md relative overflow-hidden">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0 relative z-10">
-            <Headphones className="h-7 w-7 text-white" />
-          </div>
-          <div className="flex flex-col flex-1 relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-headline font-bold text-base text-white">
-                VYNTRA Royal Styling Concierge
-              </h4>
-              <span className="px-2 py-0.5 bg-[#FF9900] text-white text-[10px] font-label font-bold rounded">
-                COMPLIMENTARY
-              </span>
-            </div>
-            <p className="font-body text-xs text-white/80 leading-relaxed">
-              Need matching footwear for the raw silk stole or sizing clarity for the bandhgala? Speak directly with our dedicated curator.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 mt-3">
-              <button
-                type="button"
-                onClick={() =>
-                  showToast(
-                    'Opening live chat with Royal Curator Arya Sen...',
-                    'info'
-                  )
-                }
-                className="px-4 py-1.5 rounded-xl bg-white text-[#007185] hover:bg-[#F7F8F8] text-xs font-label font-bold shadow-sm transition-all flex items-center gap-1.5"
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>1-Click Stylist Chat</span>
-              </button>
-              <span className="text-[11px] text-white/70 font-label">
-                Available 9 AM – 10 PM IST
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ========================================================= */}

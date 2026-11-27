@@ -1134,7 +1134,7 @@ function VyntraProductListingContent() {
               <div className="p-3.5 bg-amber-50/90 border border-amber-200/80 rounded-xl flex items-center justify-between shadow-xs">
                 <div className="flex items-center gap-2.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded">
-                    Official Brand Atelier
+                    Brand
                   </span>
                   <span className="font-headline font-bold text-sm text-[#0F1111]">
                     {selectedBrand}
