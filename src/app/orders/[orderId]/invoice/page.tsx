@@ -11,8 +11,8 @@ interface PageProps {
 export function generateMetadata({ params }: PageProps): Metadata {
   const cleanId = params.orderId?.replace(/^#/, '') || '';
   return {
-    title: `Tax Invoice #${cleanId} — VYNTRA`,
-    description: `Official GST Tax Invoice, HSN itemized details, and payment proof for order #${cleanId} on Vyntra.`,
+    title: `Invoice #${cleanId} | Vyntra`,
+    description: `Order invoice for order #${cleanId} on Vyntra.`,
   };
 }
 
@@ -26,7 +26,7 @@ export default function OrderInvoicePage({ params }: PageProps) {
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-stone-600 font-semibold font-sans">
-              Generating Authorized GST Tax Invoice...
+              Loading invoice…
             </p>
           </div>
         </div>
