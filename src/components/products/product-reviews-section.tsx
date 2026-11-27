@@ -7,9 +7,11 @@ import { DetailedProduct, CustomerReview } from '@/data/products';
 
 interface ProductReviewsSectionProps {
   product: DetailedProduct;
+  /** Clothing / footwear: enables fit questions and the fit summary. */
+  isFashion?: boolean;
 }
 
-export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
+export function ProductReviewsSection({ product, isFashion }: ProductReviewsSectionProps) {
   // State for all reviews (initial mock/DB + user-submitted reviews)
   const [reviewsList, setReviewsList] = useState<CustomerReview[]>(product.reviews?.list || []);
   const [selectedStarFilter, setSelectedStarFilter] = useState<number | null>(null);
@@ -26,11 +28,8 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Is product in Fashion or Apparel category
-  const isFashionCategory =
-    product.category !== 'mobiles' &&
-    product.category !== 'electronics' &&
-    product.category !== 'smartphones';
+  // Fit questions only make sense for clothing & footwear (decided by the product page).
+  const isFashionCategory = Boolean(isFashion);
 
   // Storage key for client-side persistence
   const storageKey = `vyntra_product_reviews_${product.slug || product.id}`;
@@ -227,6 +226,13 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
         {/* ======================================================== */}
         <div className="md:col-span-4 space-y-5">
           {/* Rating Summary */}
+          {currentTotal === 0 ? (
+            <div className="space-y-1">
+              <p className="text-lg font-bold text-[#0F1111]">No reviews yet</p>
+              <p className="text-xs text-[#565959]">Be the first to share what you think.</p>
+            </div>
+          ) : (
+          <>
           <div className="space-y-1">
             <div className="flex items-baseline gap-2">
               <div className="flex items-center text-[#FFA41C]">
@@ -243,7 +249,9 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
                 {calculatedAvg.toFixed(1)} out of 5
               </span>
             </div>
-            <p className="text-xs text-[#565959]">{currentTotal} global customer ratings</p>
+            <p className="text-xs text-[#565959]">
+              {currentTotal} customer {currentTotal === 1 ? 'rating' : 'ratings'}
+            </p>
           </div>
 
           {/* Star Percentage Bars */}
@@ -281,9 +289,11 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
               </button>
             ))}
           </div>
+          </>
+          )}
 
-          {/* Fashion Fit Accuracy Indicator (If Available or Fashion category) */}
-          {(product.reviews?.fitAccuracy || isFashionCategory) && (
+          {/* Fit summary: only from real review data */}
+          {isFashionCategory && product.reviews?.fitAccuracy && currentTotal > 0 && (
             <div className="p-3.5 bg-stone-50 rounded-xl border border-[#E7E7E7] space-y-1.5 text-xs">
               <div className="flex items-center justify-between font-bold text-[#0F1111]">
                 <span className="flex items-center gap-1.5">
@@ -291,13 +301,11 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
                   Customer Fit Rating
                 </span>
                 <span className="text-[#067D62]">
-                  {product.reviews?.fitAccuracy?.label || 'True to Size'} (
-                  {product.reviews?.fitAccuracy?.pct || 92}%)
+                  {product.reviews.fitAccuracy.label} ({product.reviews.fitAccuracy.pct}%)
                 </span>
               </div>
               <p className="text-[11px] text-[#565959] leading-relaxed">
-                {product.reviews?.fitAccuracy?.note ||
-                  'Verified customers report this item matches standard Indian apparel tailoring perfectly.'}
+                {product.reviews.fitAccuracy.note}
               </p>
             </div>
           )}
@@ -306,7 +314,9 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
           <div className="pt-4 border-t border-[#D5D9D9] space-y-2.5">
             <h3 className="text-sm font-bold text-[#0F1111]">Review this product</h3>
             <p className="text-xs text-[#565959] leading-relaxed">
-              Share your thoughts with other customers to help them choose the right size and quality.
+              {isFashionCategory
+                ? 'Share your thoughts with other customers to help them choose the right size and quality.'
+                : 'Share your thoughts with other customers.'}
             </p>
             <button
               type="button"

@@ -57,10 +57,66 @@ import {
   ProductColor,
   ProductSize,
 } from '@/data/products';
+import { DEFAULT_RETURN_WINDOW_DAYS } from '@/lib/policy-constants';
 
 interface ProductDetailViewProps {
   product: DetailedProduct;
 }
+
+/**
+ * "At a glance" spec cards per product kind. A card shows only when the seller's specs contain a
+ * matching row: `keys` match the spec label (a leading "=" means exact match, otherwise "contains").
+ */
+type SpecCard = { label: string; icon: React.ElementType; keys: string[]; useSelectedSize?: boolean };
+const SPEC_SUMMARY_CARDS: Record<string, SpecCard[]> = {
+  laptop: [
+    { label: 'Processor', icon: Cpu, keys: ['processor', 'cpu'] },
+    { label: 'Display', icon: Laptop, keys: ['display', 'screen'] },
+    { label: 'RAM / Memory', icon: HardDrive, keys: ['=ram', 'memory'] },
+    { label: 'Battery', icon: Battery, keys: ['battery'] },
+  ],
+  phone: [
+    { label: 'Processor', icon: Cpu, keys: ['=processor'] },
+    { label: 'Display', icon: Smartphone, keys: ['=display'] },
+    { label: 'Camera', icon: Camera, keys: ['=primary camera'] },
+    { label: 'Battery', icon: Battery, keys: ['=battery'] },
+  ],
+  audio: [
+    { label: 'Audio & Driver', icon: Headphones, keys: ['audio', 'driver'] },
+    { label: 'Battery / Playtime', icon: Battery, keys: ['battery', 'playtime'] },
+    { label: 'Noise Cancellation', icon: Sparkles, keys: ['noise', 'anc'] },
+    { label: 'Connectivity', icon: Wifi, keys: ['connect', 'bluetooth'] },
+  ],
+  camera: [
+    { label: 'Photo Sensor', icon: Camera, keys: ['sensor'] },
+    { label: 'Stabilisation', icon: Sparkles, keys: ['stabilis', 'stabiliz'] },
+    { label: 'Lens Mounting', icon: Zap, keys: ['mount'] },
+    { label: 'Connectivity', icon: Wifi, keys: ['connect', 'wireless'] },
+  ],
+  smartwatch: [
+    { label: 'Display', icon: Watch, keys: ['display'] },
+    { label: 'Battery', icon: Battery, keys: ['battery'] },
+    { label: 'Sensors & Health', icon: Sparkles, keys: ['sensor', 'health'] },
+    { label: 'Water Resistance', icon: ShieldCheck, keys: ['water', 'ip'] },
+  ],
+  book: [
+    { label: 'Print Length', icon: FileText, keys: ['page', 'length'] },
+    { label: 'Language', icon: Globe, keys: ['language'] },
+    { label: 'Format & Binding', icon: BookOpen, keys: ['binding', 'format'], useSelectedSize: true },
+    { label: 'Publisher', icon: Award, keys: ['publisher'] },
+  ],
+  appliance: [
+    { label: 'Energy Star Rating', icon: Star, keys: ['energy', 'star'] },
+    { label: 'Capacity / Size', icon: Layers, keys: ['capacity', 'tank', 'wattage', 'suction'], useSelectedSize: true },
+    { label: 'Compressor / Motor', icon: Zap, keys: ['compressor', 'motor'] },
+  ],
+  electronics: [
+    { label: 'Processor', icon: Cpu, keys: ['processor'] },
+    { label: 'Display', icon: Monitor, keys: ['display'] },
+    { label: 'Connectivity', icon: Wifi, keys: ['connect'] },
+    { label: 'Battery', icon: Battery, keys: ['=battery'] },
+  ],
+};
 
 export default function ProductDetailView({ product }: ProductDetailViewProps) {
   const { addItem, openCart } = useCartStore();
@@ -269,19 +325,22 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
   }, [product]);
 
   const isBook = useMemo(() => {
+    // "Laptops & Ultrabooks" / "notebook" are not books: match whole words only.
+    if (isLaptopOrComputer) return false;
     const cat = (product.category || '').toLowerCase();
     const subCat = (product.subCategory || '').toLowerCase();
     const title = (product.title || '').toLowerCase();
     const slug = (product.slug || '').toLowerCase();
+    const bookWord = /(^|[^a-z])books?([^a-z]|$)/;
     return (
       cat === 'books' ||
-      cat.includes('book') ||
-      subCat.includes('book') ||
+      bookWord.test(cat) ||
+      bookWord.test(subCat) ||
       subCat.includes('literature') ||
       title.includes('hardcover') ||
       title.includes('paperback') ||
       title.includes('novel') ||
-      slug.includes('book') ||
+      bookWord.test(slug) ||
       slug.includes('habits') ||
       slug.includes('psychology-of-money') ||
       slug.includes('rich-dad') ||
@@ -289,7 +348,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
       slug.includes('grandma') ||
       slug.includes('ikigai')
     );
-  }, [product]);
+  }, [product, isLaptopOrComputer]);
 
   const isMobilePhone = useMemo(() => {
     // If it's a laptop, audio device, smartwatch, camera, appliance, or book, it is NOT a mobile phone
@@ -387,6 +446,33 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
       )
     );
   }, [product, isBook, isLaptopOrComputer, isAudioOrHeadphones, isSmartwatch, isCamera, isAppliance]);
+
+  const specSummaryKind = isLaptopOrComputer
+    ? 'laptop'
+    : isMobilePhone
+    ? 'phone'
+    : isAudioOrHeadphones
+    ? 'audio'
+    : isCamera
+    ? 'camera'
+    : isSmartwatch
+    ? 'smartwatch'
+    : isBook
+    ? 'book'
+    : isAppliance
+    ? 'appliance'
+    : isMobileOrElectronic
+    ? 'electronics'
+    : '';
+
+  /** Value of the seller's first spec whose label matches one of `keys` ("=x" exact, otherwise contains). */
+  const findVendorSpec = (keys: string[]): string => {
+    const hit = (product.customSpecs || []).find((sp) => {
+      const l = (sp.label || '').trim().toLowerCase();
+      return keys.some((k) => (k.startsWith('=') ? l === k.slice(1) : l.includes(k)));
+    });
+    return hit?.value?.trim() || '';
+  };
 
   // Strict Fashion Category check: Size Guide & Detailed Measurements MUST ONLY appear for genuine fashion & footwear
   const isFashionCategory = useMemo(() => {
@@ -930,8 +1016,10 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               )}
             </div>
 
-            {/* Ratings, Reviews & Amazon Choice Badge */}
+            {/* Ratings & reviews (only when there are real reviews) */}
             <div className="flex items-center gap-2 flex-wrap text-xs pb-3 border-b border-[#EAEDED]">
+              {product.reviewCount > 0 ? (
+              <>
               <div className="flex items-center gap-1 text-[#FFA41C]">
                 <div className="flex items-center">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -949,12 +1037,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               </div>
               <span className="text-[#565959]">|</span>
               <a href="#customer-reviews" className="text-[#007185] hover:underline">
-                {product.reviewCount} customer reviews
+                {product.reviewCount} customer {product.reviewCount === 1 ? 'review' : 'reviews'}
               </a>
-              <span className="text-[#565959]">|</span>
-              <span className="bg-[#131921] text-white text-[10px] font-extrabold px-2 py-0.5 rounded">
-                Vyntra&apos;s Choice
-              </span>
+              </>
+              ) : (
+                <a href="#customer-reviews" className="text-[#565959] hover:text-[#007185] hover:underline">
+                  No reviews yet
+                </a>
+              )}
             </div>
 
             {/* Pricing Section (Amazon Style) */}
@@ -980,7 +1070,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               )}
 
               <p className="text-[11px] text-[#565959]">
-                Inclusive of all taxes. Free express shipping across India.
+                Inclusive of all taxes.
               </p>
             </div>
 
@@ -1149,27 +1239,19 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
               </div>
             )}
 
-            {/* Bullet Highlights ("About this item") */}
+            {/* Bullet Highlights ("About this item"): the seller's own, nothing invented */}
+            {product.highlights && product.highlights.length > 0 && (
             <div className="pt-4 border-t border-[#EAEDED] space-y-2">
               <h3 className="font-headline font-bold text-sm text-[#0F1111]">About this item</h3>
               <ul className="space-y-1.5 text-xs text-[#0F1111] leading-relaxed list-disc list-inside">
-                {(product.highlights && product.highlights.length > 0
-                  ? product.highlights
-                  : [
-                      `Brand: ${product.brand}`,
-                      'Authentic product verified under Vyntra quality assurance standards',
-                      product.isCustomized
-                        ? 'Customized / Made to Order: Specially tailored upon order placement'
-                        : 'Ready to Ship: Express dispatched within 24 hours in protective packaging',
-                      '100% Genuine guaranteed by verified sellers across India',
-                    ]
-                ).map((hl, i) => (
+                {product.highlights.map((hl, i) => (
                   <li key={i} className="text-[#0F1111]">
                     <span>{hl}</span>
                   </li>
                 ))}
               </ul>
             </div>
+            )}
           </div>
 
           {/* ================================================================= */}
@@ -1178,24 +1260,13 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
           <div className="lg:col-span-3 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-1 no-scrollbar space-y-3">
             <div className="rounded-2xl border border-[#D5D9D9] bg-white p-4 shadow-md space-y-3">
               {/* Buy Box Featured Status Pill */}
-              {selectedOffer && (
+              {selectedOffer &&
+                !(selectedOffer.isOriginalCreator || selectedOffer.vendorId === product.originalVendorId || selectedOffer.vendor.storeName === product.vendorName) && (
                 <div className="flex items-center justify-between pb-1">
-                  {selectedOffer.isOriginalCreator || selectedOffer.vendorId === product.originalVendorId || selectedOffer.vendor.storeName === product.vendorName ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-[#800020] bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                      <Sparkles className="h-3 w-3 text-[#FF9900]" />
-                      <span>Featured Creator Listing</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-[#007185] bg-[#007185]/10 border border-[#007185]/30 px-2 py-0.5 rounded-full">
-                      <Check className="h-3 w-3" />
-                      <span>Alternative Seller Selected</span>
-                    </span>
-                  )}
-                  {selectedOffer.fulfillmentType === 'VYNTRA_FULFILLED' ? (
-                    <span className="text-[10px] font-bold text-[#067D62]">Vyntra Fulfilled</span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-[#565959]">Direct Dispatch</span>
-                  )}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-[#007185] bg-[#007185]/10 border border-[#007185]/30 px-2 py-0.5 rounded-full">
+                    <Check className="h-3 w-3" />
+                    <span>Alternative Seller Selected</span>
+                  </span>
                 </div>
               )}
 
@@ -1218,7 +1289,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                   )}
                 </div>
                 <p className="text-[11px] text-[#007185] font-semibold mt-0.5">
-                  FREE Delivery across India
+                  FREE delivery · ₹49 packaging fee at checkout
                 </p>
               </div>
 
@@ -1229,18 +1300,17 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                   <span suppressHydrationWarning>
                     {mounted && activeAddress
                       ? `Deliver to ${activeAddress.city} ${activeAddress.pincode}`
-                      : 'Pan-India Express Delivery'}
+                      : 'Delivery across India'}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#067D62] font-bold">
-                  {selectedOffer
-                    ? `Estimated delivery in ${selectedOffer.estimatedDeliveryDays} business days`
-                    : isMobileOrElectronic
-                    ? 'Fastest delivery Tomorrow with Express SLA'
-                    : product.isCustomized
-                    ? 'Expected delivery in 5-7 business days (Tailored Craft)'
-                    : 'Fastest delivery Tomorrow with Express SLA'}
-                </p>
+                {product.isCustomized ? (
+                  <p className="text-[11px] text-[#565959]">Made after you order, so it takes longer to dispatch.</p>
+                ) : selectedOffer && selectedOffer.handlingDays > 0 ? (
+                  <p className="text-[11px] text-[#067D62] font-bold">
+                    Usually dispatched within {selectedOffer.handlingDays} business{' '}
+                    {selectedOffer.handlingDays === 1 ? 'day' : 'days'}
+                  </p>
+                ) : null}
               </div>
 
               {/* Stock Status Indicator */}
@@ -1254,12 +1324,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                 ) : (
                   <div className="text-base font-bold text-[#067D62]">In Stock</div>
                 )}
-                {isMobileOrElectronic ? (
-                  <p className="text-[11px] text-[#007185] font-semibold flex items-center gap-1">
-                    <ShieldCheck className="h-3.5 w-3.5 text-[#067D62]" />
-                    <span>7 Days Replacement • Brand Warranty</span>
-                  </p>
-                ) : product.isCustomized ? (
+                {product.isCustomized ? (
                   <p className="text-[11px] text-[#800020] font-semibold flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
                     <span>Customized on order for you</span>
@@ -1310,26 +1375,18 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
               {/* Merchant & Trust Details */}
               <div className="text-[11px] space-y-1 text-[#565959] pt-2 border-t border-[#EAEDED]">
-                <div className="flex items-center justify-between">
-                  <span>Ships from</span>
-                  <span className="font-semibold text-[#0F1111] truncate max-w-[150px]">
-                    {selectedOffer?.shipsFrom || 'Vyntra Prime Logistics'}
-                  </span>
-                </div>
+                {selectedOffer?.shipsFrom && (
+                  <div className="flex items-center justify-between">
+                    <span>Ships from</span>
+                    <span className="font-semibold text-[#0F1111] truncate max-w-[150px]">{selectedOffer.shipsFrom}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span>Sold by</span>
                   <span className="font-semibold text-[#007185] truncate max-w-[150px]">
                     {selectedOffer?.vendor?.storeName || product.vendorName}
                   </span>
                 </div>
-                {selectedOffer?.vendor && (
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span>Seller Rating</span>
-                    <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                      ★ {selectedOffer.vendor.rating.toFixed(1)} / 5.0
-                    </span>
-                  </div>
-                )}
                 <div className="flex items-center justify-between">
                   <span>Payment</span>
                   <span className="font-semibold text-[#0F1111]">Secure COD &amp; Online</span>
@@ -1344,7 +1401,11 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                 </div>
                 <div className="flex items-center gap-1.5 text-[#565959]">
                   <RotateCcw className="h-3.5 w-3.5 text-[#007185] shrink-0" />
-                  <span>7-Day Returns</span>
+                  <span>
+                    {product.isCustomized
+                      ? 'Returns only if damaged or defective'
+                      : `${DEFAULT_RETURN_WINDOW_DAYS}-day returns on eligible items`}
+                  </span>
                 </div>
               </div>
 
@@ -1423,9 +1484,17 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                     {product.title}
                   </h3>
                   <div className="flex items-center gap-1 text-[11px] text-[#565959] mt-0.5">
-                    <span className="font-semibold text-amber-700">★ {product.rating.toFixed(1)}</span>
-                    <span>•</span>
-                    <span>{product.reviewCount} verified ratings</span>
+                    {product.reviewCount > 0 ? (
+                      <>
+                        <span className="font-semibold text-amber-700">★ {product.rating.toFixed(1)}</span>
+                        <span>•</span>
+                        <span>
+                          {product.reviewCount} {product.reviewCount === 1 ? 'review' : 'reviews'}
+                        </span>
+                      </>
+                    ) : (
+                      <span>No reviews yet</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1464,16 +1533,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                       <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#800020] bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md">
                         <Award className="h-3.5 w-3.5 text-[#FF9900]" />
                         <span>
-                          {isMobileOrElectronic
-                            ? 'Verified Marketplace Seller'
-                            : 'Original Creator / Atelier Master'}
+                          Original listing seller
                         </span>
                       </div>
                     )}
                     {!isCreator && idx === (originalCreatorOffer ? 1 : 0) && (
                       <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#007185] bg-[#007185]/5 border border-[#007185]/20 px-2.5 py-1 rounded-md mt-3">
                         <Store className="h-3.5 w-3.5" />
-                        <span>Other Verified Sellers (Sell Existing Product)</span>
+                        <span>Other sellers</span>
                       </div>
                     )}
 
@@ -1498,9 +1565,11 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-[#067D62] font-semibold block mt-0.5">
-                            FREE Delivery by {new Date(Date.now() + (offer.estimatedDeliveryDays || 2) * 86400000).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          </span>
+                          {offer.handlingDays > 0 && (
+                            <span className="text-[11px] text-[#067D62] font-semibold block mt-0.5">
+                              Usually dispatched within {offer.handlingDays} business {offer.handlingDays === 1 ? 'day' : 'days'}
+                            </span>
+                          )}
                         </div>
 
                         {/* Add to Cart button for this specific seller */}
@@ -1520,10 +1589,12 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
 
                       {/* Seller Info & Feedback */}
                       <div className="pt-2 border-t border-[#EAEDED] text-xs space-y-1.5">
-                        <div className="flex items-center justify-between text-[#565959]">
-                          <span>Ships from</span>
-                          <span className="font-semibold text-[#0F1111]">{offer.shipsFrom || 'India'}</span>
-                        </div>
+                        {offer.shipsFrom && (
+                          <div className="flex items-center justify-between text-[#565959]">
+                            <span>Ships from</span>
+                            <span className="font-semibold text-[#0F1111]">{offer.shipsFrom}</span>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between text-[#565959]">
                           <span>Sold by</span>
                           <span className="font-bold text-[#007185] flex items-center gap-1">
@@ -1538,12 +1609,6 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                                 Best Price
                               </span>
                             )}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-[#565959]">
-                          <span>Seller Rating</span>
-                          <span className="text-amber-700 font-bold">
-                            ★ {offer.vendor.rating.toFixed(1)} / 5.0 (98% positive)
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-[11px] text-[#565959]">
@@ -1656,635 +1721,43 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
           </div>
 
           {/* Highlight Specs Cards */}
-          {isLaptopOrComputer ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Cpu className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Processor</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('processor') || s.label.toLowerCase().includes('cpu'))?.value ||
-                    'High-Performance Multi-Core Processor'}
-                </p>
+          {(() => {
+            // Key specs at a glance: only values the seller actually provided (no invented defaults).
+            const cards = SPEC_SUMMARY_CARDS[specSummaryKind] || [];
+            const shown = cards
+              .map((c) => ({ ...c, value: findVendorSpec(c.keys) || (c.useSelectedSize ? selectedSize : '') }))
+              .filter((c) => c.value);
+            if (shown.length === 0) return null;
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
+                {shown.map((c) => {
+                  const Icon = c.icon;
+                  return (
+                    <div key={c.label} className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
+                        <Icon className="h-3.5 w-3.5 text-[#007185]" />
+                        <span>{c.label}</span>
+                      </div>
+                      <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">{c.value}</p>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Laptop className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Display</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('display') || s.label.toLowerCase().includes('screen'))?.value ||
-                    'High Resolution IPS Display'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <HardDrive className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>RAM / Memory</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'ram' || s.label.toLowerCase().includes('memory'))?.value ||
-                    '16 GB High-Speed Memory'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Battery className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Battery</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'battery' || s.label.toLowerCase().includes('battery'))?.value ||
-                    'All-Day High Capacity Battery'}
-                </p>
-              </div>
-            </div>
-          ) : isMobilePhone ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Cpu className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Processor</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'processor')?.value ||
-                    'Octa-Core Flagship Architecture'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Smartphone className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Display</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'display')?.value ||
-                    'High Refresh Rate OLED'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Camera className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Camera</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'primary camera')?.value ||
-                    'High Resolution Multi-Sensor'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Battery className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Battery</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'battery')?.value ||
-                    'All-Day High Capacity Battery'}
-                </p>
-              </div>
-            </div>
-          ) : isAudioOrHeadphones ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Headphones className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Audio & Driver</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('audio') || s.label.toLowerCase().includes('driver'))?.value ||
-                    'Hi-Res Studio Sound'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Battery className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Battery / Playtime</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('battery') || s.label.toLowerCase().includes('playtime'))?.value ||
-                    'All-Day Playtime'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Sparkles className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Noise Cancellation</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('noise') || s.label.toLowerCase().includes('anc'))?.value ||
-                    'Active Noise Cancellation'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Wifi className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Connectivity</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('connect') || s.label.toLowerCase().includes('bluetooth'))?.value ||
-                    'Bluetooth 5.3 Wireless'}
-                </p>
-              </div>
-            </div>
-          ) : isCamera ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Camera className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Photo Sensor</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('sensor'))?.value ||
-                    'High-Resolution CMOS'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Sparkles className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Stabilisation</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('stabilis') || s.label.toLowerCase().includes('stabiliz'))?.value ||
-                    'Sensor-Shift IS'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Zap className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Lens Mounting</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('mount'))?.value ||
-                    'Interchangeable Mount'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Wifi className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Connectivity</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('connect') || s.label.toLowerCase().includes('wireless'))?.value ||
-                    'Wi-Fi & Bluetooth'}
-                </p>
-              </div>
-            </div>
-          ) : isSmartwatch ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Watch className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Display</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('display'))?.value ||
-                    'Always-On Retina Display'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Battery className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Battery</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('battery'))?.value ||
-                    'Multi-Day Battery Life'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Sparkles className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Sensors & Health</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('sensor') || s.label.toLowerCase().includes('health'))?.value ||
-                    'Heart Rate & SpO2 Tracking'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Water Resistance</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('water') || s.label.toLowerCase().includes('ip'))?.value ||
-                    '50m Water Resistant'}
-                </p>
-              </div>
-            </div>
-          ) : isBook ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <FileText className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Print Length</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('page') || s.label.toLowerCase().includes('length'))?.value ||
-                    '320 pages'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Globe className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Language</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('language'))?.value ||
-                    'English'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <BookOpen className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Format & Binding</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('binding') || s.label.toLowerCase().includes('format'))?.value ||
-                    selectedSize ||
-                    'Paperback'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Award className="h-3.5 w-3.5 text-[#007600]" />
-                  <span>Publisher</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#007600] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('publisher'))?.value ||
-                    'Authorized Publishing House'}
-                </p>
-              </div>
-            </div>
-          ) : isAppliance ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Star className="h-3.5 w-3.5 text-[#FF9900]" />
-                  <span>Energy Star Rating</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('energy') || s.label.toLowerCase().includes('star'))?.value ||
-                    '5 Star / 3 Star BEE Efficiency'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Layers className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Capacity / Size</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => {
-                    const l = s.label.toLowerCase();
-                    return l.includes('capacity') || l.includes('tank') || l.includes('wattage') || l.includes('suction');
-                  })?.value ||
-                    (typeof product.sizes?.[0] === 'object' ? product.sizes[0]?.size : product.sizes?.[0]) ||
-                    'Standard Capacity'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Zap className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Inverter Technology</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('compressor') || s.label.toLowerCase().includes('motor'))?.value ||
-                    'Digital Inverter with 10-Yr Warranty'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[#007600]" />
-                  <span>Installation & Demo</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#007600] line-clamp-2">
-                  Free Scheduled Certified Installation
-                </p>
-              </div>
-            </div>
-          ) : isMobileOrElectronic ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl">
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Cpu className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Processor</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('processor'))?.value ||
-                    'High Performance Chipset'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Monitor className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Display</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('display'))?.value ||
-                    'High Resolution Screen'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Wifi className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Connectivity</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase().includes('connect'))?.value ||
-                    'Wireless Enabled'}
-                </p>
-              </div>
-
-              <div className="bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl p-3.5 space-y-1">
-                <div className="flex items-center gap-1.5 text-[#565959] text-[11px] font-bold">
-                  <Battery className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Battery</span>
-                </div>
-                <p className="text-xs font-extrabold text-[#0F1111] line-clamp-2">
-                  {product.customSpecs?.find((s) => s.label.toLowerCase() === 'battery')?.value ||
-                    'All-Day High Capacity Battery'}
-                </p>
-              </div>
-            </div>
-          ) : null}
+            );
+          })()}
 
           <div className="border border-[#D5D9D9] rounded-xl overflow-hidden max-w-5xl shadow-sm bg-white">
             <table className="w-full text-left text-xs">
               <tbody className="divide-y divide-[#D5D9D9]">
                 {(() => {
-                  const baseSpecs: Array<{ label: string; value: string; isBold?: boolean }> = isMobilePhone
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        { label: 'Network Service Provider', value: 'Unlocked for All Carriers (Jio, Airtel, Vi, BSNL)' },
-                        {
-                          label: 'Operating System',
-                          value:
-                            product.customSpecs?.find(
-                              (s) =>
-                                s.label.toLowerCase().includes('operating') ||
-                                s.label.toLowerCase() === 'os'
-                            )?.value || 'Android / iOS',
-                          isBold: true,
-                        },
-                        { label: 'Cellular Technology', value: '5G, 4G LTE, VoLTE, VoWiFi' },
-                      ]
-                    : isLaptopOrComputer
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        {
-                          label: 'Operating System',
-                          value:
-                            product.customSpecs?.find(
-                              (s) =>
-                                s.label.toLowerCase().includes('operating') ||
-                                s.label.toLowerCase() === 'os'
-                            )?.value ||
-                            (product.title.toLowerCase().includes('macbook')
-                              ? 'macOS'
-                              : product.title.toLowerCase().includes('win')
-                              ? 'Windows 11 Home'
-                              : 'Windows 11'),
-                          isBold: true,
-                        },
-                        {
-                          label: 'Graphics Description',
-                          value:
-                            product.customSpecs?.find(
-                              (s) =>
-                                s.label.toLowerCase().includes('graphic') ||
-                                s.label.toLowerCase().includes('gpu')
-                            )?.value || 'Integrated',
-                        },
-                        { label: 'Connectivity', value: 'Wi-Fi 6E / Wi-Fi 6, Bluetooth 5.3' },
-                      ]
-                    : isCamera
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        {
-                          label: 'Compatible Mountings',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('mount'))?.value ||
-                            'Sony E / Interchangeable',
-                          isBold: true,
-                        },
-                        {
-                          label: 'Photo Sensor Technology',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('sensor'))?.value ||
-                            'APS-C Exmor R CMOS',
-                        },
-                        {
-                          label: 'Image Stabilisation',
-                          value:
-                            product.customSpecs?.find(
-                              (s) =>
-                                s.label.toLowerCase().includes('stabilis') || s.label.toLowerCase().includes('stabiliz')
-                            )?.value || '5-Axis Sensor-shift',
-                        },
-                      ]
-                    : isBook
-                    ? [
-                        { label: 'Author', value: product.brand, isBold: true },
-                        { label: 'Book Title', value: product.title },
-                        {
-                          label: 'Publisher',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('publisher'))?.value ||
-                            'Authorized Publishing House',
-                          isBold: true,
-                        },
-                        {
-                          label: 'Language',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('language'))?.value ||
-                            'English',
-                        },
-                        {
-                          label: 'Print Length',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('page') || s.label.toLowerCase().includes('length'))?.value ||
-                            '320 pages',
-                        },
-                        {
-                          label: 'Binding / Format',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('binding') || s.label.toLowerCase().includes('format'))?.value ||
-                            selectedSize ||
-                            'Paperback',
-                          isBold: true,
-                        },
-                        {
-                          label: 'ISBN-10',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('isbn-10') || s.label.toLowerCase().includes('isbn 10'))?.value ||
-                            '935302484X',
-                        },
-                        {
-                          label: 'ISBN-13',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('isbn-13') || s.label.toLowerCase().includes('isbn 13'))?.value ||
-                            '978-9353024840',
-                        },
-                        {
-                          label: 'Reading Age',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('reading age') || s.label.toLowerCase().includes('age'))?.value ||
-                            '13 years and up',
-                        },
-                      ]
-                    : isAppliance
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        {
-                          label: 'Energy Star Rating',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('energy') || s.label.toLowerCase().includes('star'))?.value ||
-                            '5 Star / 3 Star BEE Certified',
-                          isBold: true,
-                        },
-                        {
-                          label: 'Capacity / Size',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('capacity'))?.value ||
-                            (typeof product.sizes?.[0] === 'object' ? product.sizes[0]?.size : product.sizes?.[0]) ||
-                            'Standard Capacity',
-                          isBold: true,
-                        },
-                        {
-                          label: 'Compressor / Motor Type',
-                          value:
-                            product.customSpecs?.find((s) => s.label.toLowerCase().includes('compressor') || s.label.toLowerCase().includes('motor'))?.value ||
-                            'Digital Smart Inverter Technology',
-                        },
-                        {
-                          label: 'Installation & Demo',
-                          value: 'Free Scheduled Doorstep Installation by Certified Technician',
-                          isBold: true,
-                        },
-                        { label: 'Warranty Summary', value: '10 Years on Motor/Compressor + 1 Year Comprehensive' },
-                      ]
-                    : isAudioOrHeadphones
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        { label: 'Connectivity Technology', value: 'Wireless Bluetooth' },
-                      ]
-                    : isSmartwatch
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        { label: 'Compatible Devices', value: 'Smartphone (iOS & Android)' },
-                        { label: 'Connectivity Technology', value: 'Bluetooth, Wi-Fi' },
-                      ]
-                    : isMobileOrElectronic
-                    ? [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Model Name', value: product.title },
-                        { label: 'Connectivity Technology', value: 'Bluetooth & Wi-Fi' },
-                      ]
-                    : [
-                        { label: 'Brand', value: product.brand, isBold: true },
-                        { label: 'Merchant Guild', value: product.vendorName },
-                        {
-                          label: 'Fulfillment Model',
-                          value: product.isCustomized ? 'Customized / Made to Order' : 'Ready to Ship (Pre-stocked)',
-                          isBold: true,
-                        },
-                        { label: 'Category', value: product.category },
-                      ];
-
-                  // Add vendor-provided technical specs or fallback defaults
-                  const additionalSpecs: Array<{ label: string; value: string; isBold?: boolean }> =
-                    product.customSpecs && product.customSpecs.length > 0
-                      ? product.customSpecs.map((s) => ({ label: s.label, value: s.value }))
-                      : isMobilePhone
-                      ? [
-                          { label: 'Network', value: '5G Dual SIM' },
-                          { label: 'Warranty', value: '1 Year Brand Manufacturer Warranty' },
-                          { label: 'In-The-Box', value: 'Handset, Type-C Cable, SIM Ejector, Documentation' },
-                        ]
-                      : isLaptopOrComputer
-                      ? [
-                          { label: 'Warranty', value: '1 Year Brand Manufacturer Warranty' },
-                          { label: 'In-The-Box', value: 'Laptop, Power Adapter, User Manual' },
-                        ]
-                      : isCamera
-                      ? [
-                          { label: 'Aspect Ratio', value: '1:1, 3:2, 4:3, 16:9' },
-                          { label: 'Supported File Format', value: 'HEIF, JPEG, RAW' },
-                          { label: 'Expanded ISO Minimum', value: '50' },
-                          { label: 'Optical Zoom', value: 'Lens Dependent (e.g. 1x - 7.5x)' },
-                          { label: 'Warranty', value: '2 Years Brand Manufacturer Warranty' },
-                          { label: 'In-The-Box', value: 'Camera Body, Rechargeable Battery NP-FZ100, Shoulder Strap, Body Cap, Eyepiece Cup, User Manual' },
-                        ]
-                      : isBook
-                      ? [
-                          { label: 'Item Weight', value: '280 g' },
-                          { label: 'Dimensions', value: '13.5 x 2.2 x 20.3 cm' },
-                          { label: 'Country of Origin', value: 'India' },
-                          { label: 'Edition', value: 'Standard Unabridged Edition' },
-                          { label: 'Generic Name', value: 'Book / Literature' },
-                        ]
-                      : isAppliance
-                      ? [
-                          { label: 'Warranty Summary', value: '10 Years on Motor/Compressor + 1 Year Comprehensive Machine Warranty' },
-                          { label: 'Installation', value: 'Free Scheduled Installation & Demonstration by Brand Certified Technician' },
-                          { label: 'Exchange Eligibility', value: 'Eligible for Old Appliance Exchange up to ₹5,000' },
-                          { label: 'In-The-Box', value: 'Main Unit, User Manual, Warranty Card, Standard Inlet/Drain Pipe & Installation Kit' },
-                        ]
-                      : isAudioOrHeadphones
-                      ? [
-                          { label: 'Ear Placement', value: 'Over Ear' },
-                          { label: 'Form Factor', value: 'Over Ear' },
-                          { label: 'Impedance', value: '32 Ohms' },
-                          { label: 'Noise Cancellation', value: 'Adaptive Noise Cancelling with Smart Ambient' },
-                          { label: 'Battery Life', value: 'Up to 76 hours of battery life' },
-                          { label: 'Warranty', value: '1 Year Brand Manufacturer Warranty' },
-                          { label: 'In-The-Box', value: 'Headphone, Type-C Cable, Audio Cable, Quick Start Guide' },
-                        ]
-                      : isMobileOrElectronic
-                      ? [
-                          { label: 'Warranty', value: '1 Year Brand Manufacturer Warranty' },
-                          { label: 'In-The-Box', value: 'Device, Power Cable, User Manual' },
-                        ]
-                      : [
-                          { label: 'Material & Weave', value: '100% Certified Organic Natural Fiber' },
-                          { label: 'Country of Origin', value: 'India' },
-                          { label: 'Care & Wash', value: 'Dry Clean Recommended for Longevity' },
-                        ];
-
-                  // Deduplicate in case vendor specified "Brand" or "Category"
-                  const allRows = [
-                    ...baseSpecs.filter(
-                      (b) => !additionalSpecs.some((a) => a.label.toLowerCase() === b.label.toLowerCase())
-                    ),
-                    ...additionalSpecs,
+                  // Only what the seller entered (plus brand/category from the listing): no invented defaults.
+                  const vendorSpecs = (product.customSpecs || []).filter((sp) => sp.label?.trim() && sp.value?.trim());
+                  const has = (label: string) => vendorSpecs.some((sp) => sp.label.trim().toLowerCase() === label);
+                  const allRows: Array<{ label: string; value: string; isBold?: boolean }> = [
+                    ...(has('brand') ? [] : [{ label: isBook ? 'Author' : 'Brand', value: product.brand, isBold: true }]),
+                    ...vendorSpecs.map((sp) => ({ label: sp.label, value: sp.value })),
+                    ...(vendorSpecs.length === 0 && product.category ? [{ label: 'Category', value: product.category }] : []),
+                    ...(product.isCustomized ? [{ label: 'Made to order', value: 'Yes, made after you order' }] : []),
                   ];
 
                   return allRows.map((row, idx) => (
@@ -2441,7 +1914,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
         )}
 
         {/* 4. Customer Reviews & Ratings */}
-        <ProductReviewsSection product={product} />
+        <ProductReviewsSection product={product} isFashion={isFashionCategory} />
 
         {/* 5. Related Products Carousel / Grid */}
         {product.relatedProducts && product.relatedProducts.length > 0 && (

@@ -141,6 +141,31 @@ export function formatCatalogProduct(product: any): FormattedCatalogProduct {
 /**
  * Formats a Prisma product into the DetailedProduct structure for PDP.
  */
+/** Departments with their own landing page; other categories use the filtered catalog. */
+const DEPARTMENT_PAGES: Record<string, string> = {
+  appliances: '/appliances',
+  electronics: '/electronics',
+  mobiles: '/mobiles',
+  books: '/books',
+};
+
+/** Breadcrumb items from the root category down to the product's category. */
+function categoryTrail(category: any): Array<{ label: string; href: string }> {
+  const chain: Array<{ name: string; slug: string }> = [];
+  let node = category;
+  while (node && chain.length < 6) {
+    if (node.slug) chain.unshift({ name: node.name, slug: node.slug });
+    node = node.parent;
+  }
+  return chain.map((c, i) => ({
+    label: c.name,
+    href:
+      i === 0 && DEPARTMENT_PAGES[c.slug]
+        ? DEPARTMENT_PAGES[c.slug]
+        : `/products?category=${encodeURIComponent(c.slug)}`,
+  }));
+}
+
 export function formatDetailedProduct(product: any): DetailedProduct {
   const p1 = Number(product.basePrice || 0);
   const p2 = product.discountPrice ? Number(product.discountPrice) : null;
@@ -601,19 +626,19 @@ export function formatDetailedProduct(product: any): DetailedProduct {
             ? Math.round(((minOfferMrp - minOfferPrice) / minOfferMrp) * 100)
             : 0,
         stock: offerStock,
-        handlingDays: so.handlingDays || 2,
-        estimatedDeliveryDays: (so.handlingDays || 2) + 2,
+        handlingDays: so.handlingDays || 0,
+        estimatedDeliveryDays: so.handlingDays ? so.handlingDays + 2 : 0,
         fulfillmentType: (so.fulfillmentType as any) || 'SELLER_FULFILLED',
-        shipsFrom: so.warehouse?.city
-          ? `${so.warehouse.city}, ${so.warehouse.state}`
-          : 'India',
+        shipsFrom: so.warehouse?.city ? `${so.warehouse.city}, ${so.warehouse.state}` : '',
         isBuyBoxWinner: false,
         offerVariants,
       };
     });
   }
 
-  // Ensure the Original Creator / Primary Listing Vendor is ALWAYS included in multi-seller offers
+  // Ensure the Original Creator / Primary Listing Vendor is ALWAYS included in multi-seller offers.
+  // Built from the listing itself, so only facts we have: no invented dispatch time or fulfilment.
+  const primaryWarehouse = product.vendor?.warehouses?.[0];
   const primaryOffer: SellerOfferItem = {
     id: `offer-${product.id}-${product.vendor?.id || 'primary'}`,
     productId: product.id,
@@ -624,8 +649,8 @@ export function formatDetailedProduct(product: any): DetailedProduct {
       storeSlug: product.vendor?.storeSlug || 'vyntra-guild',
       rating: Number(product.vendor?.rating || 4.9),
       isVerified: Boolean(product.vendor?.isVerified ?? true),
-      city: product.vendor?.city || 'Jaipur',
-      state: product.vendor?.state || 'Rajasthan',
+      city: primaryWarehouse?.city || product.vendor?.city || undefined,
+      state: primaryWarehouse?.state || product.vendor?.state || undefined,
     },
     condition: 'NEW',
     sellingPrice,
@@ -635,10 +660,10 @@ export function formatDetailedProduct(product: any): DetailedProduct {
         ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100)
         : 0,
     stock: totalStock,
-    handlingDays: 2,
-    estimatedDeliveryDays: 3,
-    fulfillmentType: 'VYNTRA_FULFILLED',
-    shipsFrom: 'Vyntra Dispatch Hub',
+    handlingDays: 0, // unknown: the listing has no dispatch time
+    estimatedDeliveryDays: 0,
+    fulfillmentType: 'SELLER_FULFILLED',
+    shipsFrom: primaryWarehouse ? `${primaryWarehouse.city}, ${primaryWarehouse.state}` : '',
     isBuyBoxWinner: false,
     isOriginalCreator: true,
   };
@@ -685,22 +710,16 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     originalVendorName: product.vendor?.storeName || 'Vyntra Royal Guild',
     category: (product.category?.slug as any) || 'ethnic',
     subCategory: product.category?.name || 'Artisanal Collection',
-    breadcrumb: [
-      { label: 'Home', href: '/' },
-      { label: 'Catalog', href: '/products' },
-      {
-        label: product.category?.name || 'Collections',
-        href: `/products?category=${product.category?.slug || 'ethnic'}`,
-      },
-      { label: product.title, href: `/products/${product.slug}` },
-    ],
+    // Home › department › … › category (the page appends the product title itself).
+    breadcrumb: [{ label: 'Home', href: '/' }, ...categoryTrail(product.category)],
     price: sellingPrice,
     originalPrice,
     discount: discountStr,
     rating: Number(product.rating ?? 0),
     reviewCount: Number(product.reviewCount ?? reviewsList.length),
     recommendedPct: 96,
-    badge: (product.rating ?? 0) >= 4.8 && (product.reviewCount ?? 0) > 0 ? 'HERITAGE BESTSELLER' : undefined,
+    // Same rule as listings: a real bestseller needs many reviews, not just a high average from a few.
+    badge: (product.reviewCount ?? 0) >= 100 && (product.rating ?? 0) >= 4.5 ? 'Bestseller' : undefined,
     badgeVariant: 'secondary',
     giCertified: true,
     isExpress: false, // no real express-delivery data yet
@@ -900,7 +919,13 @@ function getCachedProduct(slug: string): Promise<DetailedProduct | null> {
         },
         include: {
           category: {
-            select: { id: true, name: true, slug: true },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              // Ancestors for the breadcrumb (Home › Appliances › Air Conditioners › …)
+              parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true } } } } } },
+            },
           },
           vendor: {
             select: {
@@ -909,6 +934,8 @@ function getCachedProduct(slug: string): Promise<DetailedProduct | null> {
               storeSlug: true,
               rating: true,
               isVerified: true,
+              // Default warehouse: the real "ships from" location.
+              warehouses: { where: { isDefault: true }, take: 1, select: { city: true, state: true } },
             },
           },
           images: {
