@@ -65,19 +65,26 @@ export async function GET(request: Request) {
     });
 
     // Query standalone completed refund transactions in period
+    // Refunds whose money has left (Razorpay accepted them or they were paid manually).
     const completedRefunds = await prisma.refundTransaction.findMany({
       where: {
-        status: RefundStatus.CONFIRMED,
+        status: { in: [RefundStatus.CONFIRMED, RefundStatus.GATEWAY_PENDING] },
         ...(dateFilter ? { createdAt: { gte: dateFilter } } : {}),
       },
     });
 
     let totalRefundsAmount = 0;
     let totalPlatformRefundReversal = 0;
+    let totalVendorRefundReversal = 0;
+    // A return refund is split: the seller gives back their share, Vyntra gives back its commission
+    // (and any shipping/packaging it refunds). Only Vyntra's part reduces Vyntra's take.
+    const platformRefundByOrder = new Map<string, number>();
 
     completedRefunds.forEach((r) => {
       totalRefundsAmount += Number(r.amount || 0);
       totalPlatformRefundReversal += Number(r.platformShare || 0);
+      totalVendorRefundReversal += Number(r.vendorShare || 0);
+      platformRefundByOrder.set(r.orderId, (platformRefundByOrder.get(r.orderId) || 0) + Number(r.platformShare || 0));
     });
 
     let grossGMV = 0;
@@ -133,7 +140,7 @@ export async function GET(request: Request) {
 
       const vyntraTake = isFullyRefunded
         ? 0
-        : Number(Math.max(0, orderCommission + packagingFee + codFee - orderRefund).toFixed(2));
+        : Number(Math.max(0, orderCommission + packagingFee + codFee - (platformRefundByOrder.get(o.id) || 0)).toFixed(2));
 
       return {
         orderId: o.id,
@@ -225,7 +232,7 @@ export async function GET(request: Request) {
     // Gateway cost: Razorpay charges ~2% on online prepaid transactions
     const estimatedGatewayFees = Number((totalOnlineOrdersAmount * 0.02).toFixed(2));
 
-    // Vyntra Gross Revenue = Net Commission + Packaging Fees + COD Verification Fees
+    // Vyntra Gross Revenue = Net Commission + Packaging Fees + COD fees
     const vyntraGrossRevenue = Number((netCommissionsEarned + totalPackagingFees + totalCodFees).toFixed(2));
 
     // Vyntra Net Profit = Gross Platform Revenue - Estimated Gateway Fees
@@ -255,7 +262,8 @@ export async function GET(request: Request) {
         totalCommissionsEarned: netCommissionsEarned,
         totalPackagingFees,
         totalCodFees,
-        totalVendorPayoutObligation: Number(totalVendorPayoutObligation.toFixed(2)),
+        // What sellers keep: their earnings less their share of return refunds.
+        totalVendorPayoutObligation: Number(Math.max(0, totalVendorPayoutObligation - totalVendorRefundReversal).toFixed(2)),
         totalOnlineOrdersAmount: Number(totalOnlineOrdersAmount.toFixed(2)),
         totalCodOrdersAmount: Number(totalCodOrdersAmount.toFixed(2)),
         totalOrdersCount: orders.length,

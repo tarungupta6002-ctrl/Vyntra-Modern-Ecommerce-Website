@@ -267,7 +267,7 @@ export default function AdminReviewsPage() {
               <Search className="h-4 w-4 absolute left-3 top-2.5 text-[#565959]" />
               <input
                 type="text"
-                placeholder="Search product, patron, text..."
+                placeholder="Search product, customer or text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-xs bg-[#F7F8F8] border border-[#D5D9D9] rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#007185]"
@@ -391,7 +391,7 @@ export default function AdminReviewsPage() {
                         type="button"
                         disabled={updatingId === rev.id}
                         onClick={() => openActionModal(rev, 'REJECTED')}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-300 bg-white text-rose-700 hover:bg-rose-50 transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
                         <XCircle className="h-3.5 w-3.5" />
                         <span>Reject</span>
@@ -403,7 +403,7 @@ export default function AdminReviewsPage() {
                         type="button"
                         disabled={updatingId === rev.id}
                         onClick={() => openActionModal(rev, 'FLAGGED')}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-[#D5D9D9] bg-white text-[#0F1111] hover:bg-[#F7F8F8] transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
                         <AlertTriangle className="h-3.5 w-3.5" />
                         <span>Flag</span>

@@ -173,7 +173,7 @@ export default function AdminRevenuePage() {
         <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white rounded-xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-emerald-200">
-              Vyntra Net In-Hand Profit
+              Vyntra profit (estimate)
             </span>
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-emerald-300" />
@@ -204,7 +204,7 @@ export default function AdminRevenuePage() {
               {formatINR(metrics?.vyntraGrossRevenue || 0)}
             </div>
             <p className="text-[11px] text-[#565959] mt-1">
-              Commissions + Express Packaging + COD Charges
+              Commission + packaging + COD fees
             </p>
           </div>
         </div>
@@ -257,14 +257,14 @@ export default function AdminRevenuePage() {
           <div className="flex items-center justify-between pb-4 border-b border-[#D5D9D9]">
             <div>
               <h2 className="font-headline font-bold text-base text-[#0F1111]">
-                Platform Revenue Streams (Where Vyntra Earns)
+                Where Vyntra's revenue comes from
               </h2>
               <p className="text-xs text-[#565959] mt-0.5">
-                Exact breakdown of every rupee earned by Vyntra Marketplace
+                Commission, packaging and COD fees, less refunds and gateway costs
               </p>
             </div>
             <span className="text-xs tabular-nums font-bold text-primary">
-              Take Rate: {metrics?.totalGMV ? ((metrics.vyntraGrossRevenue / metrics.totalGMV) * 100).toFixed(1) : 0}%
+              Share of sales: {metrics?.totalGMV ? ((metrics.vyntraGrossRevenue / metrics.totalGMV) * 100).toFixed(1) : 0}%
             </span>
           </div>
 
@@ -314,7 +314,7 @@ export default function AdminRevenuePage() {
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
-                  <span className="font-bold text-[#0F1111]">Cash on Delivery Verification Fees (₹49/COD)</span>
+                  <span className="font-bold text-[#0F1111]">Cash on Delivery fees (₹49 per COD order)</span>
                 </div>
                 <div className="tabular-nums text-right">
                   <span className="font-bold text-[#0F1111]">{formatINR(metrics?.totalCodFees || 0)}</span>
@@ -333,7 +333,7 @@ export default function AdminRevenuePage() {
           {/* Gateway Deductions Footnote */}
           <div className="mt-6 p-4 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] flex items-start justify-between gap-3 text-xs">
             <div>
-              <span className="font-bold text-[#0F1111] block">Payment Gateway Transaction Costs (Overhead)</span>
+              <span className="font-bold text-[#0F1111] block">Razorpay fees (estimate)</span>
               <p className="text-[11px] text-[#565959] mt-0.5">
                 Razorpay standard domestic gateway rate (~2.0% on prepaid transactions).
               </p>
@@ -346,9 +346,9 @@ export default function AdminRevenuePage() {
           {/* Refund Protection Note */}
           <div className="mt-3 p-4 rounded-xl bg-rose-50/70 border border-rose-200/80 flex items-start justify-between gap-3 text-xs">
             <div>
-              <span className="font-bold text-rose-950 block">Customer Refunds &amp; Returns Reversals</span>
+              <span className="font-bold text-rose-950 block">Refunds</span>
               <p className="text-[11px] text-rose-800 mt-0.5">
-                Refunded items and returned orders are strictly subtracted from GMV and net revenue. Vyntra retains ₹0 commission on refunded items.
+                Refunds are taken off sales. Vyntra gives back its commission on refunded items; the seller gives back their share.
               </p>
             </div>
             <div className="text-right tabular-nums font-bold text-rose-700 shrink-0">
@@ -360,7 +360,7 @@ export default function AdminRevenuePage() {
         {/* Right: Payment Channels & Conversion (5 cols) */}
         <div className="lg:col-span-5 bg-white rounded-xl p-6 shadow-sm border border-[#D5D9D9]">
           <h2 className="font-headline font-bold text-base text-[#0F1111] pb-4 border-b border-[#D5D9D9]">
-            Payment Mode Distribution
+            How customers paid
           </h2>
 
           <div className="mt-5 space-y-4">
@@ -379,7 +379,7 @@ export default function AdminRevenuePage() {
                 <span className="font-bold text-sm text-emerald-950 block">
                   {formatINR(metrics?.totalOnlineOrdersAmount || 0)}
                 </span>
-                <span className="text-[10px] text-emerald-700 font-semibold">100% Upfront</span>
+                <span className="text-[10px] text-emerald-700 font-semibold">Paid at checkout</span>
               </div>
             </div>
 
@@ -398,13 +398,13 @@ export default function AdminRevenuePage() {
                 <span className="font-bold text-sm text-amber-950 block">
                   {formatINR(metrics?.totalCodOrdersAmount || 0)}
                 </span>
-                <span className="text-[10px] text-amber-700 font-semibold">Doorstep Remittance</span>
+                <span className="text-[10px] text-amber-700 font-semibold">Collected by courier</span>
               </div>
             </div>
           </div>
 
           <div className="mt-5 pt-4 border-t border-[#D5D9D9] flex items-center justify-between text-xs text-[#565959]">
-            <span>Active Platform Commission:</span>
+            <span>Commission rate:</span>
             <span className="tabular-nums font-bold text-[#0F1111]">{metrics?.platformCommissionRate || 10.0}% Global</span>
           </div>
         </div>
@@ -415,7 +415,7 @@ export default function AdminRevenuePage() {
         <div className="p-6 border-b border-[#D5D9D9] flex items-center justify-between">
           <div>
             <h2 className="font-headline font-bold text-base text-[#0F1111]">
-              Vendor Contribution Leaderboard
+              Sales by seller
             </h2>
             <p className="text-xs text-[#565959] mt-0.5">
               Which merchant stores are generating the highest revenue &amp; commissions for Vyntra
