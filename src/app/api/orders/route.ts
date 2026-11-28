@@ -3,6 +3,8 @@ import { requireAuth, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OrderStatus } from '@prisma/client';
+import { DEFAULT_RETURN_WINDOW_DAYS } from '@/lib/policy-constants';
+import { computeIstReturnDeadline, isWithinDeadline } from '@/lib/date-utils';
 import { cancellationRefundAsTransaction } from '@/lib/refund-ui-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +92,7 @@ export async function GET(request: Request) {
                 },
               },
               variant: true,
+              vendorShipment: { select: { deliveredAt: true, courierPartner: true, trackingNumber: true } },
               review: {
                 select: {
                   id: true,
@@ -111,7 +114,7 @@ export async function GET(request: Request) {
                   disputeResolution: true,
                   rejectedAt: true,
                   qcCompletedAt: true,
-                  vendorNotes: true,
+                  qcFailedReason: true,
                   refundTransactions: {
                     select: {
                       id: true,
@@ -132,7 +135,21 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    // Return window (days after delivery), as enforced when a return is requested.
+    const windowSetting = await prisma.platformSetting.findUnique({ where: { key: 'return_window_days' } }).catch(() => null);
+    const returnWindowDays = windowSetting ? parseInt(windowSetting.value, 10) || DEFAULT_RETURN_WINDOW_DAYS : DEFAULT_RETURN_WINDOW_DAYS;
+    const now = new Date();
+
     const formattedOrders = orders.map((order) => {
+      const itemWindows = order.items.map((item) => {
+        // Same fallback as POST /api/returns uses for items delivered before deliveredAt was recorded.
+        const deliveredAt = item.deliveredAt || item.vendorShipment?.deliveredAt || order.updatedAt || order.createdAt;
+        if (item.status !== 'DELIVERED') return { deliveredAt: null, deadline: null, open: false, daysLeft: 0 };
+        const deadline = computeIstReturnDeadline(deliveredAt, returnWindowDays);
+        const open = isWithinDeadline(now, deadline);
+        const daysLeft = open ? Math.max(1, Math.ceil((deadline.getTime() - now.getTime()) / 86400000)) : 0;
+        return { deliveredAt, deadline, open, daysLeft };
+      });
       const isCancellable =
         order.status === OrderStatus.PENDING ||
         order.status === OrderStatus.CONFIRMED ||
@@ -140,40 +157,40 @@ export async function GET(request: Request) {
 
       // Status UI mapping
       let uiStatus: 'processing' | 'shipped' | 'delivered' | 'cancelled' = 'processing';
-      let statusLabel = 'Order Confirmed — Being Prepared';
+      let statusLabel = 'Being prepared';
 
       switch (order.status) {
         case OrderStatus.PENDING:
           uiStatus = 'processing';
-          statusLabel = 'Order Placed — Pending Confirmation';
+          statusLabel = 'Order placed';
           break;
         case OrderStatus.CONFIRMED:
           uiStatus = 'processing';
-          statusLabel = 'Order Confirmed — Being Prepared by Artisan';
+          statusLabel = 'Confirmed';
           break;
         case OrderStatus.PROCESSING:
           uiStatus = 'processing';
-          statusLabel = 'Artisan Crafting & Quality Check';
+          statusLabel = 'Being prepared';
           break;
         case OrderStatus.SHIPPED:
           uiStatus = 'shipped';
-          statusLabel = 'Dispatched via Courier';
+          statusLabel = 'Shipped';
           break;
         case OrderStatus.OUT_FOR_DELIVERY:
           uiStatus = 'shipped';
-          statusLabel = 'Out for Delivery';
+          statusLabel = 'Out for delivery';
           break;
         case OrderStatus.DELIVERED:
           uiStatus = 'delivered';
-          statusLabel = 'Delivered to Doorstep';
+          statusLabel = 'Delivered';
           break;
         case OrderStatus.CANCELLED:
           uiStatus = 'cancelled';
-          statusLabel = 'Cancelled by Customer';
+          statusLabel = 'Cancelled';
           break;
         case OrderStatus.RETURNED:
           uiStatus = 'cancelled';
-          statusLabel = 'Returned & Closed';
+          statusLabel = 'Returned';
           break;
       }
 
@@ -194,18 +211,10 @@ export async function GET(request: Request) {
         rawStatus: order.status,
         statusLabel,
         isCancellable,
-        returnWindowDaysLeft: (() => {
-          if (order.status !== OrderStatus.DELIVERED) return 0;
-          const deliveredDate = (order as any).deliveredAt || order.updatedAt || order.createdAt;
-          const daysSince = Math.floor((Date.now() - new Date(deliveredDate).getTime()) / (1000 * 60 * 60 * 24));
-          return Math.max(0, 7 - daysSince);
-        })(),
-        isReturnEligible: (() => {
-          if (order.status !== OrderStatus.DELIVERED) return false;
-          const deliveredDate = (order as any).deliveredAt || order.updatedAt || order.createdAt;
-          const daysSince = Math.floor((Date.now() - new Date(deliveredDate).getTime()) / (1000 * 60 * 60 * 24));
-          return daysSince <= 7;
-        })(),
+        returnWindowDaysLeft: Math.max(0, ...itemWindows.map((w) => w.daysLeft)),
+        isReturnEligible: itemWindows.some((w) => w.open),
+        // Who cancelled is only recorded with a refund (prepaid orders).
+        cancelledBy: order.cancellationRefund?.initiatedBy || null,
         paymentStatus: order.paymentStatus,
         paymentMethod: order.paymentMethod,
         subtotal: Number(order.subtotal),
@@ -278,11 +287,11 @@ export async function GET(request: Request) {
                   shippingFee: Number(order.shippingFee || 0),
                   dispatchedAt: null,
                   deliveredAt: null,
-                  vendor: { id: 'legacy', storeName: 'Artisan Boutique' },
+                  vendor: { id: 'legacy', storeName: 'Seller' },
                   itemsCount: order.items.length,
                 },
               ],
-        items: order.items.map((item) => {
+        items: order.items.map((item, itemIndex) => {
           const unitPriceNum = Number(item.unitPrice || 0);
           const totalPriceNum = Number(item.totalPrice || unitPriceNum * item.quantity);
           const originalPriceNum = Number(
@@ -296,15 +305,17 @@ export async function GET(request: Request) {
 
           const resolvedSize = item.selectedSize || item.variant?.size || 'N/A';
           const resolvedColor = item.selectedColor || item.variant?.color || 'N/A';
-          const resolvedVendor = item.vendor?.storeName || item.product?.brand || 'Seller';
+          const resolvedVendor = item.vendor?.storeName || 'Seller';
+          const window = itemWindows[itemIndex];
 
           return {
             id: item.id,
             productId: item.productId,
             variantId: item.variantId,
-            title: item.product?.title || 'Artisanal Piece',
-            brand: item.product?.brand || 'Vyntra Collective',
-            categoryTag: 'Heritage Luxury',
+            slug: item.product?.slug || null,
+            title: item.product?.title || 'Product no longer listed',
+            brand: item.product?.brand || '',
+            categoryTag: '',
             sellerName: resolvedVendor,
             vendorName: resolvedVendor,
             sku: item.variant?.sku || '',
@@ -318,11 +329,13 @@ export async function GET(request: Request) {
             color: resolvedColor,
             selectedSize: resolvedSize,
             selectedColor: resolvedColor,
-            shippingMethod: order.courierPartner || 'Standard Insured Delivery',
-            image:
-              item.variant?.imageUrl ||
-              item.product?.images[0]?.url ||
-              'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80',
+            shippingMethod: item.vendorShipment?.courierPartner || order.courierPartner || '',
+            trackingNumber: item.vendorShipment?.trackingNumber || order.trackingNumber || null,
+            image: item.variant?.imageUrl || item.product?.images[0]?.url || '',
+            deliveredAt: window.deliveredAt ? window.deliveredAt.toISOString() : null,
+            returnDeadline: window.deadline ? window.deadline.toISOString() : null,
+            returnWindowOpen: window.open,
+            isCustomized: Boolean(item.isCustomizedSnapshot || item.product?.isCustomized),
             status: item.status,
             hasReviewed: Boolean(item.review),
             review: item.review ? { id: item.review.id, rating: item.review.rating, status: item.review.status } : null,

@@ -14,6 +14,14 @@ export interface OrderItem {
   sellerName: string;
   shippingMethod: string;
   status?: string;
+  /** Product page slug (null when the product is no longer listed). */
+  slug?: string | null;
+  trackingNumber?: string | null;
+  deliveredAt?: string | null;
+  /** Last moment a return can be requested (IST end of day). */
+  returnDeadline?: string | null;
+  returnWindowOpen?: boolean;
+  isCustomized?: boolean;
   hasReviewed?: boolean;
   review?: {
     id: string;
@@ -31,6 +39,7 @@ export interface OrderItem {
     rejectedAt?: string | null;
     qcCompletedAt?: string | null;
     vendorNotes?: string | null;
+    qcFailedReason?: string | null;
   } | null;
 }
 
@@ -114,6 +123,8 @@ export interface Order {
   customerRating?: number;
   returnWindowDaysLeft?: number;
   isReturnEligible?: boolean;
+  /** CUSTOMER | ADMIN | VENDOR | SYSTEM, when known (recorded with a refund). */
+  cancelledBy?: string | null;
   cancellationReason?: string;
   refundStatus?: string;
   refundAmount?: number;

@@ -4,35 +4,22 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  Package,
-  Truck,
-  CheckCircle,
-  Copy,
   Check,
-  Search,
-  Calendar,
-  Filter,
-  Download,
-  RotateCcw,
-  RefreshCw,
-  Star,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  Receipt,
-  Info,
-  CreditCard,
-  Headphones,
-  AlertCircle,
-  X,
-  Navigation,
+  Copy,
+  ExternalLink,
   FileText,
-  ShieldCheck,
-  ShieldAlert,
-  Clock,
   HelpCircle,
+  Package,
+  Receipt,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  ShieldAlert,
+  Star,
+  Truck,
+  X,
 } from 'lucide-react';
 import { Order, OrderItem } from '@/data/orders-data';
 import { useCartStore } from '@/store/cart-store';
@@ -42,44 +29,96 @@ import { formatCustomerRefundSummary } from '@/lib/refund-ui-helpers';
 import { ReturnRequestModal } from '@/components/orders/return-request-modal';
 import { CustomerDisputeModal } from '@/components/orders/customer-dispute-modal';
 import { computeIstDisputeDeadline, isWithinDeadline } from '@/lib/date-utils';
-
+import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 import { CometSpinner } from '@/components/ui/loading-spinner';
+
 interface OrdersManagementViewProps {
   embeddedInAccount?: boolean;
 }
 
+const btn = {
+  primary:
+    'inline-flex items-center justify-center gap-1.5 rounded-full border border-[#FCD200] bg-[#FFD814] px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00] disabled:opacity-60',
+  secondary:
+    'inline-flex items-center justify-center gap-1.5 rounded-full border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7F8F8] disabled:opacity-60',
+  link: 'inline-flex items-center gap-1 text-sm font-medium text-[#007185] hover:underline',
+};
+
+const STATUS_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'processing', label: 'Being prepared' },
+  { id: 'shipped', label: 'On the way' },
+  { id: 'delivered', label: 'Delivered' },
+  { id: 'cancelled', label: 'Cancelled' },
+];
+
+/** Colour of the order status pill. */
+function statusTone(order: Order): string {
+  switch (order.rawStatus) {
+    case 'DELIVERED':
+      return 'bg-emerald-50 text-emerald-800';
+    case 'SHIPPED':
+    case 'OUT_FOR_DELIVERY':
+      return 'bg-sky-50 text-sky-800';
+    case 'CANCELLED':
+      return 'bg-rose-50 text-rose-800';
+    case 'RETURNED':
+      return 'bg-[#F0F2F2] text-[#0F1111]';
+    default:
+      return 'bg-amber-50 text-amber-800';
+  }
+}
+
+const RETURN_LABEL: Record<string, string> = {
+  REQUESTED: 'requested',
+  APPROVED: 'approved',
+  PICKED_UP: 'picked up',
+  RECEIVED_AT_WH: 'being checked',
+  QC_PASSED: 'check passed',
+  QC_FAILED: "didn't pass the check",
+  QC_DISPUTED: 'under review',
+  REFUND_OFFERED: 'refund offered',
+  COMPLETED: 'completed',
+  REJECTED: 'declined',
+  CANCELLED: 'cancelled',
+};
+
+const payLabel = (method?: string) => {
+  const m = (method || '').toUpperCase();
+  if (m === 'COD') return 'Cash on delivery';
+  if (m === 'UPI') return 'UPI';
+  if (m === 'CARD' || m === 'CREDIT_CARD' || m === 'DEBIT_CARD') return 'Card';
+  if (m === 'NETBANKING' || m === 'NET_BANKING') return 'Net banking';
+  return 'Paid online';
+};
+
 export function OrdersManagementView({ embeddedInAccount = false }: OrdersManagementViewProps) {
-  const { addItem, openCart } = useCartStore();
+  const { addItem } = useCartStore();
   const { orders: storeOrders, isLoading, fetchOrders, totalCount, totalPages } = useOrderStore();
   const [mounted, setMounted] = useState(false);
 
-  // Filters & Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<string>('2024');
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setMounted(true);
     fetchOrders({ page: currentPage, status: selectedStatus, search: searchQuery });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, selectedStatus]);
 
   const sourceOrders = mounted ? storeOrders : [];
 
-  // Modal states
   const [activeOrderModal, setActiveOrderModal] = useState<Order | null>(null);
-  const [modalType, setModalType] = useState<'tracking' | 'invoice' | 'cancellation' | 'review' | 'price_details' | null>(null);
-  const [feesExpanded, setFeesExpanded] = useState(false);
-  const [discountExpanded, setDiscountExpanded] = useState(false);
-  const [returnItemModal, setReturnItemModal] = useState<{
-    order: Order;
-    item: OrderItem;
-  } | null>(null);
+  const [modalType, setModalType] = useState<'cancellation' | 'review' | 'price_details' | null>(null);
+  const [returnItemModal, setReturnItemModal] = useState<{ order: Order; item: OrderItem } | null>(null);
   const [disputeModal, setDisputeModal] = useState<{
     order: Order;
     item: OrderItem;
     returnRequest: NonNullable<OrderItem['returnRequest']>;
   } | null>(null);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewComment, setReviewComment] = useState('');
@@ -87,33 +126,26 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  // Toast feedback
-  const [toast, setToast] = useState<{ show: boolean; message: string; type?: 'success' | 'info' | 'error' }>({
-    show: false,
-    message: '',
-  });
-
+  const [toast, setToast] = useState<{ show: boolean; message: string; type?: 'success' | 'info' | 'error' }>({ show: false, message: '' });
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast((prev) => ({ ...prev, show: false }));
-    }, 3000);
+    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000);
   };
 
-  // Copy Order ID
-  const handleCopyOrderId = (orderId: string) => {
-    navigator.clipboard.writeText(orderId);
-    showToast(`Order ID ${orderId} copied to clipboard!`, 'info');
+  const refresh = () => fetchOrders({ page: currentPage, status: selectedStatus, search: searchQuery });
+
+  const handleCopyOrderId = (orderNumber: string) => {
+    navigator.clipboard?.writeText(orderNumber).catch(() => {});
+    showToast(`Order number ${orderNumber} copied`, 'info');
   };
 
-  // Reorder / Buy Again
   const handleReorder = (item: OrderItem) => {
     addItem({
       id: `reorder-${item.id}-${Date.now()}`,
       productId: item.productId,
       title: item.title,
       brand: item.brand,
-      variantId: `var-${item.id}`,
+      variantId: (item as any).variantId || `var-${item.id}`,
       size: item.size,
       color: item.color,
       price: item.price,
@@ -122,36 +154,52 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
       image: item.image,
       vendorName: item.sellerName,
     });
-    showToast(`Added ${item.title} to your Bag!`, 'success');
+    showToast(`Added ${item.title} to your cart`, 'success');
   };
 
-  // Submit Customer Review
+  const openReview = (order: Order, item: OrderItem) => {
+    setActiveOrderModal(order);
+    setSelectedReviewItem(item);
+    setReviewRating(5);
+    setReviewTitle('');
+    setReviewComment('');
+    setReviewError(null);
+    setModalType('review');
+  };
+
+  const handleAcceptRefund = async (returnId: string) => {
+    setAcceptingId(returnId);
+    try {
+      const res = await fetch(`/api/returns/${returnId}/accept-refund`, { method: 'POST' });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error?.message || 'Could not accept the refund offer.');
+      showToast('Refund accepted. Track it under Returns.', 'success');
+      refresh();
+    } catch (err: any) {
+      showToast(err.message || 'Could not accept the refund offer.', 'error');
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
   const handleSubmitReview = async () => {
     if (!selectedReviewItem) {
-      setReviewError('Please select an item to review.');
+      setReviewError('Choose the item to review.');
       return;
     }
-
     const trimmedComment = reviewComment.trim();
-    if (!trimmedComment) {
-      setReviewError('Review comment is required.');
-      return;
-    }
     if (trimmedComment.length < 10) {
-      setReviewError('Review comment must be at least 10 characters long.');
+      setReviewError('Write at least 10 characters.');
       return;
     }
     if (trimmedComment.length > 1000) {
-      setReviewError('Review comment cannot exceed 1000 characters.');
+      setReviewError('Keep the review under 1000 characters.');
       return;
     }
-
     try {
       setIsSubmittingReview(true);
       setReviewError(null);
-
-      const targetProductId = selectedReviewItem.productId;
-      const res = await fetch(`/api/products/${targetProductId}/reviews`, {
+      const res = await fetch(`/api/products/${selectedReviewItem.productId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -161,1506 +209,755 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
           comment: trimmedComment,
         }),
       });
-
       const data = await res.json().catch(() => null);
-
       if (!res.ok || !data?.success) {
-        const errorMsg = data?.error?.message || 'Failed to submit review. Please try again.';
-        setReviewError(errorMsg);
-        showToast(errorMsg, 'error');
+        setReviewError(data?.error?.message || 'Could not send your review. Please try again.');
         return;
       }
-
       setModalType(null);
-      showToast('Thank you! Your review has been submitted for moderation approval.', 'success');
-      setReviewTitle('');
-      setReviewComment('');
+      showToast('Thanks! Your review will appear once it has been checked.', 'success');
+      refresh();
     } catch (err: any) {
-      const errorMsg = err?.message || 'Network error while submitting review.';
-      setReviewError(errorMsg);
-      showToast(errorMsg, 'error');
+      setReviewError(err?.message || 'Could not send your review. Please try again.');
     } finally {
       setIsSubmittingReview(false);
     }
   };
 
-  // Filtered orders logic
   const filteredOrders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
     return sourceOrders.filter((order) => {
-      // 1. Status Filter
-      if (selectedStatus !== 'all' && order.status !== selectedStatus) {
-        return false;
-      }
-
-      // 2. Search Query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesId = order.id.toLowerCase().includes(q) || order.orderNumber.toLowerCase().includes(q);
-        const matchesProduct = order.items.some(
-          (item) =>
-            item.title.toLowerCase().includes(q) ||
-            item.brand.toLowerCase().includes(q) ||
-            item.sellerName.toLowerCase().includes(q)
-        );
-        if (!matchesId && !matchesProduct) {
-          return false;
-        }
-      }
-
-      return true;
+      if (selectedStatus !== 'all' && order.status !== selectedStatus) return false;
+      if (!q) return true;
+      return (
+        order.orderNumber.toLowerCase().includes(q) ||
+        order.items.some((item) => [item.title, item.brand, item.sellerName].some((v) => (v || '').toLowerCase().includes(q)))
+      );
     });
   }, [sourceOrders, selectedStatus, searchQuery]);
 
-  // Counts for status tabs
-  const statusCounts = useMemo(() => {
-    return {
-      all: sourceOrders.length,
-      processing: sourceOrders.filter((o) => o.status === 'processing').length,
-      shipped: sourceOrders.filter((o) => o.status === 'shipped').length,
-      delivered: sourceOrders.filter((o) => o.status === 'delivered').length,
-      cancelled: sourceOrders.filter((o) => o.status === 'cancelled').length,
-    };
-  }, [sourceOrders]);
+  const count = totalCount || sourceOrders.length;
 
   return (
-    <div className="w-full flex flex-col">
-      {/* Top Header & Summary Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs uppercase font-headline font-bold tracking-widest text-primary">
-              Order Management
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary-container" />
-            <span className="text-xs font-label text-on-surface-variant font-medium">
-              Account ID #AS-99214
-            </span>
-          </div>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <h1 className="font-headline text-3xl lg:text-4xl font-extrabold tracking-tight text-on-surface">
-              My Orders
-            </h1>
-            <span className="text-sm font-label font-semibold text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full">
-              ({totalCount || sourceOrders.length} {((totalCount || sourceOrders.length) === 1) ? 'order' : 'orders'} placed)
-            </span>
-          </div>
-        </div>
-
-        {/* Quick Purchase Health & Points Summary Pill */}
-        <div className="flex items-center gap-3 bg-surface-container p-2 rounded-xl shadow-sm self-start lg:self-auto">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-lg border border-surface-container">
-            <Star className="h-4 w-4 text-secondary-container fill-secondary-container" />
-            <div className="text-left">
-              <p className="text-[10px] font-label font-bold uppercase tracking-wider text-outline">
-                Vyntra Royal Club
-              </p>
-              <p className="text-xs font-bold text-on-surface">850 Coins Active</p>
-            </div>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-lg border border-surface-container">
-            <Truck className="h-4 w-4 text-primary" />
-            <div className="text-left">
-              <p className="text-[10px] font-label font-bold uppercase tracking-wider text-outline">
-                Active Transit
-              </p>
-              <p className="text-xs font-bold text-primary">
-                {statusCounts.shipped + statusCounts.processing} In-Flight Delivery
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="flex w-full flex-col gap-5">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-[#0F1111]">Your orders</h1>
+        <p className="text-sm text-[#565959]">
+          {count === 0 ? 'Orders you place appear here.' : `${count} ${count === 1 ? 'order' : 'orders'}. Track, return or review them here.`}
+        </p>
       </div>
 
-      {/* Search & Filter Controls Ribbon */}
-      <div className="bg-surface-container-lowest p-4 lg:p-5 rounded-2xl shadow-sm mb-8 space-y-4 border border-surface-container">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          {/* Search Field */}
-          <div className="relative flex-1 max-w-2xl">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-outline h-4 w-4" />
-            <input
-              type="text"
-              id="orderSearchInput"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search across all orders by product, brand, or Order ID..."
-              className="w-full h-11 pl-11 pr-10 bg-surface-container-low rounded-xl text-sm text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 border border-surface-container transition-all"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface p-1"
-                aria-label="Clear search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Year Selector Dropdown */}
-          <div className="flex items-center gap-2">
-            <div className="relative min-w-[210px]">
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="w-full h-11 pl-3.5 pr-9 appearance-none bg-surface-container-low rounded-xl text-xs sm:text-sm font-semibold text-on-surface focus:outline-none cursor-pointer border border-surface-container"
-              >
-                <option value="2024">2024 (Last 6 Months)</option>
-                <option value="2024-h1">2024 (Jan - Jun)</option>
-                <option value="2023">Year 2023</option>
-                <option value="2022">Year 2022</option>
-                <option value="archived">Archived Orders</option>
-              </select>
-              <Calendar className="h-4 w-4 text-on-surface-variant absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div>
+      {/* Search and filters */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter orders">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={selectedStatus === tab.id}
+              onClick={() => {
+                setSelectedStatus(tab.id);
+                setCurrentPage(1);
+              }}
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium ${
+                selectedStatus === tab.id ? 'bg-[#0F1111] text-white' : 'border border-[#D5D9D9] bg-white text-[#0F1111] hover:bg-[#F7F8F8]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-
-        {/* Filter Segmented Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-sm font-label scrollbar-none">
-          {[
-            { id: 'all', label: 'All Orders', count: statusCounts.all },
-            { id: 'processing', label: 'Processing', count: statusCounts.processing },
-            { id: 'shipped', label: 'Shipped', count: statusCounts.shipped },
-            { id: 'delivered', label: 'Delivered', count: statusCounts.delivered },
-            { id: 'cancelled', label: 'Cancelled', count: statusCounts.cancelled },
-          ].map((tab) => {
-            const isActive = selectedStatus === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedStatus(tab.id)}
-                className={`px-3.5 py-1.5 rounded-md text-xs whitespace-nowrap transition-all font-semibold ${
-                  isActive
-                    ? 'bg-[#232F3E] text-white font-bold shadow-sm'
-                    : 'bg-white text-[#0F1111] border border-[#D5D9D9] hover:bg-[#F7FAFA]'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span className={`ml-1 text-xs ${isActive ? 'opacity-90 font-normal' : 'opacity-70'}`}>
-                  ({tab.count})
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <form
+          className="relative w-full md:w-80"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setCurrentPage(1);
+            fetchOrders({ page: 1, status: selectedStatus, search: searchQuery });
+          }}
+        >
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#565959]" aria-hidden="true" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by product or order number"
+            aria-label="Search orders"
+            className="w-full rounded-full border border-[#D5D9D9] bg-white py-2 pl-9 pr-3 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
+          />
+        </form>
       </div>
 
-      {/* Orders List Container */}
-      <div className="flex flex-col gap-6" id="ordersContainer">
-        {isLoading ? (
-          <div className="bg-surface-container-lowest rounded-2xl p-12 text-center my-6 flex flex-col items-center justify-center border border-surface-container">
-            <CometSpinner className="h-12 w-12 mb-3" />
-            <p className="text-xs font-semibold text-on-surface-variant">Loading your purchase history...</p>
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          /* Empty State */
-          <div className="bg-surface-container-lowest rounded-2xl p-12 text-center my-6 flex flex-col items-center justify-center border border-surface-container">
-            <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-primary mb-4 shadow-sm">
-              <Package className="h-8 w-8" />
-            </div>
-            <h3 className="font-headline font-bold text-lg text-on-surface mb-1">
-              {searchQuery || selectedStatus !== 'all'
-                ? 'No orders found matching your criteria'
-                : 'You have not placed any orders yet'}
-            </h3>
-            <p className="text-xs sm:text-sm text-on-surface-variant max-w-sm mb-6 leading-relaxed">
-              {searchQuery || selectedStatus !== 'all'
-                ? 'Check your search query or reset filters to display your full verified purchase history.'
-                : 'Explore India’s finest artisanal handlooms, luxury festive attire, and master artisan creations.'}
-            </p>
-            {searchQuery || selectedStatus !== 'all' ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedStatus('all');
-                  fetchOrders({ page: 1, status: 'all', search: '' });
-                }}
-                className="bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] px-4 py-2 rounded-md text-xs font-bold transition-all shadow-sm"
-              >
-                Clear Search &amp; Show All Orders
-              </button>
-            ) : (
-              <Link
-                href="/products"
-                className="bg-primary hover:bg-primary-container text-on-primary px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm"
-              >
-                Explore Handcrafted Products
-              </Link>
-            )}
-          </div>
-        ) : (
-          filteredOrders.map((order) => {
-            const refundSummary = formatCustomerRefundSummary(order as any);
-
-            return (
-              <article
-                key={order.id}
-                className="bg-white rounded-xl p-6 lg:p-7 shadow-sm transition-all duration-300 hover:shadow-md border border-[#D5D9D9] overflow-hidden"
-              >
-                {/* Order Header Row with Dark Navy Header Theme */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 mb-5 bg-[#131921] text-white -mx-6 lg:-mx-7 -mt-6 lg:-mt-7 p-5 sm:p-6 rounded-t-xl border-b border-[#232F3E]">
-                  <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#CCCCCC] block">
-                        Order Number
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm sm:text-base text-[#FFD814] tracking-tight">
-                          {order.orderNumber}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyOrderId(order.orderNumber)}
-                          className="text-[#CCCCCC] hover:text-[#FFD814] transition-colors p-1"
-                          title="Copy Order ID"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <span className="hidden sm:inline text-white/30">•</span>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#CCCCCC] block">
-                        Date Placed
-                      </span>
-                      <span className="text-xs sm:text-sm font-semibold text-white">
-                        {order.datePlaced}
-                      </span>
-                    </div>
-                    <span className="hidden sm:inline text-white/30">•</span>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#CCCCCC] block">
-                        {refundSummary.hasRefund ? 'Refund & Payment Status' : (order.status === 'cancelled' ? 'Order Status' : 'Total Amount')}
-                      </span>
-                      <span
-                        className={`text-xs sm:text-sm font-bold ${
-                          refundSummary.hasRefund
-                            ? refundSummary.isPartial
-                              ? 'text-amber-300'
-                              : 'text-emerald-400'
-                            : order.status === 'cancelled'
-                            ? 'text-rose-400'
-                            : 'text-white'
-                        }`}
-                      >
-                        {refundSummary.hasRefund
-                          ? refundSummary.badgeLabel
-                          : order.status === 'cancelled'
-                          ? order.paymentMethod === 'COD'
-                            ? 'Cancelled • No Payment Collected (COD)'
-                            : 'Cancelled'
-                          : `${formatINR(order.totalAmount)} (${order.totalItems} Items)`}
-                      </span>
-                    </div>
-                  </div>
-
-                {/* Status Badges */}
-                {order.status === 'shipped' && (
-                  <div className="flex items-center gap-2 bg-[#232F3E] text-white px-3.5 py-1.5 rounded-full self-start md:self-auto border border-[#FF9900]/40">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF9900] opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF9900]" />
-                    </span>
-                    <Truck className="h-4 w-4 text-[#FF9900]" />
-                    <span className="text-xs font-bold text-[#FFD814]">
-                      {order.statusLabel}
-                    </span>
-                  </div>
-                )}
-
-                {order.status === 'delivered' && (
-                  <div className="flex items-center gap-2 bg-[#232F3E] text-white px-3.5 py-1.5 rounded-full self-start md:self-auto border border-[#067D62]/40">
-                    <CheckCircle className="h-4 w-4 text-[#067D62]" />
-                    <span className="text-xs font-bold text-emerald-400">
-                      {order.statusLabel}
-                    </span>
-                  </div>
-                )}
-
-                {order.status === 'cancelled' && (
-                  <div className="flex items-center gap-2 bg-[#232F3E] text-white px-3.5 py-1.5 rounded-full self-start md:self-auto border border-rose-500/40">
-                    <AlertCircle className="h-4 w-4 text-rose-400" />
-                    <span className="text-xs font-bold text-rose-300">
-                      Cancelled by Customer
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Shipped Stepper Milestone Indicator */}
-              {order.status === 'shipped' && (
-                <div className="bg-surface-container-low p-4 rounded-xl mb-6 border border-surface-container">
-                  <div className="flex items-center justify-between text-xs font-semibold text-on-surface mb-2">
-                    <span className="text-primary font-bold flex items-center gap-1">
-                      <CheckCircle className="h-3.5 w-3.5" /> Order Confirmed
-                    </span>
-                    <span className="text-primary font-bold flex items-center gap-1">
-                      <CheckCircle className="h-3.5 w-3.5" /> Dispatched ({order.courierName})
-                    </span>
-                    <span className="text-secondary-container font-bold flex items-center gap-1">
-                      <Truck className="h-3.5 w-3.5" /> Out for Delivery Soon
-                    </span>
-                    <span className="text-outline">Delivered</span>
-                  </div>
-                  <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-primary to-secondary-container h-full rounded-full transition-all duration-700"
-                      style={{ width: `${order.stepperProgress || 75}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center mt-2 text-[11px] text-on-surface-variant font-medium">
-                    <span>AWB: {order.awb}</span>
-                    <span className="text-secondary-container font-semibold">
-                      Latest scan: {order.latestScan}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Multi-Vendor Shipments Indicator */}
-              {order.vendorShipments && order.vendorShipments.length > 1 && (
-                <div className="mb-4 p-3 bg-surface-container-low rounded-xl border border-surface-container flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-primary shrink-0" />
-                    <span className="font-bold text-on-surface">
-                      Multi-Vendor Order ({order.vendorShipments.length} Independent Packages)
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {order.vendorShipments.map((shp: any, sIdx: number) => (
-                      <span
-                        key={shp.id || sIdx}
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                          shp.status === 'DELIVERED'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : shp.status === 'SHIPPED'
-                            ? 'bg-amber-50 text-amber-800 border-amber-200'
-                            : shp.status === 'CANCELLED'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}
-                      >
-                        Pkg {sIdx + 1}: {shp.vendor?.storeName || 'Vendor'} • {shp.status}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Items Section (Multi-Vendor Marketplace Support) */}
-              <div className="flex flex-col gap-6">
-                {order.items.map((item, idx) => (
-                  <React.Fragment key={item.id}>
-                    {idx > 0 && <div className="h-px bg-surface-container w-full" />}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-1">
-                      <div className="flex items-start gap-4">
-                        <div className="w-20 h-24 rounded-xl overflow-hidden bg-surface-container relative shrink-0 shadow-sm border border-surface-container">
-                          <Image
-                            src={item.image}
-                            alt={item.title}
-                            fill
-                            className={`object-cover ${order.status === 'cancelled' ? 'grayscale opacity-80' : ''}`}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-headline font-bold uppercase tracking-wider bg-surface-container-high text-primary px-2 py-0.5 rounded">
-                              {item.categoryTag}
-                            </span>
-                            {/* `> 0`, not `&&`: React renders a bare 0 when the window is closed or not open yet */}
-                            {(order.returnWindowDaysLeft ?? 0) > 0 && (
-                              <span className="text-[11px] font-medium text-secondary-container flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Return Window Open ({order.returnWindowDaysLeft} days left)
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="font-headline font-bold text-sm lg:text-base text-on-surface">
-                            {item.title}
-                          </h4>
-                          <p className="text-xs text-on-surface-variant font-label">
-                            {(() => {
-                              const isUnstitched =
-                                item.title?.toLowerCase().includes('saree') ||
-                                item.title?.toLowerCase().includes('shawl') ||
-                                item.title?.toLowerCase().includes('dupatta');
-                              const displaySize = isUnstitched
-                                ? 'Free Size'
-                                : (item.size || (item as any).selectedSize || 'N/A');
-                              return (
-                                <>
-                                  Size: <span className="font-semibold text-on-surface">{displaySize}</span>{' '}
-                                  &nbsp;|&nbsp; Color:{' '}
-                                </>
-                              );
-                            })()}
-                            <span className="font-semibold text-on-surface">{item.color || (item as any).selectedColor || 'N/A'}</span>{' '}
-                            &nbsp;|&nbsp; Qty:{' '}
-                            <span className="font-semibold text-on-surface">{item.quantity}</span>
-                          </p>
-                          <div className="flex items-center gap-2 pt-1">
-                            <span
-                              className={`font-bold text-sm ${
-                                order.status === 'cancelled' ? 'text-outline line-through' : 'text-on-surface'
-                              }`}
-                            >
-                              {formatINR(Number(item.price ?? (item as any).unitPrice ?? 0))}
-                            </span>
-                            {Number(item.originalPrice ?? 0) > Number(item.price ?? (item as any).unitPrice ?? 0) && (
-                              <span className="text-xs text-outline line-through">
-                                {formatINR(Number(item.originalPrice))}
-                              </span>
-                            )}
-                            {item.discount && (
-                              <span className="text-xs font-semibold text-secondary-container">
-                                {item.discount}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Multi-Vendor Seller Badge */}
-                      <div className="flex sm:flex-col items-center sm:items-end gap-1.5 shrink-0 self-end sm:self-auto">
-                        <span className="text-xs font-medium text-on-surface-variant">
-                          {item.shippingMethod || (order as any).courierPartner || 'Courier not assigned yet'}
-                        </span>
-                        <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
-                          Seller: {item.sellerName || (item as any).vendorName || 'Seller'}
-                        </span>
-                      </div>
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
-
-              {/* Action Footer */}
-              <div className="mt-6 pt-5 bg-surface-container-lowest flex flex-wrap items-center justify-between gap-3 border-t border-surface-container">
-                <div className="flex items-center gap-2">
-                  {order.status === 'processing' && (
-                    <>
-                      <Link
-                        href={`/orders/${order.id}/cancel`}
-                        className="text-xs font-headline font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-2 rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        <X className="h-4 w-4" /> Cancel Order
-                      </Link>
-                      <Link
-                        href={`/support?topic=ORDER&order=${encodeURIComponent(order.orderNumber || order.id)}#support-contact-form`}
-                        className="text-xs font-headline font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors flex items-center gap-1"
-                      >
-                        <HelpCircle className="h-4 w-4" /> Need Help?
-                      </Link>
-                    </>
-                  )}
-
-                  {order.status === 'delivered' && (
-                    <>
-                      {order.items[0]?.hasReviewed || order.items[0]?.review ? (
-                        <span className="text-xs font-headline font-semibold text-emerald-700 bg-emerald-50 px-3.5 py-2 rounded-lg flex items-center gap-1.5 border border-emerald-200">
-                          <Check className="h-3.5 w-3.5 text-emerald-600 stroke-[2.5]" />
-                          <span>Reviewed</span>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveOrderModal(order);
-                            setSelectedReviewItem(order.items[0] || null);
-                            setReviewRating(5);
-                            setReviewTitle('');
-                            setReviewComment('');
-                            setReviewError(null);
-                            setModalType('review');
-                          }}
-                          className="text-xs font-headline font-semibold text-secondary-container hover:bg-secondary-container/10 px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-secondary-container/30"
-                        >
-                          <Star className="h-3.5 w-3.5 fill-secondary-container" />
-                          <span>Write a Review</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveOrderModal(order);
-                          setFeesExpanded(false);
-                          setDiscountExpanded(false);
-                          setModalType('price_details');
-                        }}
-                        className="text-xs font-headline font-semibold text-[#0F1111] hover:text-[#007185] hover:bg-stone-50 px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-[#D5D9D9] bg-white shadow-2xs"
-                      >
-                        <Receipt className="h-3.5 w-3.5 text-[#007185]" />
-                        <span>Price Details</span>
-                        <ChevronDown className="h-3 w-3 text-stone-400" />
-                      </button>
-                    </>
-                  )}
-
-                  {order.status === 'cancelled' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveOrderModal(order);
-                        setModalType('cancellation');
-                      }}
-                      className="text-xs font-headline font-medium text-on-surface-variant hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors flex items-center gap-1"
-                    >
-                      <FileText className="h-4 w-4" /> View Cancellation Summary
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {order.status === 'processing' && (
-                    <Link
-                      href={`/account?tab=tracking&orderId=${encodeURIComponent(order.orderNumber || order.id)}`}
-                      className="text-xs font-bold text-[#0F1111] bg-[#FFD814] hover:bg-[#F7CA00] border border-[#FCD200] px-4 py-2 rounded-md shadow-sm transition-all flex items-center gap-1.5"
-                    >
-                      <Truck className="h-3.5 w-3.5" />
-                      <span>Track Order</span>
-                    </Link>
-                  )}
-
-                  {order.status === 'shipped' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveOrderModal(order);
-                          setFeesExpanded(false);
-                          setDiscountExpanded(false);
-                          setModalType('price_details');
-                        }}
-                        className="text-xs font-medium text-[#0F1111] hover:bg-[#F7FAFA] bg-white border border-[#D5D9D9] px-3.5 py-2 rounded-md transition-colors flex items-center gap-1.5"
-                      >
-                        <Receipt className="h-3.5 w-3.5 text-[#007185]" />
-                        <span>Price Details</span>
-                        <ChevronDown className="h-3 w-3 text-stone-400" />
-                      </button>
-                      <Link
-                        href={`/account?tab=tracking&orderId=${encodeURIComponent(order.orderNumber || order.id)}`}
-                        className="text-xs font-bold text-[#0F1111] bg-[#FFD814] hover:bg-[#F7CA00] border border-[#FCD200] px-4 py-2 rounded-md shadow-sm transition-all flex items-center gap-1.5"
-                      >
-                        <Navigation className="h-3.5 w-3.5" />
-                        <span>Track Package</span>
-                      </Link>
-                    </>
-                  )}
-
-                  {order.status === 'delivered' && (
-                    <>
-                      <Link
-                        href={`/account?tab=tracking&orderId=${encodeURIComponent(order.orderNumber || order.id)}`}
-                        className="text-xs font-medium text-[#0F1111] hover:bg-[#F7FAFA] bg-white border border-[#D5D9D9] px-3.5 py-2 rounded-md transition-colors flex items-center gap-1"
-                      >
-                        <Truck className="h-3.5 w-3.5 text-[#007185]" />
-                        <span>Track Delivery</span>
-                      </Link>
-                      {order.items[0]?.returnRequest ? (
-                        order.items[0].returnRequest.status === 'REFUND_OFFERED' ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-md flex items-center gap-1.5">
-                              <span>Out of Stock • Refund Offered</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const reqId = order.items[0]?.returnRequest?.id;
-                                  if (!reqId) return;
-                                  const res = await fetch(`/api/returns/${reqId}/accept-refund`, { method: 'POST' });
-                                  if (res.ok) {
-                                    showToast('Refund offer accepted. Converted to return for refund.', 'success');
-                                    window.location.reload();
-                                  } else {
-                                    showToast('Failed to accept refund offer', 'error');
-                                  }
-                                } catch {
-                                  showToast('Network error', 'error');
-                                }
-                              }}
-                              className="text-xs font-bold text-white bg-primary hover:bg-primary-container px-3 py-1.5 rounded-md transition-all shadow-sm"
-                            >
-                              Accept Refund
-                            </button>
-                          </div>
-                        ) : order.items[0].returnRequest.status === 'QC_DISPUTED' || order.items[0].returnRequest.isDisputed ? (
-                          <span className="text-xs font-semibold text-amber-900 bg-amber-100/90 border border-amber-300 px-3 py-1.5 rounded-md flex items-center gap-1.5 shadow-xs">
-                            <Clock className="h-3.5 w-3.5 text-amber-700" />
-                            <span>
-                              Dispute Under Review
-                              {order.items[0].returnRequest.disputeResolution && (
-                                <span className="font-bold text-amber-950">
-                                  {' '}• {order.items[0].returnRequest.disputeResolution.replace(/_/g, ' ')}
-                                </span>
-                              )}
-                            </span>
-                          </span>
-                        ) : (order.items[0].returnRequest.status === 'REJECTED' || order.items[0].returnRequest.status === 'QC_FAILED') ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-md flex items-center gap-1.5">
-                              <span>Return: {order.items[0].returnRequest.status.replace(/_/g, ' ')}</span>
-                            </span>
-                            {(() => {
-                              const ret = order.items[0].returnRequest;
-                              const trigger = ret.rejectedAt || ret.qcCompletedAt || ret.createdAt;
-                              let canDispute = true;
-                              if (trigger) {
-                                try {
-                                  const deadline = computeIstDisputeDeadline(trigger, 5);
-                                  canDispute = isWithinDeadline(new Date(), deadline);
-                                } catch {
-                                  canDispute = true;
-                                }
-                              }
-                              if (canDispute) {
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setDisputeModal({
-                                        order,
-                                        item: order.items[0],
-                                        returnRequest: ret,
-                                      })
-                                    }
-                                    className="text-xs font-bold text-white bg-amber-800 hover:bg-amber-900 px-3 py-1.5 rounded-md transition-all shadow-sm flex items-center gap-1.5"
-                                    title="Dispute the seller's decision"
-                                  >
-                                    <ShieldAlert className="h-3.5 w-3.5 text-amber-300" />
-                                    <span>Raise Dispute</span>
-                                  </button>
-                                );
-                              }
-                              return (
-                                <span className="text-[11px] font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-md">
-                                  Dispute Window Expired
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <Link
-                            href="/account?tab=returns"
-                            className="text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors shadow-2xs group"
-                            title="Track live return status and refund"
-                          >
-                            <RotateCcw className="h-3 w-3 text-amber-600 group-hover:rotate-45 transition-transform" />
-                            <span>
-                              {order.items[0].returnRequest.type === 'REPLACEMENT' ? 'Replacement' : 'Return'}: {order.items[0].returnRequest.status.replace(/_/g, ' ')}
-                            </span>
-                            <span className="text-[10px] text-amber-900 font-extrabold underline ml-0.5">Track &rarr;</span>
-                          </Link>
-                        )
-                      ) : order.isReturnEligible !== false && (order.returnWindowDaysLeft === undefined || order.returnWindowDaysLeft > 0) ? (
-                        <button
-                          type="button"
-                          onClick={() => setReturnItemModal({ order, item: order.items[0] })}
-                          className="text-xs font-medium text-[#0F1111] hover:bg-[#F7FAFA] bg-white border border-[#D5D9D9] px-3.5 py-2 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <RotateCcw className="h-3 w-3 text-gray-500" />
-                          <span>Return / Exchange</span>
-                        </button>
-                      ) : (
-                        <span
-                          className="text-xs font-medium text-stone-500 bg-stone-100 border border-stone-200 px-3 py-1.5 rounded-md flex items-center gap-1.5"
-                          title="The 7-day return and exchange policy window has closed."
-                        >
-                          <Clock className="h-3 w-3 text-stone-400" />
-                          <span>Window Closed</span>
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleReorder(order.items[0])}
-                        className="text-xs font-bold text-[#0F1111] bg-[#FF9900] hover:bg-[#FA8900] border border-[#FF8F00] px-4 py-2 rounded-md shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        <span>Buy It Again</span>
-                      </button>
-                    </>
-                  )}
-
-                  {order.status === 'cancelled' && (
-                    <button
-                      type="button"
-                      onClick={() => handleReorder(order.items[0])}
-                      className="text-xs font-bold text-[#0F1111] bg-[#FF9900] hover:bg-[#FA8900] border border-[#FF8F00] px-4 py-2 rounded-md shadow-sm transition-all flex items-center gap-1.5"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      <span>Reorder Item</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </article>
-          );
-        })
-        )}
-      </div>
-
-      {/* Pagination & Catalog Counter */}
-      <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-surface-container">
-        <div className="text-xs font-medium text-on-surface-variant">
-          Showing <span className="font-bold text-on-surface">{filteredOrders.length > 0 ? (currentPage - 1) * 10 + 1 : 0}–{Math.min(currentPage * 10, totalCount || filteredOrders.length)}</span> of{' '}
-          <span className="font-bold text-on-surface">{totalCount || filteredOrders.length}</span> {((totalCount || filteredOrders.length) === 1) ? 'order' : 'orders'}
+      {/* Orders */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#D5D9D9] bg-white py-16" aria-live="polite">
+          <CometSpinner className="h-12 w-12" decorative />
+          <p className="text-sm text-[#565959]">Loading your orders…</p>
         </div>
-
-        {/* Pagination Controls */}
-        {(totalPages > 1 || (totalCount > 10)) && (
-          <div className="flex items-center gap-1.5">
+      ) : filteredOrders.length === 0 ? (
+        <div className="space-y-3 rounded-xl border border-dashed border-[#D5D9D9] bg-white p-10 text-center">
+          <Package className="mx-auto h-8 w-8 text-[#8A8F8F]" aria-hidden="true" />
+          <h2 className="text-base font-semibold text-[#0F1111]">
+            {searchQuery || selectedStatus !== 'all' ? 'No orders match' : "You haven't ordered anything yet"}
+          </h2>
+          <p className="mx-auto max-w-sm text-sm text-[#565959]">
+            {searchQuery || selectedStatus !== 'all'
+              ? 'Try another filter or search.'
+              : 'Fashion, mobiles, electronics, appliances and books from sellers across India.'}
+          </p>
+          {searchQuery || selectedStatus !== 'all' ? (
             <button
               type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-2 rounded-lg bg-surface-container-lowest text-outline hover:text-on-surface hover:bg-surface-container disabled:opacity-40 transition-colors border border-surface-container"
-              aria-label="Previous Page"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedStatus('all');
+                setCurrentPage(1);
+                fetchOrders({ page: 1, status: 'all', search: '' });
+              }}
+              className={btn.secondary}
             >
-              <ChevronLeft className="h-4 w-4" />
+              Show all orders
             </button>
-            {Array.from({ length: Math.min(5, Math.max(1, totalPages || Math.ceil((totalCount || 1) / 10))) }).map((_, pIdx) => {
-              const pNum = pIdx + 1;
-              return (
-                <button
-                  key={pNum}
-                  type="button"
-                  onClick={() => setCurrentPage(pNum)}
-                  className={`w-8 h-8 rounded-lg font-bold text-xs shadow-sm transition-all ${
-                    currentPage === pNum ? 'bg-primary text-white' : 'bg-surface-container-lowest text-on-surface hover:bg-surface-container border border-surface-container'
-                  }`}
-                >
-                  {pNum}
-                </button>
-              );
-            })}
+          ) : (
+            <Link href="/products" className={btn.primary}>
+              Start shopping
+            </Link>
+          )}
+        </div>
+      ) : (
+        <ul className="space-y-4" role="list">
+          {filteredOrders.map((order) => (
+            <li key={order.id}>
+              <OrderCard
+                order={order}
+                onCopy={handleCopyOrderId}
+                onPriceDetails={() => {
+                  setActiveOrderModal(order);
+                  setModalType('price_details');
+                }}
+                onCancellation={() => {
+                  setActiveOrderModal(order);
+                  setModalType('cancellation');
+                }}
+                onReturn={(item) => setReturnItemModal({ order, item })}
+                onDispute={(item) => item.returnRequest && setDisputeModal({ order, item, returnRequest: item.returnRequest })}
+                onAcceptRefund={handleAcceptRefund}
+                acceptingId={acceptingId}
+                onReview={(item) => openReview(order, item)}
+                onBuyAgain={handleReorder}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Pagination */}
+      {(totalPages || 1) > 1 && (
+        <nav className="flex items-center justify-between gap-3 border-t border-[#EAEDED] pt-4" aria-label="Order pages">
+          <p className="text-sm text-[#565959]">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} className={btn.secondary}>
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Previous
+            </button>
             <button
               type="button"
               disabled={currentPage >= (totalPages || 1)}
               onClick={() => setCurrentPage((p) => Math.min(totalPages || 1, p + 1))}
-              className="p-2 rounded-lg bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container disabled:opacity-40 transition-colors border border-surface-container"
-              aria-label="Next Page"
+              className={btn.secondary}
             >
-              <ChevronRight className="h-4 w-4" />
+              Next
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
-        )}
-      </div>
+        </nav>
+      )}
 
-      {/* Help banner */}
-      <section className="mt-12 rounded-2xl border border-[#D5D9D9] bg-white p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h3 className="font-headline font-bold text-lg text-[#0F1111]">Need help with an order or return?</h3>
-          <p className="text-xs text-[#565959] max-w-xl leading-relaxed">
-            Send us a request from Help &amp; Support. Our team replies in your account and by email.
-          </p>
+      {/* Help */}
+      <section className="flex flex-col items-start justify-between gap-3 rounded-xl border border-[#D5D9D9] bg-white p-5 sm:flex-row sm:items-center">
+        <div>
+          <h2 className="text-base font-semibold text-[#0F1111]">Need help with an order?</h2>
+          <p className="text-sm text-[#565959]">Send us a request. We reply in your account and by email.</p>
         </div>
-        <Link
-          href="/support#support-contact-form"
-          className="shrink-0 rounded-full bg-[#FFD814] px-5 py-2.5 text-xs font-headline font-bold text-[#0F1111] hover:bg-[#F7CA00]"
-        >
-          Contact Customer Service
+        <Link href="/support#support-contact-form" className={btn.secondary}>
+          <HelpCircle className="h-4 w-4" aria-hidden="true" />
+          Contact customer service
         </Link>
       </section>
 
-      {/* ============================================================= */}
-      {/* MODAL 1: LIVE SHIPMENT TRACKING */}
-      {/* ============================================================= */}
-      {modalType === 'tracking' && activeOrderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-surface-container space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-container">
-              <div>
-                <span className="text-[10px] font-headline font-bold uppercase tracking-widest text-secondary-container">
-                  Live Logistics Tracker
-                </span>
-                <h3 className="font-headline font-bold text-lg text-on-surface">
-                  Order {activeOrderModal.orderNumber}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalType(null)}
-                className="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {activeOrderModal.vendorShipments && activeOrderModal.vendorShipments.length > 1 ? (
-              <div className="space-y-3">
-                <span className="text-xs font-bold text-on-surface block">
-                  Consignment Packages ({activeOrderModal.vendorShipments.length}):
-                </span>
-                {activeOrderModal.vendorShipments.map((shp: any, sIdx: number) => (
-                  <div
-                    key={shp.id || sIdx}
-                    className="bg-surface-container-low p-3.5 rounded-xl border border-surface-container space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-primary">
-                        Package {sIdx + 1}: {shp.vendor?.storeName || 'Seller'}
-                      </span>
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full ${
-                          shp.status === 'DELIVERED'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : shp.status === 'SHIPPED'
-                            ? 'bg-amber-100 text-amber-900'
-                            : shp.status === 'CANCELLED'
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}
-                      >
-                        {shp.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-on-surface-variant font-medium">
-                      <span>{shp.courierPartner || 'Assigned Courier'}</span>
-                      <span className="font-mono">
-                        {shp.trackingNumber ? `AWB: ${shp.trackingNumber}` : 'Pending Dispatch'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-surface-container-low p-4 rounded-xl space-y-2 border border-surface-container">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-primary flex items-center gap-1.5">
-                    <Navigation className="h-4 w-4" />
-                    {activeOrderModal.courierPartner || activeOrderModal.courierName || 'To be assigned upon dispatch'}
-                  </span>
-                  <span className="font-mono text-outline">
-                    {activeOrderModal.trackingNumber ? `AWB: ${activeOrderModal.trackingNumber}` : 'Tracking details not available yet'}
-                  </span>
-                </div>
-                <p className="text-xs text-on-surface-variant font-medium">
-                  Destination: {activeOrderModal.shippingAddress?.cityStateZip || 'Registered Address'}
-                </p>
-              </div>
-            )}
-
-            {/* Stepper Milestones */}
-            <div className="space-y-4 text-xs pl-2 border-l-2 border-primary/30 ml-3">
-              <div className="relative pl-4">
-                <span className="absolute -left-[23px] top-0.5 w-3.5 h-3.5 rounded-full bg-primary ring-4 ring-primary/20" />
-                <span className="font-bold text-on-surface block">Order Confirmed</span>
-                <span className="text-[11px] text-outline">Placed on {activeOrderModal.datePlaced || 'Recently'}</span>
-              </div>
-              <div className="relative pl-4">
-                <span className={`absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full ${activeOrderModal.status === 'processing' ? 'bg-secondary-container' : activeOrderModal.status === 'shipped' || activeOrderModal.status === 'delivered' ? 'bg-primary' : 'bg-surface-container-highest'}`} />
-                <span className="font-bold text-on-surface block">Artisan Crafting &amp; Packaging</span>
-                <span className="text-[11px] text-outline">
-                  {activeOrderModal.status === 'processing' ? 'In progress at fulfillment atelier' : activeOrderModal.status === 'shipped' || activeOrderModal.status === 'delivered' ? 'Completed & tamper sealed' : 'Pending artisan start'}
-                </span>
-              </div>
-              <div className="relative pl-4">
-                <span className={`absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full ${activeOrderModal.status === 'shipped' ? 'bg-secondary-container' : activeOrderModal.status === 'delivered' ? 'bg-primary' : 'bg-surface-container-highest'}`} />
-                <span className="font-bold text-on-surface block">Dispatched to Courier</span>
-                <span className="text-[11px] text-outline">
-                  {activeOrderModal.trackingNumber ? `Handed over to ${activeOrderModal.courierPartner || 'courier'}` : 'Courier and tracking ID will appear once dispatched'}
-                </span>
-              </div>
-              <div className="relative pl-4">
-                <span className={`absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full ${activeOrderModal.status === 'delivered' ? 'bg-primary' : 'bg-surface-container-highest'}`} />
-                <span className="font-bold text-on-surface block">Delivered to Doorstep</span>
-                <span className="text-[11px] text-outline">
-                  {activeOrderModal.status === 'delivered' ? 'Package handed over to recipient' : 'Pending dispatch and arrival'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <Link
-                href={`/orders/${activeOrderModal.orderNumber || activeOrderModal.id}/tracking`}
-                className="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-headline font-bold hover:bg-primary-container transition-all shadow-sm text-center flex items-center justify-center gap-1.5"
-              >
-                <Navigation className="h-4 w-4" />
-                <span>Open Live Tracking Page</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setModalType(null)}
-                className="px-4 py-3 rounded-xl bg-surface-container text-on-surface text-xs font-headline font-semibold hover:bg-surface-container-high transition-all border border-surface-container"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Price details */}
+      {modalType === 'price_details' && activeOrderModal && (
+        <PriceDetailsDialog order={activeOrderModal} onClose={() => setModalType(null)} />
       )}
 
-      {/* ============================================================= */}
-      {/* MODAL 2: PRICE DETAILS BREAKDOWN (FLIPKART STYLE)              */}
-      {/* ============================================================= */}
-      {(modalType === 'price_details' || modalType === 'invoice') && activeOrderModal && (() => {
-        const listingPrice = activeOrderModal.items.reduce(
-          (sum, it) => sum + (it.originalPrice || it.price * 2) * (it.quantity || 1),
-          0
-        );
-        const specialPrice = activeOrderModal.items.reduce(
-          (sum, it) => sum + it.price * (it.quantity || 1),
-          0
-        );
-        const couponDiscount = Number(activeOrderModal.discount || 0);
-        const deliveryFee = Number(activeOrderModal.shippingFee || 0);
-        const finalAmount = Number(activeOrderModal.totalAmount || 0);
-
-        // Effective extra fees: totalAmount - (specialPrice - couponDiscount)
-        const netProductCost = Math.max(0, specialPrice - couponDiscount);
-        const calculatedExtraFees = Math.max(0, finalAmount - netProductCost);
-
-        const isCOD =
-          activeOrderModal.paymentMethod?.toLowerCase().includes('cod') ||
-          activeOrderModal.paymentMethod?.toLowerCase().includes('cash');
-
-        // Extract packaging fee & COD verification fee
-        let codVerificationFee = 0;
-        let packagingFee = 0;
-
-        if (isCOD) {
-          if (calculatedExtraFees >= 98) {
-            packagingFee = 49;
-            codVerificationFee = 49;
-          } else if (calculatedExtraFees >= 49) {
-            packagingFee = 49;
-            codVerificationFee = Math.max(0, calculatedExtraFees - packagingFee - deliveryFee);
-          } else {
-            packagingFee = Math.max(0, calculatedExtraFees - deliveryFee);
-          }
-        } else {
-          packagingFee = Math.max(0, calculatedExtraFees - deliveryFee);
-        }
-
-        const totalFees = deliveryFee + packagingFee + codVerificationFee;
-
-        const paymentMode =
-          activeOrderModal.paymentMethod?.toLowerCase().includes('cod') ||
-          activeOrderModal.paymentMethod?.toLowerCase().includes('cash')
-            ? 'Cash on Delivery (COD)'
-            : 'Prepaid (UPI / Card / NetBanking)';
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-5 sm:p-6 shadow-2xl border border-stone-200 space-y-4 font-sans animate-in zoom-in-95">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-                <div className="flex items-center gap-2">
-                  <Receipt className="h-5 w-5 text-[#007185]" />
-                  <h3 className="font-headline font-extrabold text-lg text-[#0F1111]">
-                    Price details
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setModalType(null)}
-                  className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition-colors"
-                  title="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Price Breakdown Body */}
-              <div className="space-y-3.5 text-xs text-[#0F1111]">
-                {/* 1. Listing price */}
-                <div className="flex items-center justify-between">
-                  <span className="text-stone-600 font-medium">Listing price</span>
-                  <span className="font-semibold text-stone-900 font-mono text-xs sm:text-sm">
-                    {formatINR(listingPrice)}
-                  </span>
-                </div>
-
-                {/* 2. Special price */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-stone-700 font-medium">
-                    <span>Special price</span>
-                    <Info className="h-3.5 w-3.5 text-stone-400" />
-                  </div>
-                  <span className="font-semibold text-stone-900 font-mono text-xs sm:text-sm">
-                    {formatINR(specialPrice)}
-                  </span>
-                </div>
-
-                {/* 3. Total fees (Expandable) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setFeesExpanded(!feesExpanded)}
-                      className="flex items-center gap-1 text-stone-700 hover:text-[#007185] font-medium transition-colors"
-                    >
-                      <span>Total fees</span>
-                      {feesExpanded ? (
-                        <ChevronUp className="h-3.5 w-3.5 text-stone-500" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5 text-stone-500" />
-                      )}
-                    </button>
-                    <span className="font-semibold text-stone-900 font-mono text-xs sm:text-sm">
-                      {formatINR(totalFees)}
-                    </span>
-                  </div>
-
-                  {/* Dropdown breakdown */}
-                  {feesExpanded && (
-                    <div className="pl-3 py-1 space-y-1.5 border-l-2 border-stone-200 text-[11px] text-stone-600 animate-in fade-in">
-                      <div className="flex items-center justify-between">
-                        <span>Delivery Charges</span>
-                        <span className="text-emerald-700 font-bold">
-                          {deliveryFee > 0 ? formatINR(deliveryFee) : 'FREE'}
-                        </span>
-                      </div>
-                      {packagingFee > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span>Artisan Care &amp; Packaging</span>
-                          <span className="font-mono">{formatINR(packagingFee)}</span>
-                        </div>
-                      )}
-                      {codVerificationFee > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span>Cash on Delivery Verification</span>
-                          <span className="font-mono">{formatINR(codVerificationFee)}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. Other discount (Expandable) */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setDiscountExpanded(!discountExpanded)}
-                      className="flex items-center gap-1 text-stone-700 hover:text-[#007185] font-medium transition-colors"
-                    >
-                      <span>Other discount</span>
-                      {discountExpanded ? (
-                        <ChevronUp className="h-3.5 w-3.5 text-stone-500" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5 text-stone-500" />
-                      )}
-                    </button>
-                    <span className="font-bold text-emerald-700 font-mono text-xs sm:text-sm">
-                      -{formatINR(couponDiscount)}
-                    </span>
-                  </div>
-
-                  {/* Dropdown breakdown */}
-                  {discountExpanded && (
-                    <div className="pl-3 py-1 space-y-1.5 border-l-2 border-stone-200 text-[11px] text-stone-600 animate-in fade-in">
-                      <div className="flex items-center justify-between">
-                        <span>Coupon / Promo Discount</span>
-                        <span className="text-emerald-700 font-bold">-{formatINR(couponDiscount)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Card / SuperCoins Discount</span>
-                        <span className="text-stone-400 font-bold">-₹0</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Dotted Divider Line */}
-                <div className="border-t border-dashed border-stone-300 pt-3" />
-
-                {/* 5. Total amount */}
-                <div className="flex items-center justify-between">
-                  <span className="font-headline font-extrabold text-sm sm:text-base text-[#0F1111]">
-                    Total amount
-                  </span>
-                  <span className="font-headline font-extrabold text-base sm:text-lg text-[#0F1111] font-mono">
-                    {formatINR(finalAmount)}
-                  </span>
-                </div>
-
-                {/* 6. Paid By Card */}
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 flex items-center justify-between text-xs mt-3">
-                  <span className="text-stone-500 font-medium">Paid By</span>
-                  <span className="font-bold text-[#0F1111] flex items-center gap-1.5">
-                    <CreditCard className="h-3.5 w-3.5 text-[#007185]" />
-                    <span>{paymentMode}</span>
-                  </span>
-                </div>
-
-                {/* 7. Download Invoice Button */}
-                <div className="pt-2">
-                  <a
-                    href={`/orders/${encodeURIComponent((activeOrderModal.orderNumber || activeOrderModal.id || '').replace(/^#/, ''))}/invoice`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-stone-50 border border-stone-300 text-[#0F1111] text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 hover:border-[#007185] hover:text-[#007185]"
-                  >
-                    <FileText className="h-4 w-4 text-[#007185]" />
-                    <span>Download Invoice</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ============================================================= */}
-      {/* MODAL 3: CANCELLATION & REFUND DETAILS */}
-      {/* ============================================================= */}
-      {modalType === 'cancellation' && activeOrderModal && (() => {
-        const modalRefundSummary = formatCustomerRefundSummary(activeOrderModal as any);
-        const canonicalReturnId = activeOrderModal.items?.find((i) => i.returnRequest)?.returnRequest?.id;
-        const cxlRefund = activeOrderModal.cancellationRefund || null;
-        const isCodOrder = (activeOrderModal.paymentMethod || '').toUpperCase() === 'COD';
-        // Who cancelled comes from the refund record; no free-text reason is stored for cancellations.
-        const cancelledBy = !cxlRefund
-          ? null
-          : cxlRefund.initiatedBy === 'CUSTOMER'
-          ? 'You'
-          : cxlRefund.initiatedBy === 'VENDOR'
-          ? 'The seller'
-          : 'Vyntra';
-        const reasonText = activeOrderModal.cancellationReason || null;
-        const cxlRefundFailed = cxlRefund?.status === 'FAILED' || cxlRefund?.status === 'RECONCILIATION_REQUIRED';
-        const cxlRefundState = !cxlRefund
-          ? null
-          : cxlRefund.status === 'CONFIRMED'
-          ? `Refund completed${cxlRefund.processedAt ? ` on ${new Date(cxlRefund.processedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`
-          : cxlRefundFailed
-          ? "Refund is delayed. We're retrying it, and you don't need to do anything."
-          : `Refund initiated on ${new Date(cxlRefund.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. It usually reaches your account in 5–7 business days.`;
-        const refundRef = cxlRefund?.reference || null;
-
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-surface-container">
-                <div>
-                  <span className="text-[10px] font-headline font-bold uppercase tracking-widest text-rose-600">
-                    Cancellation &amp; Refund Ledger
-                  </span>
-                  <h3 className="font-headline font-bold text-base text-on-surface">
-                    Order {activeOrderModal.orderNumber}
-                  </h3>
-                  {canonicalReturnId && (
-                    <p className="text-[10px] font-mono text-zinc-500 mt-0.5">
-                      Return Request ID: #{canonicalReturnId.slice(-8)}
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setModalType(null)}
-                  className="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="p-4 rounded-xl bg-rose-50/70 border border-rose-200 text-xs space-y-2.5">
-                {(cancelledBy || reasonText) && (
-                  <div className="flex justify-between items-center text-rose-950 pb-2 border-b border-rose-200/60">
-                    <span className="font-semibold">{cancelledBy ? 'Cancelled by:' : 'Reason:'}</span>
-                    <span className="text-rose-900 font-medium">{cancelledBy || reasonText}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-zinc-700">
-                  <span>Order Total:</span>
-                  <span className="font-semibold text-zinc-900">{formatINR(activeOrderModal.totalAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-zinc-700">
-                  <span>Items Subtotal:</span>
-                  <span className="font-semibold text-zinc-900">{formatINR(activeOrderModal.subtotal || activeOrderModal.totalAmount)}</span>
-                </div>
-                {activeOrderModal.shippingFee !== undefined && Number(activeOrderModal.shippingFee) > 0 && (
-                  <div className="flex justify-between items-center text-zinc-700">
-                    <span>Delivery / Shipping Fee:</span>
-                    <span className="font-semibold text-zinc-900">{formatINR(activeOrderModal.shippingFee)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center pt-2 border-t border-rose-200/60">
-                  <span className="font-bold text-rose-950">
-                    {cxlRefund && cxlRefund.status !== 'CONFIRMED' ? 'Refund Amount:' : 'Amount Refunded to Date:'}
-                  </span>
-                  <span className="font-bold text-base text-rose-900">{modalRefundSummary.refundedAmountFormatted}</span>
-                </div>
-                <div className="flex justify-between items-center text-zinc-600 text-[11px]">
-                  <span>Remaining Non-Refunded:</span>
-                  <span className="font-medium text-zinc-800">{modalRefundSummary.remainingAmountFormatted}</span>
-                </div>
-                {isCodOrder && !modalRefundSummary.hasRefund ? (
-                  <p className="pt-1 text-zinc-700">
-                    This was a Cash on Delivery order, so no payment was collected and nothing needs to be refunded.
-                  </p>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-center gap-3 text-zinc-700 pt-1">
-                      <span className="font-semibold text-rose-950 shrink-0">Refund Destination:</span>
-                      <span className="text-rose-900 font-medium text-right">{modalRefundSummary.refundDestinationLabel}</span>
-                    </div>
-                    <div className="flex justify-between items-center gap-3 text-zinc-700">
-                      <span className="font-semibold text-rose-950 shrink-0">
-                        {refundRef ? 'Refund Reference:' : 'Bank Reference / UTR:'}
-                      </span>
-                      <span className="font-mono text-rose-900 font-bold break-all text-right">
-                        {refundRef || modalRefundSummary.verifiedReferenceNumber}
-                      </span>
-                    </div>
-                  </>
-                )}
-                {cxlRefundState && (
-                  <p
-                    className={`pt-2 border-t border-rose-200/60 text-[11px] leading-relaxed ${
-                      cxlRefundFailed ? 'text-amber-800' : 'text-zinc-700'
-                    }`}
-                  >
-                    {cxlRefundState}
-                    {refundRef && !cxlRefundFailed && cxlRefund?.status !== 'CONFIRMED' && (
-                      <> If it hasn&apos;t arrived after that, share the refund reference with your bank.</>
-                    )}
-                  </p>
-                )}
-                {modalRefundSummary.hasRefund && !cxlRefund && (
-                  <div className="mt-1 pt-1.5 border-t border-rose-200/60 text-[10px] text-zinc-500 font-mono">
-                    Status: {modalRefundSummary.paymentStatusLabel} ({modalRefundSummary.isPartial ? 'Partial Refund' : 'Full Refund'})
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setModalType(null)}
-                className="w-full py-3 rounded-xl bg-primary text-white text-xs font-headline font-bold hover:bg-primary-container transition-all shadow-sm"
-              >
-                Acknowledge
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ============================================================= */}
-      {/* MODAL 4: WRITE A REVIEW */}
-      {/* ============================================================= */}
-      {modalType === 'review' && activeOrderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-surface-container space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-container">
-              <div>
-                <span className="text-[10px] font-headline font-bold uppercase tracking-widest text-primary">
-                  Verified Purchase Feedback
-                </span>
-                <h3 className="font-headline font-bold text-base text-on-surface">
-                  Review Your Purchase
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setModalType(null)}
-                className="p-1 rounded-lg hover:bg-surface-container text-on-surface-variant"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Item Details Banner */}
-            {activeOrderModal.items && activeOrderModal.items.length > 0 && (
-              <div className="p-3 rounded-xl bg-surface-container-low border border-surface-container space-y-2">
-                {activeOrderModal.items.length > 1 ? (
-                  <div>
-                    <label className="block text-[11px] font-bold text-on-surface mb-1.5">
-                      Select Item to Review:
-                    </label>
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                      {activeOrderModal.items.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setSelectedReviewItem(item)}
-                          className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors border ${
-                            selectedReviewItem?.id === item.id
-                              ? 'bg-primary/5 border-primary text-primary'
-                              : 'bg-white border-surface-container text-on-surface hover:bg-surface-container-high'
-                          }`}
-                        >
-                          <div className="w-10 h-12 rounded overflow-hidden relative shrink-0 bg-surface-container">
-                            <Image src={item.image} alt={item.title} fill className="object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">{item.title}</p>
-                            <p className="text-[10px] text-on-surface-variant">
-                              Size: {item.size || 'Standard'} &bull; Qty: {item.quantity}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-14 rounded-lg overflow-hidden relative shrink-0 bg-surface-container border border-surface-container">
-                      <Image
-                        src={selectedReviewItem?.image || activeOrderModal.items[0].image}
-                        alt={selectedReviewItem?.title || activeOrderModal.items[0].title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-on-surface truncate">
-                        {selectedReviewItem?.title || activeOrderModal.items[0].title}
-                      </p>
-                      <p className="text-[11px] text-on-surface-variant">
-                        Brand: {selectedReviewItem?.brand || activeOrderModal.items[0].brand} &bull; Delivered
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Error Banner */}
-            {reviewError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{reviewError}</span>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {/* Star Rating */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-2">
-                  Rate Item Quality <span className="text-rose-600">*</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRating(star)}
-                      className="p-1 hover:scale-110 transition-transform"
-                    >
-                      <Star
-                        className={`h-6 w-6 ${
-                          star <= reviewRating
-                            ? 'text-secondary fill-secondary'
-                            : 'text-outline-variant'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="text-xs font-bold text-on-surface ml-2">
-                    {reviewRating} / 5 Stars
-                  </span>
-                </div>
-              </div>
-
-              {/* Review Title */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  Headline / Title <span className="text-on-surface-variant font-normal">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  maxLength={100}
-                  value={reviewTitle}
-                  onChange={(e) => setReviewTitle(e.target.value)}
-                  placeholder="e.g. Exceptional handloom quality and flawless fit"
-                  className="w-full bg-surface-container-low rounded-xl px-3 py-2 text-xs text-on-surface border border-surface-container focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              {/* Review Comment */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-on-surface">
-                    Written Feedback <span className="text-rose-600">*</span>
-                  </label>
-                  <span className="text-[10px] text-on-surface-variant">
-                    {reviewComment.trim().length} / 1000 (min 10)
-                  </span>
-                </div>
-                <textarea
-                  rows={3}
-                  maxLength={1000}
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Share details on fabric weave, fitting, and doorstep packaging..."
-                  className="w-full bg-surface-container-low rounded-xl p-3 text-xs text-on-surface border border-surface-container focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isSubmittingReview || reviewComment.trim().length < 10}
-                onClick={handleSubmitReview}
-                className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-headline font-bold hover:bg-primary-container disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                {isSubmittingReview ? (
-                  <span>Submitting Review...</span>
-                ) : (
-                  <span>Submit Review</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Cancellation details */}
+      {modalType === 'cancellation' && activeOrderModal && (
+        <CancellationDialog order={activeOrderModal} onClose={() => setModalType(null)} />
       )}
 
-      {/* Phase 12: Customer Return & Replacement Request Modal */}
+      {/* Review */}
+      {modalType === 'review' && activeOrderModal && selectedReviewItem && (
+        <Dialog title="Write a review" onClose={() => setModalType(null)}>
+          <div className="flex items-center gap-3">
+            <ItemThumb src={selectedReviewItem.image} className="h-14 w-14" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#0F1111]">{selectedReviewItem.title}</p>
+              {selectedReviewItem.brand && <p className="text-xs text-[#565959]">{selectedReviewItem.brand}</p>}
+            </div>
+          </div>
+
+          {reviewError && (
+            <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              {reviewError}
+            </p>
+          )}
+
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-semibold text-[#0F1111]">Your rating</legend>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  aria-label={`${star} star${star === 1 ? '' : 's'}`}
+                  aria-pressed={reviewRating === star}
+                  className="rounded p-1"
+                >
+                  <Star className={`h-7 w-7 ${star <= reviewRating ? 'fill-[#FFA41C] text-[#FFA41C]' : 'text-[#D5D9D9]'}`} />
+                </button>
+              ))}
+              <span className="ml-1 text-sm text-[#565959]">{reviewRating} of 5</span>
+            </div>
+          </fieldset>
+
+          <div>
+            <label htmlFor="review-title" className="mb-1 block text-sm font-semibold text-[#0F1111]">
+              Headline <span className="font-normal text-[#565959]">(optional)</span>
+            </label>
+            <input
+              id="review-title"
+              type="text"
+              maxLength={100}
+              value={reviewTitle}
+              onChange={(e) => setReviewTitle(e.target.value)}
+              placeholder="Sum it up in a few words"
+              className="w-full rounded-lg border border-[#D5D9D9] px-3 py-2 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
+            />
+          </div>
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <label htmlFor="review-text" className="text-sm font-semibold text-[#0F1111]">
+                Your review
+              </label>
+              <span className="text-xs text-[#565959]">{reviewComment.trim().length} / 1000</span>
+            </div>
+            <textarea
+              id="review-text"
+              rows={4}
+              maxLength={1000}
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder="What did you like or not like? How is the quality, fit or performance?"
+              className="w-full rounded-lg border border-[#D5D9D9] px-3 py-2 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setModalType(null)} className={btn.secondary}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isSubmittingReview || reviewComment.trim().length < 10}
+              onClick={handleSubmitReview}
+              className={btn.primary}
+            >
+              {isSubmittingReview && <CometSpinner className="h-4 w-4 text-current" decorative />}
+              Submit review
+            </button>
+          </div>
+        </Dialog>
+      )}
+
       {returnItemModal && (
         <ReturnRequestModal
           order={returnItemModal.order}
           item={returnItemModal.item}
-          isOpen={true}
+          isOpen
           onClose={() => setReturnItemModal(null)}
-          onSuccess={(requestId, type) => {
-            showToast(
-              `${type === 'REPLACEMENT' ? 'Replacement' : 'Return'} request #${requestId.slice(-6)} submitted successfully!`,
-              'success'
-            );
-            fetchOrders({ page: currentPage, status: selectedStatus, search: searchQuery });
+          onSuccess={(_, type) => {
+            showToast(`${type === 'REPLACEMENT' ? 'Replacement' : 'Return'} requested. Track it under Returns.`, 'success');
+            refresh();
           }}
         />
       )}
 
-      {/* Dispute Filing Modal */}
       {disputeModal && (
         <CustomerDisputeModal
-          isOpen={true}
+          isOpen
           order={disputeModal.order}
           item={disputeModal.item}
           returnRequest={disputeModal.returnRequest}
           onClose={() => setDisputeModal(null)}
           onSuccess={() => {
-            showToast(
-              'Dispute submitted. Our team will review it and reply in your account.',
-              'success'
-            );
-            fetchOrders({ page: currentPage, status: selectedStatus, search: searchQuery });
+            setDisputeModal(null);
+            showToast('Dispute sent. Vyntra will review it.', 'success');
+            refresh();
           }}
         />
       )}
 
-      {/* Floating Notification Toast */}
       {toast.show && (
-        <div className="fixed bottom-6 right-6 transform transition-all duration-300 bg-on-surface text-white px-4 py-3 rounded-xl shadow-2xl text-xs z-50 flex items-center gap-2.5 max-w-sm border border-white/10 animate-in fade-in slide-in-from-bottom-2">
-          {toast.type === 'success' && <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />}
-          {toast.type === 'error' && <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />}
-          {toast.type === 'info' && <Truck className="h-4 w-4 text-secondary-container shrink-0" />}
-          <span className="flex-1 font-medium leading-relaxed">{toast.message}</span>
-          <button
-            onClick={() => setToast((prev) => ({ ...prev, show: false }))}
-            className="text-white/70 hover:text-white ml-1 p-0.5 rounded transition-colors"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+        <div
+          role="status"
+          className={`fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-medium text-white shadow-lg ${
+            toast.type === 'error' ? 'bg-rose-700' : 'bg-[#0F1111]'
+          }`}
+        >
+          {toast.message}
         </div>
       )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function ItemThumb({ src, className = 'h-20 w-20', dim = false }: { src?: string; className?: string; dim?: boolean }) {
+  return (
+    <div className={`relative shrink-0 overflow-hidden rounded-lg border border-[#EAEDED] bg-[#F7F8F8] ${className}`}>
+      {src ? (
+        <Image src={src} alt="" fill className={`object-contain p-1 ${dim ? 'opacity-60 grayscale' : ''}`} />
+      ) : (
+        <Package className="absolute inset-0 m-auto h-6 w-6 text-[#8A8F8F]" aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
+function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-xl border border-[#D5D9D9] bg-white p-5 shadow-xl sm:rounded-xl"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[#0F1111]">{title}</h2>
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-[#565959] hover:bg-[#F7F8F8]" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({
+  order,
+  onCopy,
+  onPriceDetails,
+  onCancellation,
+  onReturn,
+  onDispute,
+  onAcceptRefund,
+  acceptingId,
+  onReview,
+  onBuyAgain,
+}: {
+  order: Order;
+  onCopy: (orderNumber: string) => void;
+  onPriceDetails: () => void;
+  onCancellation: () => void;
+  onReturn: (item: OrderItem) => void;
+  onDispute: (item: OrderItem) => void;
+  onAcceptRefund: (returnId: string) => void;
+  acceptingId: string | null;
+  onReview: (item: OrderItem) => void;
+  onBuyAgain: (item: OrderItem) => void;
+}) {
+  const refundSummary = formatCustomerRefundSummary(order as any);
+  const address = (order as any).shippingAddress;
+  const cancelled = order.status === 'cancelled';
+  const shipments = order.vendorShipments || [];
+  const trackHref = `/account?tab=tracking&orderId=${encodeURIComponent(order.orderNumber || order.id)}`;
+  const shippedOrDelivered = order.status === 'shipped' || order.status === 'delivered';
+  const isCancellable = Boolean((order as any).isCancellable);
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-[#D5D9D9] bg-white">
+      {/* Order summary */}
+      <div className="flex flex-col gap-3 border-b border-[#EAEDED] bg-[#F7F8F8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:flex sm:flex-wrap">
+          <div>
+            <dt className="text-xs text-[#565959]">Placed</dt>
+            <dd className="font-medium text-[#0F1111]">{order.datePlaced}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-[#565959]">Total</dt>
+            <dd className="font-medium tabular-nums text-[#0F1111]">{formatINR(order.totalAmount)}</dd>
+          </div>
+          {address?.fullName && (
+            <div>
+              <dt className="text-xs text-[#565959]">Ship to</dt>
+              <dd className="font-medium text-[#0F1111]">{address.fullName}</dd>
+            </div>
+          )}
+          <div>
+            <dt className="text-xs text-[#565959]">Order</dt>
+            <dd className="flex items-center gap-1 font-medium tabular-nums text-[#0F1111]">
+              #{order.orderNumber}
+              <button type="button" onClick={() => onCopy(order.orderNumber)} className="rounded p-0.5 text-[#565959] hover:text-[#007185]" aria-label="Copy order number">
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </dd>
+          </div>
+        </dl>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {!cancelled && (
+            <button type="button" onClick={onPriceDetails} className={btn.link}>
+              <Receipt className="h-4 w-4" aria-hidden="true" />
+              Price details
+            </button>
+          )}
+          {shippedOrDelivered && (
+            <a
+              href={`/orders/${encodeURIComponent((order.orderNumber || order.id).replace(/^#/, ''))}/invoice`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={btn.link}
+            >
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              Invoice
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+        <div>
+          <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusTone(order)}`}>{order.statusLabel}</span>
+          <p className="mt-1.5 text-sm text-[#0F1111]">
+            {order.status === 'processing' && `The seller is preparing your order.${isCancellable ? ' You can still cancel it.' : ''}`}
+            {order.rawStatus === 'SHIPPED' && 'Your order is on its way.'}
+            {order.rawStatus === 'OUT_FOR_DELIVERY' && 'Your order is out for delivery.'}
+            {order.status === 'delivered' && 'Delivered. You can return or replace eligible items within the return window.'}
+            {order.rawStatus === 'CANCELLED' &&
+              (refundSummary.hasRefund
+                ? `Cancelled. ${refundSummary.badgeLabel}.`
+                : (order.paymentMethod || '').toUpperCase() === 'COD'
+                ? 'Cancelled. It was cash on delivery, so nothing was charged.'
+                : 'Cancelled.')}
+            {order.rawStatus === 'RETURNED' && 'Returned and refunded.'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          {(order.status === 'processing' || order.status === 'shipped') && (
+            <Link href={trackHref} className={btn.primary}>
+              <Truck className="h-4 w-4" aria-hidden="true" />
+              Track order
+            </Link>
+          )}
+          {order.status === 'processing' && isCancellable && (
+            <Link href={`/orders/${order.id}/cancel`} className={btn.secondary}>
+              Cancel order
+            </Link>
+          )}
+          {cancelled && (
+            <button type="button" onClick={onCancellation} className={btn.secondary}>
+              Cancellation details
+            </button>
+          )}
+          {order.status === 'delivered' && (
+            <Link href={trackHref} className={btn.secondary}>
+              Delivery details
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Packages from several sellers */}
+      {shipments.length > 1 && (
+        <ul className="mx-4 mt-3 space-y-1.5 rounded-lg border border-[#EAEDED] p-3 text-sm sm:mx-5" role="list">
+          {shipments.map((shp, i) => {
+            const url = getCourierTrackingUrl(shp.courierPartner, shp.trackingNumber);
+            return (
+              <li key={shp.id || i} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[#0F1111]">
+                  Package {i + 1} from {shp.vendor?.storeName || 'seller'}
+                  <span className="text-[#565959]"> · {(shp.status || '').replace(/_/g, ' ').toLowerCase()}</span>
+                </span>
+                {shp.trackingNumber && (
+                  <span className="text-[#565959]">
+                    {shp.courierPartner} <span className="tabular-nums">{shp.trackingNumber}</span>
+                    {url && (
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-0.5 text-[#007185] hover:underline">
+                        Track <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                    )}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* Items, each with its own actions */}
+      <ul className="divide-y divide-[#EAEDED]" role="list">
+        {order.items.map((item) => (
+          <li key={item.id} className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-3 px-4 py-4 sm:grid-cols-[auto,1fr,11rem] sm:px-5">
+            <ItemThumb src={item.image} dim={cancelled} />
+            <div className="min-w-0 flex-1 space-y-1">
+              {item.slug ? (
+                <Link href={`/products/${item.slug}`} className="text-sm font-semibold leading-snug text-[#0F1111] hover:text-[#007185] hover:underline">
+                  {item.title}
+                </Link>
+              ) : (
+                <p className="text-sm font-semibold leading-snug text-[#0F1111]">{item.title}</p>
+              )}
+              <p className="text-sm text-[#565959]">
+                {[
+                  item.size && !['N/A', 'Standard'].includes(item.size) && `Size ${item.size}`,
+                  item.color && item.color !== 'N/A' && item.color,
+                  `Qty ${item.quantity}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              <p className="text-sm">
+                <span className={`font-semibold tabular-nums ${cancelled ? 'text-[#565959] line-through' : 'text-[#0F1111]'}`}>{formatINR(item.price)}</span>
+                {item.originalPrice > item.price && <span className="ml-2 text-xs text-[#565959] line-through">{formatINR(item.originalPrice)}</span>}
+                <span className="ml-2 text-xs text-[#565959]">Sold by {item.sellerName}</span>
+              </p>
+              <ItemReturnState item={item} order={order} onDispute={onDispute} onAcceptRefund={onAcceptRefund} acceptingId={acceptingId} />
+            </div>
+            <ItemActions order={order} item={item} onReturn={onReturn} onReview={onReview} onBuyAgain={onBuyAgain} />
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+/** Where an item's return stands, with the step the customer can take (accept a refund, dispute). */
+function ItemReturnState({
+  item,
+  order,
+  onDispute,
+  onAcceptRefund,
+  acceptingId,
+}: {
+  item: OrderItem;
+  order: Order;
+  onDispute: (item: OrderItem) => void;
+  onAcceptRefund: (returnId: string) => void;
+  acceptingId: string | null;
+}) {
+  const ret = item.returnRequest;
+  if (!ret) {
+    if (order.status === 'delivered' && item.returnWindowOpen && item.returnDeadline) {
+      return (
+        <p className="text-xs text-[#565959]">
+          Return or replace by {new Date(item.returnDeadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+        </p>
+      );
+    }
+    return null;
+  }
+
+  const what = ret.type === 'REPLACEMENT' ? 'Replacement' : 'Return';
+  const failed = ret.status === 'REJECTED' || ret.status === 'QC_FAILED';
+  let canDispute = false;
+  if (failed && !ret.isDisputed) {
+    const trigger = ret.rejectedAt || ret.qcCompletedAt || ret.createdAt;
+    try {
+      canDispute = isWithinDeadline(new Date(), computeIstDisputeDeadline(trigger, 5));
+    } catch {
+      canDispute = false;
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <Link
+        href="/account?tab=returns"
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+          failed ? 'bg-rose-50 text-rose-800' : ret.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'
+        } hover:underline`}
+      >
+        <RotateCcw className="h-3 w-3" aria-hidden="true" />
+        {ret.status === 'REFUND_OFFERED' ? 'Replacement unavailable, refund offered' : `${what} ${RETURN_LABEL[ret.status] || ret.status.toLowerCase()}`}
+      </Link>
+      {ret.status === 'REFUND_OFFERED' && (
+        <button type="button" onClick={() => onAcceptRefund(ret.id)} disabled={acceptingId === ret.id} className={`${btn.primary} px-3 py-1 text-xs`}>
+          {acceptingId === ret.id && <CometSpinner className="h-4 w-4 text-current" decorative />}
+          Accept refund
+        </button>
+      )}
+      {canDispute && (
+        <button type="button" onClick={() => onDispute(item)} className={`${btn.secondary} px-3 py-1 text-xs`}>
+          <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
+          Dispute this
+        </button>
+      )}
+      {failed && !canDispute && !ret.isDisputed && <span className="text-xs text-[#565959]">The 5-day dispute window has closed.</span>}
+    </div>
+  );
+}
+
+function ItemActions({
+  order,
+  item,
+  onReturn,
+  onReview,
+  onBuyAgain,
+}: {
+  order: Order;
+  item: OrderItem;
+  onReturn: (item: OrderItem) => void;
+  onReview: (item: OrderItem) => void;
+  onBuyAgain: (item: OrderItem) => void;
+}) {
+  const delivered = order.status === 'delivered' && (!item.status || item.status === 'DELIVERED');
+  const canReturn = delivered && !item.returnRequest && item.returnWindowOpen;
+  const reviewed = item.hasReviewed || Boolean(item.review);
+  return (
+    <div className="col-span-2 flex flex-row flex-wrap gap-2 sm:col-span-1 sm:flex-col">
+      {item.slug && (order.status === 'delivered' || order.status === 'cancelled') && (
+        <button type="button" onClick={() => onBuyAgain(item)} className={btn.secondary}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Buy again
+        </button>
+      )}
+      {canReturn && (
+        <button type="button" onClick={() => onReturn(item)} className={btn.secondary}>
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Return or replace
+        </button>
+      )}
+      {delivered &&
+        (reviewed ? (
+          <span className="inline-flex items-center justify-center gap-1 px-2 py-2 text-sm text-[#067D62]">
+            <Check className="h-4 w-4" aria-hidden="true" />
+            Reviewed
+          </span>
+        ) : (
+          <button type="button" onClick={() => onReview(item)} className={btn.secondary}>
+            <Star className="h-4 w-4" aria-hidden="true" />
+            Write a review
+          </button>
+        ))}
+    </div>
+  );
+}
+
+/** What the order cost, from the order's own amounts. */
+function PriceDetailsDialog({ order, onClose }: { order: Order; onClose: () => void }) {
+  const items = order.items.reduce((s, it) => s + it.price * (it.quantity || 1), 0);
+  const subtotal = Number(order.subtotal ?? items);
+  const mrp = order.items.reduce((s, it) => s + Math.max(it.originalPrice || 0, it.price) * (it.quantity || 1), 0);
+  const discount = Number(order.discount || 0);
+  const shipping = Number(order.shippingFee || 0);
+  const tax = Number(order.tax || 0);
+  const total = Number(order.totalAmount || 0);
+  const isCod = (order.paymentMethod || '').toUpperCase() === 'COD';
+  // Fees are not stored separately: whatever the total holds beyond items, coupon, delivery and tax.
+  const fees = Math.max(0, Math.round((total - (subtotal - discount + shipping + tax)) * 100) / 100);
+  const packaging = Math.min(49, fees);
+  const codFee = isCod ? Math.min(49, Math.max(0, fees - packaging)) : 0;
+  const other = Math.max(0, Math.round((fees - packaging - codFee) * 100) / 100);
+
+  const row = (label: string, value: string, tone = 'text-[#0F1111]') => (
+    <div className="flex items-center justify-between">
+      <dt className="text-[#565959]">{label}</dt>
+      <dd className={`tabular-nums ${tone}`}>{value}</dd>
+    </div>
+  );
+
+  return (
+    <Dialog title="Price details" onClose={onClose}>
+      <dl className="space-y-2 text-sm">
+        {mrp > subtotal + 0.5 && row('MRP of items', formatINR(mrp))}
+        {mrp > subtotal + 0.5 && row('Discount on MRP', `−${formatINR(mrp - subtotal)}`, 'text-[#067D62]')}
+        {row(`Items (${order.totalItems})`, formatINR(subtotal))}
+        {discount > 0 && row('Coupon', `−${formatINR(discount)}`, 'text-[#067D62]')}
+        {row('Delivery', shipping > 0 ? formatINR(shipping) : 'Free')}
+        {packaging > 0 && row('Packaging fee', formatINR(packaging))}
+        {codFee > 0 && row('Cash on delivery fee', formatINR(codFee))}
+        {other > 0 && row('Other charges', formatINR(other))}
+        {tax > 0 && row('Tax', formatINR(tax))}
+        <div className="flex items-center justify-between border-t border-[#EAEDED] pt-2 text-base font-semibold">
+          <dt className="text-[#0F1111]">Order total</dt>
+          <dd className="tabular-nums text-[#0F1111]">{formatINR(total)}</dd>
+        </div>
+        {row('Payment', payLabel(order.paymentMethod))}
+        {Number(order.refundedAmount || 0) > 0 && row('Refunded', formatINR(Number(order.refundedAmount)), 'text-[#067D62]')}
+      </dl>
+      <p className="text-xs text-[#565959]">Prices include taxes.</p>
+    </Dialog>
+  );
+}
+
+/** Who cancelled (when known) and where any refund stands. */
+function CancellationDialog({ order, onClose }: { order: Order; onClose: () => void }) {
+  const summary = formatCustomerRefundSummary(order as any);
+  const cxl = order.cancellationRefund || null;
+  const isCod = (order.paymentMethod || '').toUpperCase() === 'COD';
+  const by = cxl?.initiatedBy || order.cancelledBy;
+  const cancelledBy = by === 'CUSTOMER' ? 'You' : by === 'VENDOR' ? 'The seller' : by ? 'Vyntra' : null;
+  const failed = cxl?.status === 'FAILED' || cxl?.status === 'RECONCILIATION_REQUIRED';
+  const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+  const state = !cxl
+    ? null
+    : cxl.status === 'CONFIRMED'
+    ? `Refunded${cxl.processedAt ? ` on ${date(cxl.processedAt)}` : ''}.`
+    : failed
+    ? "Your refund is delayed. We're retrying it; you don't need to do anything."
+    : `Refund started on ${date(cxl.createdAt)}. Banks usually show it within 5–7 working days.`;
+
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="text-[#565959]">{label}</dt>
+      <dd className="text-right text-[#0F1111]">{value}</dd>
+    </div>
+  );
+
+  return (
+    <Dialog title={`Order #${order.orderNumber} cancelled`} onClose={onClose}>
+      <dl className="space-y-2 text-sm">
+        {cancelledBy && row('Cancelled by', cancelledBy)}
+        {row('Order total', <span className="tabular-nums">{formatINR(order.totalAmount)}</span>)}
+        {isCod && !summary.hasRefund ? (
+          row('Refund', 'None needed: it was cash on delivery, so nothing was charged.')
+        ) : (
+          <>
+            {row('Refunded', <span className="tabular-nums font-semibold">{summary.refundedAmountFormatted}</span>)}
+            {row('Refunded to', cxl ? 'Your original payment method' : summary.refundDestinationLabel)}
+            {(cxl?.reference || summary.verifiedReferenceNumber) &&
+              row('Reference', <span className="break-all tabular-nums">{cxl?.reference || summary.verifiedReferenceNumber}</span>)}
+          </>
+        )}
+      </dl>
+      {state && <p className={`text-sm ${failed ? 'text-amber-800' : 'text-[#0F1111]'}`}>{state}</p>}
+      <div className="flex justify-end">
+        <button type="button" onClick={onClose} className={btn.secondary}>
+          Close
+        </button>
+      </div>
+    </Dialog>
   );
 }
