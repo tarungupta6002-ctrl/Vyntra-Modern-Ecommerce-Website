@@ -34,6 +34,7 @@ import {
   MapPin,
   RefreshCw,
 } from 'lucide-react';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface VerifiedVendorItem {
   id: string;
@@ -385,41 +386,24 @@ export default function AdminVendorsPage() {
         </div>
       )}
 
-      {/* Main Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#D5D9D9]">
-        <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] flex items-center gap-1.5">
-            <Store className="h-3.5 w-3.5 text-[#007185]" />
-            Marketplace Seller Governance
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-headline font-bold text-[#0F1111] mt-0.5">
-            Artisan Vendors &amp; Merchant Directory
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin"
-            className="px-3.5 py-2 rounded-lg bg-white border border-[#D5D9D9] text-xs font-bold text-[#0F1111] hover:bg-[#F7F8F8] transition-all shadow-sm"
-          >
-            ← Overview
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Vendors"
+        description="Approved sellers and new seller applications."
+      />
 
       {/* Primary Top Tab Switcher: Verified Vendors vs Onboarding Applications */}
-      <div className="flex border-b border-[#D5D9D9] gap-4">
+      <div className="flex overflow-x-auto border-b border-[#D5D9D9] gap-4">
         <button
           type="button"
           onClick={() => switchTab('verified')}
           className={`pb-3 px-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
             activeTab === 'verified'
-              ? 'border-[#800020] text-[#800020]'
+              ? 'border-[#F2B705] text-[#0F1111]'
               : 'border-transparent text-[#565959] hover:text-[#0F1111]'
           }`}
         >
           <Store className="h-4 w-4" />
-          <span>Verified Vendors Directory</span>
+          <span>Approved sellers</span>
           {verifiedTotalCount > 0 && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold">
               {verifiedTotalCount} Active
@@ -432,12 +416,12 @@ export default function AdminVendorsPage() {
           onClick={() => switchTab('applications')}
           className={`pb-3 px-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
             activeTab === 'applications'
-              ? 'border-[#800020] text-[#800020]'
+              ? 'border-[#F2B705] text-[#0F1111]'
               : 'border-transparent text-[#565959] hover:text-[#0F1111]'
           }`}
         >
           <Clock className="h-4 w-4" />
-          <span>Onboarding Applications</span>
+          <span>Applications</span>
           {pendingAppCount > 0 && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold animate-in fade-in">
               {pendingAppCount} Pending
@@ -536,7 +520,7 @@ export default function AdminVendorsPage() {
                               <div className="font-bold text-[#0F1111] flex items-center gap-1.5">
                                 <span>{vendor.storeName}</span>
                                 {vendor.isVerified && (
-                                  <span title="Verified Artisan Seller">
+                                  <span title="Verified seller">
                                     <ShieldCheck className="h-4 w-4 text-emerald-600" />
                                   </span>
                                 )}
@@ -620,7 +604,7 @@ export default function AdminVendorsPage() {
                             <Link
                               href={`/admin/vendors/${vendor.id}`}
                               className="px-3 py-1.5 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all inline-flex items-center gap-1.5"
-                              title="Inspect Comprehensive Vendor Dossier, Warehouses & Listed Products"
+                              title="Seller details"
                             >
                               <FileText className="h-3.5 w-3.5" />
                               <span>View Details</span>
@@ -1035,7 +1019,7 @@ export default function AdminVendorsPage() {
                   <div>
                     <span className="text-[#565959] block text-[10px]">IFSC Code:</span>
                     <span className="font-mono font-bold text-[#0F1111]">
-                      {selectedApp.documents?.bank?.ifsc || 'HDFC0001234'}
+                      {selectedApp.documents?.bank?.ifsc || 'Not provided'}
                     </span>
                   </div>
                 </div>
@@ -1150,7 +1134,7 @@ export default function AdminVendorsPage() {
                 rows={4}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="e.g. Incomplete GST verification / Artisanal heritage certificates missing / Brand name requires trademark documentation..."
+                placeholder="e.g. GST number does not match the business name"
                 className="w-full text-xs p-3 rounded-xl border border-[#D5D9D9] focus:outline-none focus:border-rose-600"
               />
 
@@ -1185,7 +1169,7 @@ export default function AdminVendorsPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185] flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    Verified Merchant Dossier
+                    Seller details
                   </span>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                     {selectedVendorDossier.status}
@@ -1280,7 +1264,7 @@ export default function AdminVendorsPage() {
                     GSTIN
                   </span>
                   <span className="font-bold text-[#0F1111]">
-                    {selectedVendorDossier.gstNumber || '27AAAAA0000A1Z5 (Verified)'}
+                    {selectedVendorDossier.gstNumber || 'Not provided'}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
@@ -1288,7 +1272,7 @@ export default function AdminVendorsPage() {
                     PAN Card
                   </span>
                   <span className="font-bold text-[#0F1111]">
-                    {selectedVendorDossier.panNumber || 'ABCDE1234F (Verified)'}
+                    {selectedVendorDossier.panNumber || 'Not provided'}
                   </span>
                 </div>
               </div>
@@ -1308,19 +1292,19 @@ export default function AdminVendorsPage() {
                   <div>
                     <span className="text-[#565959] block text-[10px]">Settlement Bank:</span>
                     <span className="font-bold text-[#0F1111]">
-                      {selectedVendorDossier.bankName || 'HDFC Bank Ltd.'}
+                      {selectedVendorDossier.bankName || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">IFSC Code:</span>
                     <span className="font-mono font-bold text-[#0F1111]">
-                      {selectedVendorDossier.ifscCode || 'HDFC0000128'}
+                      {selectedVendorDossier.ifscCode || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Account Number:</span>
                     <span className="font-mono font-bold text-[#0F1111]">
-                      •••• •••• {selectedVendorDossier.bankAccountLast4 || '4291'}
+                      {selectedVendorDossier.bankAccountLast4 ? `•••• •••• ${selectedVendorDossier.bankAccountLast4}` : 'Not provided'}
                     </span>
                   </div>
                   <div>
@@ -1515,7 +1499,7 @@ export default function AdminVendorsPage() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
-                    Governance Intervention
+                    Admin action
                   </span>
                   <h3 className="font-headline font-bold text-base text-[#0F1111]">
                     Revoke Vendor License

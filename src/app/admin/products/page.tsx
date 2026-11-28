@@ -24,6 +24,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface SellerOfferSummary {
   id: string;
@@ -175,27 +176,10 @@ export default function AdminProductModerationPage() {
         </div>
       )}
 
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#D5D9D9]">
-        <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] flex items-center gap-1.5">
-            <Package className="h-3.5 w-3.5 text-[#007185]" />
-            Catalog Governance
-          </span>
-          <h1 className="text-2xl font-headline font-bold text-[#0F1111] mt-0.5">
-            Product Moderation Catalog
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin"
-            className="px-3.5 py-2 rounded-lg bg-white border border-[#D5D9D9] text-xs font-bold text-[#0F1111] hover:bg-[#F7F8F8] transition-all shadow-sm"
-          >
-            ← Overview
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Products"
+        description="Every listing on Vyntra. Check details and publish or unpublish them."
+      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-[#D5D9D9] shadow-sm space-y-4">
@@ -323,7 +307,7 @@ export default function AdminProductModerationPage() {
               <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4 font-bold">Product Piece</th>
-                  <th className="py-3 px-4 font-bold">Artisan Vendor</th>
+                  <th className="py-3 px-4 font-bold">Seller</th>
                   <th className="py-3 px-4 font-bold">Category</th>
                   <th className="py-3 px-4 font-bold">Price &amp; Stock</th>
                   <th className="py-3 px-4 font-bold">Moderation State</th>

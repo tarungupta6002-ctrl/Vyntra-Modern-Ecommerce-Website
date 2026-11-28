@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,73 +112,27 @@ export default function AdminOffersPage() {
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
-      {/* Top Banner */}
-      <div className="bg-white border border-[#D5D9D9] rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#565959] mb-1">
-            <Link href="/admin" className="hover:text-[#007185] hover:underline">
-              Admin Central
-            </Link>
-            <span>/</span>
-            <span className="text-[#0F1111]">Seller Offers</span>
-          </div>
-          <h1 className="text-xl font-bold text-[#0F1111] tracking-tight">Marketplace Seller Offers Control</h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Supervise independent seller offers attached to master catalog listings, manage statuses, and oversee Buy Box eligibility.
-          </p>
-        </div>
+      <PageHeader
+        title="Seller offers"
+        description="Offers sellers have added to existing product pages, and whether each can win the Buy Box."
+        actions={
+          <>
+          <button type="button" onClick={fetchOffers} className={consoleButton.secondary}>
+            <RefreshCw className={`h-4 w-4`} />
+            Refresh
+          </button>
+          </>
+        }
+      />
 
-        <button
-          onClick={fetchOffers}
-          className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-[#D5D9D9] hover:border-[#007185] text-[#0F1111] text-xs font-bold rounded-lg shadow-sm transition-colors self-start md:self-auto"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-[#007185]" />
-          <span>Refresh Offers</span>
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-[#007185] flex items-center justify-center shrink-0">
-            <Tag className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Total Offers</p>
-            <p className="text-lg font-bold text-[#0F1111]">{offers.length}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Active Offers</p>
-            <p className="text-lg font-bold text-[#0F1111]">{activeCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <Trophy className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Buy Box Winners</p>
-            <p className="text-lg font-bold text-[#0F1111]">{winnerCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Suspended</p>
-            <p className="text-lg font-bold text-[#0F1111]">{suspendedCount}</p>
-          </div>
-        </div>
-      </div>
+      <StatRow
+        items={[
+          { label: 'Offers', value: offers.length },
+          { label: 'Active', value: activeCount, tone: 'good' },
+          { label: 'Winning the Buy Box', value: winnerCount, tone: 'info' },
+          { label: 'Suspended', value: suspendedCount, tone: suspendedCount > 0 ? 'warn' : 'neutral' },
+        ]}
+      />
 
       {/* Filter & Search Bar */}
       <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -261,7 +216,7 @@ export default function AdminOffersPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="font-semibold text-[#0F1111]">{off.vendorStoreName}</span>
                           {off.isVendorVerified && (
-                            <span title="Verified Artisan Seller">
+                            <span title="Verified seller">
                               <ShieldCheck className="w-3.5 h-3.5 text-[#007185]" />
                             </span>
                           )}

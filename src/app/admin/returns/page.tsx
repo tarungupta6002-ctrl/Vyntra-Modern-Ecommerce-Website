@@ -28,6 +28,7 @@ import { formatINR } from '@/lib/utils';
 import { calculateRefundShares } from '@/lib/refund-math';
 import { AdminReturnDetailsModal } from '@/components/admin/admin-return-details-modal';
 import { AdminDisputeReviewModal } from '@/components/admin/admin-dispute-review-modal';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface AdminReturnItem {
   id: string;
@@ -384,30 +385,18 @@ export default function AdminReturnsManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#D5D9D9] shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-[#565959] uppercase tracking-wider font-semibold">
-            <ShieldCheck className="h-4 w-4 text-[#800020]" />
-            <span>Marketplace Governance</span>
-          </div>
-          <h1 className="text-2xl font-bold font-headline text-[#0F1111] mt-1">
-            Returns, Replacements &amp; Admin Refunds
-          </h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Audit customer return claims, inspect QC results, and execute manual bank refunds with strict ceiling checks.
-          </p>
-        </div>
-
-        <button
-          onClick={fetchReturns}
-          disabled={isLoading}
-          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg border border-[#D5D9D9] bg-[#F7F8F8] hover:bg-[#EAEDED] text-[#0F1111] transition-all"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
-      </div>
+      <PageHeader
+        title="Returns & refunds"
+        description="Return requests, inspection results and refunds. Online payments are refunded through Razorpay."
+        actions={
+          <>
+          <button type="button" onClick={fetchReturns} disabled={isLoading} className={consoleButton.secondary}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          </>
+        }
+      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
@@ -422,7 +411,7 @@ export default function AdminReturnsManagementPage() {
           />
         </form>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <div className="flex items-center gap-1.5 text-xs text-[#565959]">
             <Filter className="h-3.5 w-3.5" />
             <span>Status:</span>

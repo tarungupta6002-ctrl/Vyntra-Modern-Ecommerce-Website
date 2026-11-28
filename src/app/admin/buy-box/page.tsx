@@ -15,6 +15,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,30 +72,18 @@ export default function AdminBuyBoxPage() {
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
-      {/* Top Banner */}
-      <div className="bg-white border border-[#D5D9D9] rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#565959] mb-1">
-            <Link href="/admin" className="hover:text-[#007185] hover:underline">
-              Admin Central
-            </Link>
-            <span>/</span>
-            <span className="text-[#0F1111]">Buy Box Engine</span>
-          </div>
-          <h1 className="text-xl font-bold text-[#0F1111] tracking-tight">Buy Box Algorithm & Winner Monitoring</h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Real-time inspection of multi-seller competition, algorithmic score penalties, artisan verification bonuses, and tie-breakers.
-          </p>
-        </div>
-
-        <button
-          onClick={fetchBuyBoxData}
-          className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-[#D5D9D9] hover:border-[#007185] text-[#0F1111] text-xs font-bold rounded-lg shadow-sm transition-colors self-start md:self-auto"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-[#007185]" />
-          <span>Recalculate Buy Box</span>
-        </button>
-      </div>
+      <PageHeader
+        title="Buy Box"
+        description="Which seller’s offer customers see first on each product, and why."
+        actions={
+          <>
+          <button type="button" onClick={fetchBuyBoxData} className={consoleButton.secondary}>
+            <RefreshCw className="h-4 w-4" />
+            Recalculate
+          </button>
+          </>
+        }
+      />
 
       {/* Info Card explaining the scoring formula */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-950 flex items-start gap-3 shadow-sm">
@@ -107,7 +96,7 @@ export default function AdminBuyBoxPage() {
             • <strong>Price:</strong> 50 × ((Price - MinPrice) / MinPrice) [capped at 50 pts]
             • <strong>Rating:</strong> 5 × (5.0 - SellerRating) [capped at 20 pts]
             • <strong>Delivery:</strong> 3 × (HandlingDays - 1) [capped at 25 pts]
-            • <strong>Artisan Bonus:</strong> -5.0 pts bonus for Verified Master Artisans. Out-of-stock offers are immediately disqualified (+Infinity).
+            • <strong>Verified seller:</strong> −5 points for verified sellers. Out-of-stock offers are immediately disqualified (+Infinity).
           </p>
         </div>
       </div>
@@ -163,7 +152,7 @@ export default function AdminBuyBoxPage() {
                       <th className="py-2.5 px-4 font-bold">Price Penalty</th>
                       <th className="py-2.5 px-4 font-bold">Rating Penalty</th>
                       <th className="py-2.5 px-4 font-bold">SLA Penalty</th>
-                      <th className="py-2.5 px-4 font-bold">Artisan Bonus</th>
+                      <th className="py-2.5 px-4 font-bold">Verified bonus</th>
                       <th className="py-2.5 px-4 font-bold">Final Score</th>
                       <th className="py-2.5 px-4 font-bold">Result</th>
                     </tr>

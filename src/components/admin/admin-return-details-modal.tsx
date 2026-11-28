@@ -473,7 +473,7 @@ export function AdminReturnDetailsModal({
                                   </span>
                                 </div>
                                 <h4 className="font-bold text-sm text-zinc-900 truncate max-w-md">
-                                  {item.product?.title || 'Artisanal Luxury Piece'}
+                                  {item.product?.title || 'Product'}
                                 </h4>
                                 <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1">
                                   <span>SKU: {item.variant?.sku || 'Not recorded'}</span>

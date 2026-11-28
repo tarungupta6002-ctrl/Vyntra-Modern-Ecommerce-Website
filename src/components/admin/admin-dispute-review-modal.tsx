@@ -100,7 +100,7 @@ export function AdminDisputeReviewModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[#FF9900] bg-[#232F3E] px-2 py-0.5 rounded border border-[#FF9900]/40">
-                  Concierge Arbitration
+                  Dispute review
                 </span>
                 <span className="text-zinc-400 text-xs">•</span>
                 <span className="text-xs font-mono text-zinc-300">
@@ -131,7 +131,7 @@ export function AdminDisputeReviewModal({
             <span className="text-[10px] text-zinc-500 block truncate">{returnRequest.user?.email}</span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Artisan / Vendor</span>
+            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Seller</span>
             <span className="font-semibold text-zinc-900 truncate block">
               {returnRequest.vendor?.storeName || 'Vendor'}
             </span>
@@ -166,7 +166,7 @@ export function AdminDisputeReviewModal({
             {/* Vendor Rejection Record */}
             <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-lg space-y-1 text-xs">
               <span className="text-[11px] font-bold uppercase tracking-wider text-rose-900 block">
-                Artisan / Vendor Rejection Record
+                Seller's inspection result
               </span>
               <p className="text-rose-950 font-medium">
                 {returnRequest.vendorNotes || returnRequest.qcFailedReason || 'Rejection record noted by seller.'}
@@ -323,7 +323,7 @@ export function AdminDisputeReviewModal({
             {/* Mandatory Concierge Resolution Notes */}
             <div>
               <label htmlFor="admin-dispute-notes" className="block text-xs font-bold text-zinc-900 uppercase tracking-wider mb-1">
-                Concierge Adjudication Findings &amp; Rationale <span className="text-red-500">*</span>
+                Your decision and reason <span className="text-red-500">*</span>
               </label>
               <textarea
                 id="admin-dispute-notes"

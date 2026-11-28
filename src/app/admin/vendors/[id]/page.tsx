@@ -377,7 +377,7 @@ export default function AdminVendorDetailPage() {
                 </span>
                 {vendor.isVerified && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-[#007185] bg-[#E7F4F5] border border-[#007185]/30">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Verified Artisan
+                    <ShieldCheck className="h-3.5 w-3.5" /> Verified seller
                   </span>
                 )}
               </div>
@@ -846,7 +846,7 @@ export default function AdminVendorDetailPage() {
                                   </span>
                                 )}
                                 <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 text-[10px] font-medium">
-                                  Creator: <strong className="text-[#0F1111]">{prod?.vendor?.storeName || 'Artisan Merchant'}</strong>
+                                  Creator: <strong className="text-[#0F1111]">{prod?.vendor?.storeName || 'Seller'}</strong>
                                 </span>
                                 {prod?.category && (
                                   <span className="text-xs text-[#565959] font-medium">
@@ -986,7 +986,7 @@ export default function AdminVendorDetailPage() {
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Dispatch Contact Phone:</span>
-                <span className="font-mono font-semibold text-xs text-[#0F1111]">{vendor.user?.phone || '9876543210'}</span>
+                <span className="font-mono font-semibold text-xs text-[#0F1111]">{vendor.user?.phone || 'Not provided'}</span>
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Account Access Role:</span>
@@ -1125,7 +1125,7 @@ export default function AdminVendorDetailPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold font-headline text-[#0F1111] flex items-center gap-2">
-                <span>Governance Notices &amp; Seller Acknowledgments</span>
+                <span>Notices sent to this seller</span>
                 <span className="text-xs bg-[#F7F8F8] text-[#565959] border border-[#D5D9D9] px-2.5 py-0.5 rounded-full font-sans font-semibold">
                   {notices.length} Total Issued
                 </span>

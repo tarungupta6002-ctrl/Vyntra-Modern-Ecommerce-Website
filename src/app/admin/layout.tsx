@@ -3,15 +3,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
-import {
-  ShieldAlert,
-  ExternalLink,
-} from 'lucide-react';
-import { AdminHeader } from '@/components/admin/admin-header';
+import { ShieldAlert } from 'lucide-react';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 export const metadata = {
-  title: 'Admin Central | Vyntra Marketplace Governance',
-  description: 'Enterprise administration, vendor onboarding approval, and catalog moderation.',
+  title: 'Admin | Vyntra',
+  description: 'Run the Vyntra marketplace: sellers, catalog, orders, returns and payouts.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -68,38 +65,14 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="-mt-[108px] lg:-mt-[100px] min-h-screen bg-[#F7F8F8] text-[#0F1111] flex flex-col font-sans">
-      {/* Enterprise Governance Top Navigation Bar */}
-      <AdminHeader
-        user={{
-          name: auth.dbUser.name || 'Admin',
-          email: auth.dbUser.email,
-          role: auth.role,
-        }}
-      />
-
-      {/* Main Admin Content */}
-      <main className="flex-1 max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
-
-      {/* Admin Footer */}
-      <footer className="bg-[#232F3E] text-white/70 py-6 text-xs border-t border-white/10 text-center">
-        <div className="max-w-[1500px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© {new Date().getFullYear()} Vyntra Marketplace Enterprise Governance Desk. Authenticated &amp; Encrypted.</p>
-          <div className="flex items-center gap-4 text-white/80">
-            <Link href="/admin/vendors?tab=verified" className="hover:underline">Verified Vendors</Link>
-            <span>•</span>
-            <Link href="/admin/vendors?tab=applications" className="hover:underline">Applications</Link>
-            <span>•</span>
-            <Link href="/admin/products" className="hover:underline">Catalog Moderation</Link>
-            <span>•</span>
-            <Link href="/" className="hover:underline flex items-center gap-1">
-              Live Store <ExternalLink className="h-3 w-3" />
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    <AdminShell
+      user={{
+        name: auth.dbUser.name || 'Admin',
+        email: auth.dbUser.email,
+        role: auth.role,
+      }}
+    >
+      {children}
+    </AdminShell>
   );
 }

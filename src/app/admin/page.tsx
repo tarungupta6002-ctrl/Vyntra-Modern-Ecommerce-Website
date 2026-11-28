@@ -25,6 +25,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface AdminKPIs {
   totalCustomers: number;
@@ -107,28 +108,18 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Header & Refresh */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#D5D9D9]">
-        <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] flex items-center gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-[#007185]" />
-            Enterprise Governance Desk
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-headline font-bold text-[#0F1111] mt-0.5">
-            Marketplace Administration Overview
-          </h1>
-        </div>
-
-        <button
-          type="button"
-          onClick={fetchMetrics}
-          disabled={isLoading}
-          className="self-start sm:self-auto px-4 py-2 bg-white text-xs font-bold text-[#007185] hover:bg-[#F7F8F8] border border-[#D5D9D9] rounded-lg shadow-sm transition-all flex items-center gap-2"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh Data</span>
-        </button>
-      </div>
+      <PageHeader
+        title="Overview"
+        description="What needs your attention across the marketplace."
+        actions={
+          <>
+          <button type="button" onClick={fetchMetrics} disabled={isLoading} className={consoleButton.secondary}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          </>
+        }
+      />
 
       {/* Pending Application Alert Banner */}
       {kpis && kpis.pendingApplications > 0 && (
@@ -156,106 +147,32 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Verified Vendors */}
-        <Link
-          href="/admin/vendors?tab=verified"
-          className="bg-white rounded-2xl p-5 border border-[#D5D9D9] hover:border-[#007185] hover:shadow-md transition-all flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-label uppercase font-bold text-[#565959] group-hover:text-[#007185] transition-colors flex items-center gap-1">
-              <span>Verified Vendors</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Store className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111]">
-              {isLoading ? '...' : kpis?.totalVendors ?? 0}
-            </span>
-            <p className="text-[11px] text-[#565959] mt-1">
-              Active artisanal seller storefronts
-            </p>
-          </div>
-        </Link>
+      <StatRow
+        items={[
+          { label: 'Sellers', value: isLoading ? '…' : kpis?.totalVendors ?? 0, hint: 'Approved and selling', href: '/admin/vendors?tab=verified' },
+          {
+            label: 'Applications to review',
+            value: isLoading ? '…' : kpis?.pendingApplications ?? 0,
+            tone: (kpis?.pendingApplications ?? 0) > 0 ? 'warn' : 'neutral',
+            href: '/admin/vendors?tab=applications',
+          },
+          {
+            label: 'Live products',
+            value: isLoading ? '…' : kpis?.publishedProducts ?? 0,
+            tone: 'good',
+            hint: isLoading ? undefined : `of ${kpis?.totalProducts ?? 0} listed`,
+            href: '/admin/products',
+          },
+          {
+            label: 'Orders',
+            value: isLoading ? '…' : kpis?.totalOrders ?? 0,
+            hint: isLoading ? undefined : `Cash on Delivery ${formatINR(kpis?.codTotalAmount ?? 0)}`,
+            href: '/admin/orders',
+          },
+        ]}
+      />
 
-        {/* Card 2: Pending Applications */}
-        <Link
-          href="/admin/vendors?tab=applications"
-          className="bg-white rounded-2xl p-5 border border-[#D5D9D9] hover:border-amber-500 hover:shadow-md transition-all flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-label uppercase font-bold text-[#565959] group-hover:text-amber-700 transition-colors flex items-center gap-1">
-              <span>Pending Approvals</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Clock className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-headline font-extrabold text-amber-700">
-              {isLoading ? '...' : kpis?.pendingApplications ?? 0}
-            </span>
-            <p className="text-[11px] text-[#565959] mt-1">
-              Onboarding submissions pending review
-            </p>
-          </div>
-        </Link>
-
-        {/* Card 3: Products Catalog */}
-        <Link
-          href="/admin/products"
-          className="bg-white rounded-2xl p-5 border border-[#D5D9D9] hover:border-[#007185] hover:shadow-md transition-all flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-label uppercase font-bold text-[#565959] group-hover:text-[#007185] transition-colors flex items-center gap-1">
-              <span>Published Products</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-[#e2e7ff] text-[#007185] flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Package className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111]">
-              {isLoading ? '...' : kpis?.publishedProducts ?? 0}
-            </span>
-            <p className="text-[11px] text-[#565959] mt-1">
-              Of {isLoading ? '...' : kpis?.totalProducts ?? 0} total catalog pieces live
-            </p>
-          </div>
-        </Link>
-
-        {/* Card 4: Orders & Volume */}
-        <Link
-          href="/admin/orders"
-          className="bg-white rounded-2xl p-5 border border-[#D5D9D9] hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-label uppercase font-bold text-[#565959] group-hover:text-blue-700 transition-colors flex items-center gap-1">
-              <span>Total Orders (COD)</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <ShoppingBag className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111]">
-              {isLoading ? '...' : kpis?.totalOrders ?? 0}
-            </span>
-            <p className="text-[11px] text-[#565959] mt-1">
-              COD Volume: {isLoading ? '...' : formatINR(kpis?.codTotalAmount ?? 0)}
-            </p>
-          </div>
-        </Link>
-      </div>
-
-      {/* NEW SECTION: Verified Vendors Directory (Requested by User) */}
+      {/* Approved sellers */}
       <div className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
           <div className="flex items-center gap-3">
@@ -265,7 +182,7 @@ export default function AdminOverviewPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-headline font-bold text-base text-[#0F1111]">
-                  Verified Artisan Vendors
+                  Approved sellers
                 </h3>
                 <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
                   <ShieldCheck className="h-3 w-3" />
@@ -273,7 +190,7 @@ export default function AdminOverviewPage() {
                 </span>
               </div>
               <p className="text-xs text-[#565959]">
-                Active verified merchants authorized to sell on Vyntra Marketplace
+                Sellers who can list products on Vyntra
               </p>
             </div>
           </div>
@@ -281,7 +198,7 @@ export default function AdminOverviewPage() {
             href="/admin/vendors?tab=verified"
             className="text-xs font-bold text-[#007185] hover:underline flex items-center gap-1 self-start sm:self-auto"
           >
-            <span>View Full Directory</span>
+            <span>All sellers</span>
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -295,8 +212,8 @@ export default function AdminOverviewPage() {
         ) : verifiedVendors.length === 0 ? (
           <div className="py-10 text-center text-xs text-[#565959] bg-[#F7F8F8] rounded-xl border border-dashed border-[#D5D9D9]">
             <Store className="h-8 w-8 text-[#565959]/40 mx-auto mb-2" />
-            <p className="font-semibold text-sm text-[#0F1111]">No verified vendors found.</p>
-            <p className="text-xs text-[#565959] mt-0.5">Approve vendor applications to onboard merchants.</p>
+            <p className="font-semibold text-sm text-[#0F1111]">No approved sellers yet.</p>
+            <p className="text-xs text-[#565959] mt-0.5">Approve an application to add a seller.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -324,7 +241,7 @@ export default function AdminOverviewPage() {
                           <div className="font-bold text-[#0F1111] flex items-center gap-1.5">
                             <span>{vendor.storeName}</span>
                             {vendor.isVerified && (
-                              <span title="Verified Artisan Seller">
+                              <span title="Verified seller">
                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                               </span>
                             )}
@@ -400,10 +317,10 @@ export default function AdminOverviewPage() {
           <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
             <div>
               <h3 className="font-headline font-bold text-base text-[#0F1111]">
-                Recent Onboarding Submissions
+                Recent seller applications
               </h3>
               <p className="text-xs text-[#565959]">
-                Latest artisan merchant applications to the Vyntra Marketplace
+                Newest first
               </p>
             </div>
             <Link
@@ -423,7 +340,7 @@ export default function AdminOverviewPage() {
             </div>
           ) : recentApps.length === 0 ? (
             <div className="py-10 text-center text-xs text-[#565959]">
-              No vendor applications found in database.
+              No seller applications yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -484,7 +401,7 @@ export default function AdminOverviewPage() {
         <div className="lg:col-span-4 space-y-5">
           <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 shadow-sm space-y-3">
             <h3 className="font-headline font-bold text-sm text-[#0F1111]">
-              Governance Fast Actions
+              Shortcuts
             </h3>
             <div className="flex flex-col gap-2 pt-1">
               <Link
@@ -493,7 +410,7 @@ export default function AdminOverviewPage() {
               >
                 <div className="flex items-center gap-2.5 font-bold text-[#0F1111]">
                   <Store className="h-4 w-4 text-emerald-700" />
-                  <span>Verified Vendors Directory</span>
+                  <span>All sellers</span>
                 </div>
                 <ArrowRight className="h-3.5 w-3.5 text-[#565959]" />
               </Link>
@@ -504,7 +421,7 @@ export default function AdminOverviewPage() {
               >
                 <div className="flex items-center gap-2.5 font-bold text-[#0F1111]">
                   <Clock className="h-4 w-4 text-amber-700" />
-                  <span>Vendor Approvals Desk</span>
+                  <span>Seller applications</span>
                 </div>
                 <ArrowRight className="h-3.5 w-3.5 text-[#565959]" />
               </Link>
@@ -515,7 +432,7 @@ export default function AdminOverviewPage() {
               >
                 <div className="flex items-center gap-2.5 font-bold text-[#0F1111]">
                   <Package className="h-4 w-4 text-[#007185]" />
-                  <span>Product Moderation Catalog</span>
+                  <span>Products</span>
                 </div>
                 <ArrowRight className="h-3.5 w-3.5 text-[#565959]" />
               </Link>
@@ -526,7 +443,7 @@ export default function AdminOverviewPage() {
               >
                 <div className="flex items-center gap-2.5 font-bold text-[#0F1111]">
                   <ExternalLink className="h-4 w-4 text-[#565959]" />
-                  <span>Live Storefront Inspection</span>
+                  <span>View storefront</span>
                 </div>
                 <ArrowRight className="h-3.5 w-3.5 text-[#565959]" />
               </Link>
@@ -557,7 +474,7 @@ export default function AdminOverviewPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185] flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    Verified Merchant Dossier
+                    Seller details
                   </span>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                     {selectedVendor.status}
@@ -640,7 +557,7 @@ export default function AdminOverviewPage() {
                     GSTIN
                   </span>
                   <span className="font-bold text-[#0F1111]">
-                    {selectedVendor.gstNumber || '27AAAAA0000A1Z5 (Verified)'}
+                    {selectedVendor.gstNumber || 'Not provided'}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
@@ -648,7 +565,7 @@ export default function AdminOverviewPage() {
                     PAN Card
                   </span>
                   <span className="font-bold text-[#0F1111]">
-                    {selectedVendor.panNumber || 'ABCDE1234F (Verified)'}
+                    {selectedVendor.panNumber || 'Not provided'}
                   </span>
                 </div>
               </div>
@@ -668,19 +585,19 @@ export default function AdminOverviewPage() {
                   <div>
                     <span className="text-[#565959] block text-[10px]">Settlement Bank:</span>
                     <span className="font-bold text-[#0F1111]">
-                      {selectedVendor.bankName || 'HDFC Bank Ltd.'}
+                      {selectedVendor.bankName || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">IFSC Code:</span>
                     <span className="font-mono font-bold text-[#0F1111]">
-                      {selectedVendor.ifscCode || 'HDFC0000128'}
+                      {selectedVendor.ifscCode || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Account Number:</span>
                     <span className="font-mono font-bold text-[#0F1111]">
-                      •••• •••• {selectedVendor.bankAccountLast4 || '4291'}
+                      {selectedVendor.bankAccountLast4 ? `•••• •••• ${selectedVendor.bankAccountLast4}` : 'Not provided'}
                     </span>
                   </div>
                   <div>

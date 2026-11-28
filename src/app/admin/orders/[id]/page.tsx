@@ -232,7 +232,7 @@ export default function AdminOrderDetailPage() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-10 space-y-6">
         <div className="flex items-center gap-2 text-sm text-[#565959]">
           <Link href="/admin/orders" className="hover:text-[#007185] flex items-center gap-1 font-semibold">
-            <ChevronLeft className="h-4 w-4" /> Back to Orders Governance
+            <ChevronLeft className="h-4 w-4" /> Back to orders
           </Link>
         </div>
         <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
@@ -253,7 +253,7 @@ export default function AdminOrderDetailPage() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-10 space-y-6">
         <div className="flex items-center gap-2 text-sm text-[#565959]">
           <Link href="/admin/orders" className="hover:text-[#007185] flex items-center gap-1 font-semibold">
-            <ChevronLeft className="h-4 w-4" /> Back to Orders Governance
+            <ChevronLeft className="h-4 w-4" /> Back to orders
           </Link>
         </div>
         <div className="bg-white rounded-2xl border border-rose-200 p-8 text-center space-y-3 shadow-xs">
@@ -284,7 +284,7 @@ export default function AdminOrderDetailPage() {
           </Link>
           <span>/</span>
           <Link href="/admin/orders" className="hover:text-[#007185] hover:underline font-semibold flex items-center gap-1">
-            Orders Governance
+            Orders
           </Link>
           <span>/</span>
           <span className="font-bold text-[#0F1111]">{order.orderNumber}</span>
@@ -590,7 +590,7 @@ export default function AdminOrderDetailPage() {
                         </div>
 
                         <p className="text-[11px] text-[#565959] pl-7">
-                          Dispatched by: <strong className="text-[#0F1111]">{vs.vendor?.storeName || 'Artisan Merchant'}</strong>
+                          Dispatched by: <strong className="text-[#0F1111]">{vs.vendor?.storeName || 'Seller'}</strong>
                           {vs.warehouse && ` • Facility: ${vs.warehouse.facilityName} (${vs.warehouse.city})`}
                         </p>
                       </div>
@@ -647,7 +647,7 @@ export default function AdminOrderDetailPage() {
               {/* Customer User Account Details */}
               <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">
-                  Customer Account Dossier
+                  Customer
                 </span>
 
                 <div className="space-y-2 text-[#0F1111]">
@@ -674,7 +674,7 @@ export default function AdminOrderDetailPage() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Financial Summary & Governance Actions (4 cols) */}
+        {/* RIGHT COLUMN: Financial Summary & Admin actions (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Card 1: Complete Financial Price Breakdown */}
           <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
@@ -709,7 +709,7 @@ export default function AdminOrderDetailPage() {
 
               {order.financials.packagingFee > 0 && (
                 <div className="flex justify-between items-center text-[#565959]">
-                  <span>Artisan Care &amp; Packaging</span>
+                  <span>Packaging fee</span>
                   <span className="font-mono text-[#0F1111] font-semibold">
                     {formatINR(order.financials.packagingFee)}
                   </span>
@@ -841,7 +841,7 @@ export default function AdminOrderDetailPage() {
           {/* Card 2: Admin Quick Actions */}
           <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-3">
             <h3 className="text-sm font-bold font-headline text-[#0F1111] uppercase tracking-wider">
-              Governance Actions
+              Admin actions
             </h3>
 
             <div className="space-y-2 pt-1 text-xs">

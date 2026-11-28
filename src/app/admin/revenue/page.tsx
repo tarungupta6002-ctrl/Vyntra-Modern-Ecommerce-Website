@@ -24,6 +24,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface RevenueMetrics {
   grossGMV: number;
@@ -116,21 +117,10 @@ export default function AdminRevenuePage() {
 
   return (
     <div className="space-y-8 antialiased">
-      {/* Page Title & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-[#D5D9D9]">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#007185] mb-1">
-            <TrendingUp className="h-4 w-4" />
-            <span>Executive Financial Analytics</span>
-          </div>
-          <h1 className="font-headline font-extrabold text-2xl sm:text-3xl text-[#0F1111]">
-            Vyntra Platform Revenue &amp; Earnings
-          </h1>
-          <p className="text-xs sm:text-sm text-[#565959] mt-1">
-            Authoritative breakdown of marketplace commissions, packaging margins, gateway overhead, and net company profit.
-          </p>
-        </div>
-
+      <PageHeader
+        title="Revenue"
+        description="Vyntra's earnings: commission, packaging and COD fees, less payment gateway costs."
+        actions={
         <div className="flex items-center gap-2 self-stretch sm:self-auto">
           {/* Time Range Pills */}
           <div className="inline-flex rounded-xl bg-[#F7F8F8] p-1 border border-[#D5D9D9]">
@@ -167,7 +157,8 @@ export default function AdminRevenuePage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-      </div>
+        }
+      />
 
       {error && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
@@ -303,7 +294,7 @@ export default function AdminRevenuePage() {
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-emerald-600 shrink-0" />
-                  <span className="font-bold text-[#0F1111]">Express Artisan Packaging Fees (₹49/order)</span>
+                  <span className="font-bold text-[#0F1111]">Packaging fees (₹49 per order)</span>
                 </div>
                 <div className="font-mono text-right">
                   <span className="font-bold text-[#0F1111]">{formatINR(metrics?.totalPackagingFees || 0)}</span>

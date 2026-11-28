@@ -20,6 +20,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -247,30 +248,18 @@ export default function AdminShipmentsPage() {
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
-      {/* Top Banner */}
-      <div className="bg-white border border-[#D5D9D9] rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#565959] mb-1">
-            <Link href="/admin" className="hover:text-[#007185] hover:underline">
-              Admin Central
-            </Link>
-            <span>/</span>
-            <span className="text-[#0F1111]">Consignment Shipments</span>
-          </div>
-          <h1 className="text-xl font-bold text-[#0F1111] tracking-tight">Multi-Vendor Shipment Oversight & SLA Governance</h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Monitor vendor-wise logistics performance, track carrier AWBs, and issue official SLA compliance warnings to delayed sellers.
-          </p>
-        </div>
-
-        <button
-          onClick={fetchShipments}
-          className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-[#D5D9D9] hover:border-[#007185] text-[#0F1111] text-xs font-bold rounded-lg shadow-sm transition-colors self-start md:self-auto"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-[#007185]" />
-          <span>Refresh Shipments</span>
-        </button>
-      </div>
+      <PageHeader
+        title="Shipments"
+        description="Each seller’s packages and tracking, and sellers who are late to ship."
+        actions={
+          <>
+          <button type="button" onClick={fetchShipments} className={consoleButton.secondary}>
+            <RefreshCw className={`h-4 w-4`} />
+            Refresh
+          </button>
+          </>
+        }
+      />
 
       {/* Delayed SLA Alert Banner */}
       {delayedCount > 0 && (
@@ -350,7 +339,7 @@ export default function AdminShipmentsPage() {
                   <th className="py-3 px-4">SLA Performance</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-center">Manage</th>
-                  <th className="py-3 px-4 text-right">Governance Action</th>
+                  <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#D5D9D9]">

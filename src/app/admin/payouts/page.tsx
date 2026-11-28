@@ -23,6 +23,7 @@ import {
   ArrowDownLeft,
   Package,
 } from 'lucide-react';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 export interface SettledProductItem {
   id: string;
@@ -235,131 +236,48 @@ export default function AdminPayoutsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#D5D9D9] p-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#800020] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                Platform Treasury &amp; Governance
-              </span>
-              <span className="text-xs text-[#565959]">•</span>
-              <span className="text-xs text-[#565959]">Vendor Settlement Control</span>
-            </div>
-            <h1 className="text-2xl font-headline font-bold text-[#0F1111] flex items-center gap-2">
-              <Wallet className="h-6 w-6 text-[#131921]" />
-              Marketplace Commission &amp; Payouts
-            </h1>
-            <p className="text-xs text-[#565959] mt-1">
-              Configure global commission rates, inspect vendor delivered balances, and execute concurrency-safe bank settlements.
-            </p>
-          </div>
+      <PageHeader
+        title="Payouts"
+        description="What each seller is owed for delivered, paid orders, and the payouts you have sent."
+        actions={
+          <>
+          <button onClick={() => setIsCommissionModalOpen(true)} className={consoleButton.secondary}>
+            <Settings className="h-4 w-4" />
+            Commission {data ? `${data.platformCommissionRate}%` : ''}
+          </button>
+          <button type="button" onClick={fetchAdminPayouts} disabled={isLoading} className={consoleButton.secondary}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          </>
+        }
+      />
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin/revenue"
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 transition-colors shadow-sm"
-            >
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
-              <span>Platform Revenue</span>
-            </Link>
-            <button
-              onClick={() => setIsCommissionModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg border border-[#D5D9D9] bg-white text-[#0F1111] hover:bg-[#F7F8F8] transition-colors shadow-sm"
-            >
-              <Settings className="h-3.5 w-3.5 text-[#007185]" />
-              Configure Commission ({data ? `${data.platformCommissionRate}%` : '10%'})
-            </button>
-            <button
-              onClick={fetchAdminPayouts}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-lg border border-[#D5D9D9] bg-[#F7F8F8] text-[#0F1111] hover:bg-[#EAEDED] transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
-        </div>
+      <p className="-mt-3 text-xs text-[#565959]">
+        Tax on commission: <span className="font-semibold text-[#B7791F]">pending CA confirmation</span>. Cash on Delivery items become payable only after the courier remits the cash.
+      </p>
 
-        {/* Global Policy Notice */}
-        <div className="mt-5 pt-4 border-t border-[#EAEDED] flex flex-wrap items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#0F1111]">Active Marketplace Commission:</span>
-            <span className="font-mono font-bold text-[#007185] bg-sky-50 px-2 py-0.5 rounded text-xs border border-sky-200">
-              {data ? `${data.platformCommissionRate.toFixed(2)}%` : '10.00%'}
-            </span>
-            <span className="text-[11px] text-[#565959]">(Applied to all vendors)</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#0F1111]">Commission Tax Policy:</span>
-            <span className="font-semibold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200 text-[11px]">
-              Not configured / Pending CA confirmation
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 text-[11px] text-[#565959]">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            <span>COD items eligible only after verified courier remittance (paymentStatus = PAID)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Aggregate Metrics */}
       {data && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] p-5">
-            <div className="flex items-center justify-between text-xs text-[#565959] mb-1">
-              <span>Pending Vendor Payouts</span>
-              <Clock className="h-4 w-4 text-emerald-600" />
-            </div>
-            <div className="text-2xl font-bold font-headline text-emerald-700">
-              ₹{data.summary.totalPendingPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[11px] text-[#565959] mt-1.5">
-              Net seller funds ready for disbursement across {data.summary.totalEligibleItems} delivered items.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] p-5">
-            <div className="flex items-center justify-between text-xs text-[#565959] mb-1">
-              <span>Accrued Platform Commission</span>
-              <TrendingUp className="h-4 w-4 text-[#007185]" />
-            </div>
-            <div className="text-2xl font-bold font-headline text-[#007185]">
-              ₹{data.summary.totalPendingCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[11px] text-[#565959] mt-1.5">
-              Platform revenue retained from delivered and settled consignments.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] p-5">
-            <div className="flex items-center justify-between text-xs text-[#565959] mb-1">
-              <span>Total Payouts Settled</span>
-              <CheckCircle2 className="h-4 w-4 text-sky-600" />
-            </div>
-            <div className="text-2xl font-bold font-headline text-[#0F1111]">
-              ₹{data.summary.totalCompletedPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-[11px] text-[#565959] mt-1.5">
-              Cumulative historical payouts remitted with confirmed bank UTRs.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] p-5">
-            <div className="flex items-center justify-between text-xs text-[#565959] mb-1">
-              <span>Active Marketplace Vendors</span>
-              <Building2 className="h-4 w-4 text-[#131921]" />
-            </div>
-            <div className="text-2xl font-bold font-headline text-[#0F1111]">
-              {data.summary.totalVendors}
-            </div>
-            <p className="text-[11px] text-[#565959] mt-1.5">
-              Registered merchant storefronts on Vyntra Atelier.
-            </p>
-          </div>
-        </div>
+        <StatRow
+          items={[
+            {
+              label: 'Owed to sellers',
+              value: '₹' + data.summary.totalPendingPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+              tone: 'warn',
+              hint: `${data.summary.totalEligibleItems} delivered, paid items`,
+            },
+            {
+              label: 'Commission on those',
+              value: '₹' + data.summary.totalPendingCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+              tone: 'good',
+            },
+            {
+              label: 'Paid to sellers',
+              value: '₹' + data.summary.totalCompletedPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+            },
+            { label: 'Sellers', value: data.summary.totalVendors },
+          ]}
+        />
       )}
 
       {/* Vendors Payout Table */}

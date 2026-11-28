@@ -21,6 +21,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { ReviewStatus } from '@prisma/client';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface AdminReview {
   id: string;
@@ -211,46 +212,20 @@ export default function AdminReviewsPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-headline font-bold text-[#0F1111]">
-              Review Moderation Central
-            </h1>
-            <span className="bg-[#800020] text-white text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
-              Governance
-            </span>
-          </div>
-          <p className="text-xs text-[#565959] mt-1">
-            Audit customer reviews, enforce verified purchaser authenticity, and moderate public catalog ratings
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Reviews"
+        description="Approve, reject or flag customer reviews before they appear on product pages."
+      />
 
-      {/* Metric Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
-          <p className="text-[11px] font-semibold text-[#565959] uppercase tracking-wider">Total Reviews</p>
-          <p className="text-2xl font-bold text-[#0F1111] mt-1 font-mono">{counts.total}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm bg-amber-50/20">
-          <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Pending Moderation</p>
-          <p className="text-2xl font-bold text-amber-800 mt-1 font-mono">{counts.pending}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm bg-emerald-50/20">
-          <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Approved &amp; Live</p>
-          <p className="text-2xl font-bold text-emerald-800 mt-1 font-mono">{counts.approved}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-rose-200 shadow-sm bg-rose-50/20">
-          <p className="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">Rejected</p>
-          <p className="text-2xl font-bold text-rose-800 mt-1 font-mono">{counts.rejected}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-purple-200 shadow-sm bg-purple-50/20">
-          <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider">Flagged</p>
-          <p className="text-2xl font-bold text-purple-800 mt-1 font-mono">{counts.flagged}</p>
-        </div>
-      </div>
+      <StatRow
+        items={[
+          { label: 'Reviews', value: counts.total },
+          { label: 'To moderate', value: counts.pending, tone: counts.pending > 0 ? 'warn' : 'neutral' },
+          { label: 'Published', value: counts.approved, tone: 'good' },
+          { label: 'Rejected', value: counts.rejected },
+          { label: 'Flagged', value: counts.flagged, tone: counts.flagged > 0 ? 'warn' : 'neutral' },
+        ]}
+      />
 
       {/* Controls: Search & Status Filters */}
       <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm space-y-3">

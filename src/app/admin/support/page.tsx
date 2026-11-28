@@ -4,6 +4,7 @@ import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2, LifeBuoy, RotateCcw, Search, Send } from 'lucide-react';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 type TicketStatus = 'OPEN' | 'ANSWERED' | 'RESOLVED';
 
@@ -153,15 +154,10 @@ function AdminSupportInner() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-[#0F1111]">
-            <LifeBuoy className="h-6 w-6 text-[#007185]" /> Customer support
-          </h1>
-          <p className="mt-1 text-sm text-[#565959]">
-            Replies are shown in the customer&apos;s account, signed “Vyntra Customer Service”, and emailed to them.
-          </p>
-        </div>
+      <PageHeader
+        title="Customer support"
+        description={<>Replies appear in the customer&apos;s account, signed &ldquo;Vyntra Customer Service&rdquo;, and are emailed to them.</>}
+        actions={
         <label className="relative w-full sm:w-72">
           <span className="sr-only">Search tickets</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#565959]" />
@@ -173,7 +169,8 @@ function AdminSupportInner() {
             className="w-full rounded-lg border border-[#D5D9D9] bg-white py-2 pl-9 pr-3 text-sm focus:border-[#007185] focus:outline-none focus:ring-2 focus:ring-[#007185]/20"
           />
         </label>
-      </div>
+        }
+      />
 
       <div className="flex flex-wrap gap-2" role="tablist">
         {TABS.map((t) => {

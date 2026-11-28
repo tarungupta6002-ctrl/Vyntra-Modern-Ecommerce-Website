@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
+import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
 interface AdminOrder {
   id: string;
@@ -169,30 +170,18 @@ export default function AdminOrdersManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-[#D5D9D9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#007185] mb-1">
-            <ShoppingBag className="h-4 w-4" />
-            <span>Marketplace Transactions &amp; Fulfillment</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111]">
-            Customer Orders &amp; Transactions
-          </h1>
-          <p className="text-xs text-[#565959] mt-1">
-            Inspect all marketplace customer orders, track payments, review consignment breakdown, and verify cash on delivery settlements.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => fetchOrders()}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F7F8F8] border border-[#D5D9D9] hover:bg-[#EAEDED] text-xs font-bold text-[#0F1111] transition-colors shrink-0"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh List</span>
-        </button>
-      </div>
+      <PageHeader
+        title="Orders"
+        description="All customer orders, their payments and each seller’s part."
+        actions={
+          <>
+          <button type="button" onClick={() => fetchOrders()} disabled={isLoading} className={consoleButton.secondary}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          </>
+        }
+      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-[#D5D9D9] space-y-4">
