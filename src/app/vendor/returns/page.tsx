@@ -110,6 +110,8 @@ function VendorReturnsContent() {
   const [qcResult, setQcResult] = useState<'PASS' | 'FAIL'>('PASS');
   const [conditionDetails, setConditionDetails] = useState('');
   const [failedReason, setFailedReason] = useState('');
+  // Whether a passed return goes back on sale. Damaged/defective/wrong items default to no.
+  const [resellable, setResellable] = useState(true);
   const [evidencePhotosText, setEvidencePhotosText] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [vendorNotes, setVendorNotes] = useState('');
@@ -185,7 +187,8 @@ function VendorReturnsContent() {
     setReverseCourier(item.reverseCourierPartner || 'Delhivery Surface Logistics');
     setReverseTracking(item.reverseTrackingNumber || '');
     setQcResult('PASS');
-    setConditionDetails('Items examined. Original tags intact, suitable for restocking.');
+    setResellable(!['DAMAGED_ON_ARRIVAL', 'DEFECTIVE', 'WRONG_ITEM', 'NOT_AS_DESCRIBED'].includes(item.reason));
+    setConditionDetails('');
     setFailedReason('');
     setEvidencePhotosText('');
 
@@ -274,6 +277,7 @@ function VendorReturnsContent() {
             result: qcResult,
             conditionDetails: conditionDetails.trim(),
             failedReason: qcResult === 'FAIL' ? failedReason.trim() : undefined,
+            resellable: qcResult === 'PASS' ? resellable : undefined,
             notes: vendorNotes.trim() || undefined,
             evidencePhotos: photos,
           }),
@@ -840,7 +844,7 @@ function VendorReturnsContent() {
                       required
                       value={conditionDetails}
                       onChange={(e) => setConditionDetails(e.target.value)}
-                      placeholder="e.g. Fabric weave verified, artisan seal and tags present..."
+                      placeholder="What condition is the item in? e.g. unused, tags attached; or: screen cracked"
                       className="w-full text-xs border border-[#D5D9D9] rounded p-2 text-[#0F1111] resize-none"
                     />
                   </div>
@@ -874,11 +878,29 @@ function VendorReturnsContent() {
                     />
                   </div>
 
-                  <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded text-[11px] text-indigo-900">
+                  {qcResult === 'PASS' && (
+                    <fieldset className="rounded border border-[#D5D9D9] p-2.5">
+                      <legend className="px-1 text-xs font-semibold text-[#333]">Can this item be sold again?</legend>
+                      <div className="flex gap-4 text-xs">
+                        <label className="flex items-center gap-1.5">
+                          <input type="radio" name="qc-resellable" checked={resellable} onChange={() => setResellable(true)} />
+                          Yes, put it back in stock
+                        </label>
+                        <label className="flex items-center gap-1.5">
+                          <input type="radio" name="qc-resellable" checked={!resellable} onChange={() => setResellable(false)} />
+                          No, it is damaged or faulty
+                        </label>
+                      </div>
+                    </fieldset>
+                  )}
+
+                  <div className="p-2.5 bg-[#F7F8F8] border border-[#D5D9D9] rounded text-[11px] text-[#333]">
                     <p>
-                      {qcResult === 'PASS'
-                        ? `Passing QC will atomically restore ${actionItem.requestedQuantity} unit(s) to active ProductInventory.`
-                        : 'Failing QC will reject restocking. The customer can dispute this decision with concierge support.'}
+                      {qcResult === 'FAIL'
+                        ? 'The return is refused and stock is not changed. The customer can dispute this decision.'
+                        : resellable
+                        ? `The return is approved for refund and ${actionItem.requestedQuantity} unit(s) go back into your stock.`
+                        : 'The return is approved for refund. Stock is not changed, so the damaged item is not sold again.'}
                     </p>
                   </div>
                 </div>

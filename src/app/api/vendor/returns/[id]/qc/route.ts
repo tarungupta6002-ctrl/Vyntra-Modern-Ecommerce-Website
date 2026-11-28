@@ -3,6 +3,8 @@ import { requireVendor, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { ReturnStatus } from '@prisma/client';
+import { restockOrderItem } from '@/lib/orders/restock';
+import { SELLER_FAULT_REASONS } from '@/lib/policy-constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +28,9 @@ export interface QcNotesPayload {
   failedReason?: string | null;
   evidencePhotos: string[];
   notes?: string | null;
+  /** PASS only: whether the item went back into sellable stock. */
+  resellable?: boolean;
+  restockedTo?: 'offer' | 'product' | null;
 }
 
 /**
@@ -35,7 +40,9 @@ export interface QcNotesPayload {
  * Invariants:
  * 1. Only the owning vendor can inspect.
  * 2. Status must be strictly RECEIVED_AT_WH.
- * 3. QC PASS atomically updates status, sets restock linkages, and increments ProductInventory.quantity.
+ * 3. QC PASS atomically updates status and, if the seller says the item can be sold again, puts it back
+ *    into the stock it was sold from (offer or product inventory). Damaged/defective items default to
+ *    not resellable so they are not sold to the next customer.
  * 4. ProductInventory.reservedQuantity is NEVER touched.
  * 5. Conditional guard prevents duplicate / concurrent inventory restoration.
  * 6. QC FAIL never touches inventory.
@@ -54,6 +61,7 @@ export async function POST(request: Request, context: RouteContext) {
       failedReason,
       notes,
       evidencePhotos = [],
+      resellable: resellableInput,
     } = body;
 
     // 1. Validate Input
@@ -103,6 +111,7 @@ export async function POST(request: Request, context: RouteContext) {
             id: true,
             productId: true,
             variantId: true,
+            offerVariantId: true,
             vendorId: true,
             quantity: true,
           },
@@ -155,59 +164,37 @@ export async function POST(request: Request, context: RouteContext) {
 
     // 6. Execute Transactional QC Completion
     if (result === 'PASS') {
-      // Find matching ProductInventory record for exact product, variant and vendor (Rule 8)
-      const inventory = await prisma.productInventory.findFirst({
-        where: {
-          productId: returnRequest.orderItem.productId,
-          vendorId: returnRequest.vendorProfileId,
-          ...(returnRequest.orderItem.variantId
-            ? { variantId: returnRequest.orderItem.variantId }
-            : {}),
-        },
-      });
+      // Damaged, defective or wrong items should not go back on sale unless the seller says so.
+      const resellable =
+        typeof resellableInput === 'boolean' ? resellableInput : !SELLER_FAULT_REASONS.has(returnRequest.reason);
+      qcPayload.resellable = resellable;
 
-      if (!inventory) {
-        return apiError(
-          'Target ProductInventory record not found for restocking. Please ensure inventory record exists.',
-          400,
-          null,
-          'INVENTORY_RECORD_NOT_FOUND'
-        );
-      }
-
-      // Atomic conditional update + inventory restoration (Rules 8, 9, 10)
-      const updatedReturn = await prisma.$transaction(async (tx) => {
-        // Atomic Guard: update returnRequest ONLY if status is still RECEIVED_AT_WH and restockInventoryId is NULL
-        const rowsAffected = await tx.$executeRaw`
-          UPDATE "ReturnRequest"
-          SET "status" = 'QC_PASSED',
-              "qcPassed" = true,
-              "qcNotes" = ${serializedQcNotes},
-              "qcCompletedAt" = NOW(),
-              "restockInventoryId" = ${inventory.id},
-              "restockVariantId" = ${inventory.variantId},
-              "restockVendorId" = ${inventory.vendorId},
-              "updatedAt" = NOW()
-          WHERE "id" = ${returnRequest.id}
-            AND "status" = 'RECEIVED_AT_WH'
-            AND "restockInventoryId" IS NULL
-        `;
-
-        if (rowsAffected === 0) {
+      const outcome = await prisma.$transaction(async (tx) => {
+        // Status guard: only the first QC for this return can restock.
+        const claimed = await tx.returnRequest.updateMany({
+          where: { id: returnRequest.id, status: ReturnStatus.RECEIVED_AT_WH, qcCompletedAt: null },
+          data: { status: ReturnStatus.QC_PASSED, qcPassed: true, qcCompletedAt: new Date() },
+        });
+        if (claimed.count === 0) {
           throw new Error('CONCURRENCY_ERROR: ReturnRequest was already processed or restocked by a concurrent request.');
         }
 
-        // Restore ONLY requestedQuantity to ProductInventory.quantity (reservedQuantity is UNCHANGED)
-        await tx.$executeRaw`
-          UPDATE "ProductInventory"
-          SET "quantity" = "quantity" + ${returnRequest.requestedQuantity},
-              "updatedAt" = NOW()
-          WHERE "id" = ${inventory.id}
-            AND "variantId" = ${inventory.variantId}
-            AND "vendorId" = ${inventory.vendorId}
-        `;
+        const target = resellable
+          ? await restockOrderItem(tx, returnRequest.orderItem, returnRequest.requestedQuantity)
+          : null;
+        qcPayload.restockedTo = target?.kind ?? null;
 
-        return await tx.returnRequest.findUnique({
+        await tx.returnRequest.update({
+          where: { id: returnRequest.id },
+          data: {
+            qcNotes: JSON.stringify(qcPayload),
+            ...(target?.kind === 'product'
+              ? { restockInventoryId: target.inventoryId, restockVariantId: target.variantId, restockVendorId: target.vendorId }
+              : {}),
+          },
+        });
+
+        const updatedReturn = await tx.returnRequest.findUnique({
           where: { id: returnRequest.id },
           include: {
             order: { select: { orderNumber: true } },
@@ -219,17 +206,21 @@ export async function POST(request: Request, context: RouteContext) {
             },
           },
         });
+        return { updatedReturn, target };
       });
 
       return apiSuccess({
-        returnRequest: updatedReturn,
+        returnRequest: outcome.updatedReturn,
         qcResult: 'PASS',
-        inventoryRestored: {
-          inventoryId: inventory.id,
-          sku: inventory.sku,
-          quantityAdded: returnRequest.requestedQuantity,
-        },
-        message: `Quality Check PASSED. ${returnRequest.requestedQuantity} unit(s) successfully restored to warehouse inventory.`,
+        resellable,
+        inventoryRestored: outcome.target
+          ? { inventoryId: outcome.target.inventoryId, kind: outcome.target.kind, quantityAdded: returnRequest.requestedQuantity }
+          : null,
+        message: !resellable
+          ? 'Inspection passed. The item was not put back into stock because it cannot be sold again.'
+          : outcome.target
+          ? `Inspection passed. ${returnRequest.requestedQuantity} unit(s) put back into stock.`
+          : 'Inspection passed, but no stock record was found for this item, so stock was not changed.',
       });
     } else {
       // QC FAIL: Update ReturnRequest to QC_FAILED with atomic guard preventing concurrent overwrite

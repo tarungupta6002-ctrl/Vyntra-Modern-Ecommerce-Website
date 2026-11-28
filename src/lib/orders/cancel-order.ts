@@ -1,3 +1,4 @@
+import { restockOrderItem } from './restock';
 import { Prisma, OrderStatus, OrderItemStatus, ShipmentStatus } from '@prisma/client';
 
 /** Orders whose goods haven't left the seller yet. */
@@ -78,39 +79,7 @@ export async function cancelOrderTx(
   for (const item of toCancel) {
     if (!notShipped.includes(item.status) || item.quantity <= 0) continue;
 
-    if (item.offerVariantId) {
-      const inv = await tx.offerInventory.findFirst({
-        where: { offerVariantId: item.offerVariantId },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true },
-      });
-      if (inv) {
-        await tx.$executeRaw`
-          UPDATE "OfferInventory" SET "quantity" = "quantity" + ${item.quantity}, "updatedAt" = NOW()
-          WHERE "id" = ${inv.id}
-        `;
-        restoredUnits += item.quantity;
-      }
-    } else if (item.variantId) {
-      const inv =
-        (await tx.productInventory.findFirst({
-          where: { variantId: item.variantId, vendorId: item.vendorId },
-          orderBy: { createdAt: 'asc' },
-          select: { id: true },
-        })) ||
-        (await tx.productInventory.findFirst({
-          where: { variantId: item.variantId },
-          orderBy: { createdAt: 'asc' },
-          select: { id: true },
-        }));
-      if (inv) {
-        await tx.$executeRaw`
-          UPDATE "ProductInventory" SET "quantity" = "quantity" + ${item.quantity}, "updatedAt" = NOW()
-          WHERE "id" = ${inv.id}
-        `;
-        restoredUnits += item.quantity;
-      }
-    }
+    if (await restockOrderItem(tx, item, item.quantity)) restoredUnits += item.quantity;
   }
 
   return { previousStatus: order.status, cancelledItems: toCancel.length, restoredUnits };
