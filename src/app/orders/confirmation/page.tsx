@@ -215,13 +215,9 @@ function OrderConfirmationContent() {
                   order.items.map((item) => (
                     <div key={item.id} className="py-3 flex items-center gap-3.5">
                       <div className="w-14 h-18 rounded-lg overflow-hidden bg-surface-container shrink-0 relative">
-                        <Image
-                          src={item.image}
-                          alt={item.title}
-                          fill
-                          sizes="60px"
-                          className="object-cover object-top"
-                        />
+                        {item.image ? (
+                          <Image src={item.image} alt="" fill sizes="60px" className="object-contain" />
+                        ) : null}
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">

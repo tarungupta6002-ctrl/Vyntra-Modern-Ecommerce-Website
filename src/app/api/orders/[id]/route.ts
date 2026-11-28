@@ -117,6 +117,7 @@ export async function GET(request: Request, context: RouteContext) {
         ),
       ],
       createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
       trackingNumber: order.trackingNumber,
       courierPartner: order.courierPartner,
       vendorShipments:
@@ -150,7 +151,7 @@ export async function GET(request: Request, context: RouteContext) {
                 shippingFee: Number(order.shippingFee || 0),
                 dispatchedAt: null,
                 deliveredAt: null,
-                vendor: { id: 'legacy', storeName: 'Artisan Boutique' },
+                vendor: { id: 'legacy', storeName: 'Seller' },
                 itemsCount: order.items.length,
               },
             ],
@@ -169,15 +170,16 @@ export async function GET(request: Request, context: RouteContext) {
 
         const resolvedSize = item.selectedSize || item.variant?.size || 'N/A';
         const resolvedColor = item.selectedColor || item.variant?.color || 'N/A';
-        const resolvedVendor = item.vendor?.storeName || item.product?.brand || 'Vyntra Master Guild';
+        const resolvedVendor = item.vendor?.storeName || 'Seller';
 
         return {
           id: item.id,
           productId: item.productId,
           variantId: item.variantId,
-          title: item.product?.title || 'Artisanal Piece',
-          brand: item.product?.brand || 'Vyntra Collective',
-          categoryTag: 'Heritage Luxury',
+          slug: item.product?.slug || null,
+          title: item.product?.title || 'Product no longer listed',
+          brand: item.product?.brand || '',
+          categoryTag: '',
           sellerName: resolvedVendor,
           vendorName: resolvedVendor,
           sku: item.variant?.sku || '',
@@ -191,11 +193,9 @@ export async function GET(request: Request, context: RouteContext) {
           color: resolvedColor,
           selectedSize: resolvedSize,
           selectedColor: resolvedColor,
-          shippingMethod: order.courierPartner || 'Standard Insured Delivery',
-          image:
-            item.variant?.imageUrl ||
-            item.product?.images[0]?.url ||
-            'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80',
+          shippingMethod: order.courierPartner || '',
+          image: item.variant?.imageUrl || item.product?.images[0]?.url || '',
+          deliveredAt: item.deliveredAt ? item.deliveredAt.toISOString() : null,
           status: item.status,
           returnRequest: item.returnRequest || null,
         };
