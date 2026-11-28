@@ -117,7 +117,11 @@ export function Footer() {
               </span>
             ))}
           </div>
-          <p>© {new Date().getFullYear()} Vyntra</p>
+          <p className="flex items-center gap-4">
+            <Link href="/terms" className="hover:text-white hover:underline">Terms of Use</Link>
+            <Link href="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link>
+            <span>© {new Date().getFullYear()} Vyntra</span>
+          </p>
         </div>
       </div>
     </footer>
