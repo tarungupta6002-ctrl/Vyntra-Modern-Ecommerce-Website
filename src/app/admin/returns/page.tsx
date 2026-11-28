@@ -131,6 +131,8 @@ export default function AdminReturnsManagementPage() {
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [refundAmountInput, setRefundAmountInput] = useState<string>('');
   const [utrReferenceInput, setUtrReferenceInput] = useState<string>('');
+  const [payoutDetail, setPayoutDetail] = useState<PayoutDetail | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [adminNotesInput, setAdminNotesInput] = useState<string>('');
   const [isConfirmedCheckbox, setIsConfirmedCheckbox] = useState(false);
   // Online payments are refunded through Razorpay; COD (or an online order with no Razorpay
@@ -207,6 +209,7 @@ export default function AdminReturnsManagementPage() {
 
   const openRefundModal = async (ret: AdminReturnItem) => {
     setActiveReturn(ret);
+    setPayoutDetail(null);
     setModalError(null);
     setModalSuccess(null);
     setIsConfirmedCheckbox(false);
@@ -223,10 +226,21 @@ export default function AdminReturnsManagementPage() {
       }
       setRefundCalculation(json.data.calculations);
       setRefundAmountInput(json.data.calculations.maxRefundable.toString());
+      setPayoutDetail(json.data.returnRequest?.refundPayoutDetail || null);
     } catch (err: any) {
       setModalError(err.message || 'Failed to calculate allowable refund');
     } finally {
       setIsLoadingDetails(false);
+    }
+  };
+
+  const copyText = async (key: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    } catch {
+      /* clipboard blocked: the value is on screen to copy by hand */
     }
   };
 
@@ -840,6 +854,10 @@ export default function AdminReturnsManagementPage() {
                     </p>
                   </div>
 
+                  {needsManualReference && (
+                    <PayoutDetailsPanel detail={payoutDetail} copiedKey={copiedKey} onCopy={copyText} />
+                  )}
+
                   {needsManualReference ? (
                   <div>
                     <label className="block text-xs font-bold text-[#0F1111] mb-1">
@@ -853,7 +871,7 @@ export default function AdminReturnsManagementPage() {
                       minLength={4}
                       maxLength={60}
                       className="w-full px-3 py-2 text-xs tabular-nums rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185]"
-                      placeholder="e.g. VYNTRA-REF-9928172648"
+                      placeholder="From your bank or UPI app after sending"
                     />
                     <p className="text-[10px] text-[#565959] mt-0.5">
                       Send the money to the customer by bank transfer or UPI first, then enter its reference here.
@@ -974,6 +992,73 @@ export default function AdminReturnsManagementPage() {
           <span className="font-semibold">{disputeSuccessToast}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+interface PayoutDetail {
+  method: 'UPI' | 'BANK_ACCOUNT';
+  upiId: string | null;
+  accountHolderName: string | null;
+  accountNumber: string | null;
+  ifsc: string | null;
+  erasedAt: string | null;
+  updatedAt: string;
+}
+
+/** Where to send a Cash on Delivery refund, as the customer gave it, with copy buttons. */
+function PayoutDetailsPanel({
+  detail,
+  copiedKey,
+  onCopy,
+}: {
+  detail: PayoutDetail | null;
+  copiedKey: string | null;
+  onCopy: (key: string, value: string) => void;
+}) {
+  if (!detail || detail.erasedAt) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+        {detail?.erasedAt
+          ? "The refund for this return was already sent, so the customer's bank details have been removed."
+          : "The customer hasn't added where to send the refund yet. They can add a UPI ID or bank account from Returns in their account; contact them before sending money."}
+      </div>
+    );
+  }
+  const rows: [string, string, string][] =
+    detail.method === 'UPI'
+      ? [['upi', 'UPI ID', detail.upiId || '']]
+      : [
+          ['name', 'Account holder', detail.accountHolderName || ''],
+          ['acc', 'Account number', detail.accountNumber || ''],
+          ['ifsc', 'IFSC', detail.ifsc || ''],
+        ];
+  return (
+    <div className="rounded-lg border border-[#D5D9D9] bg-[#F7F8F8] p-3">
+      <p className="text-xs font-semibold text-[#0F1111]">
+        Send the refund to the customer&apos;s {detail.method === 'UPI' ? 'UPI ID' : 'bank account'}
+      </p>
+      <dl className="mt-2 space-y-1.5">
+        {rows.map(([key, label, value]) => (
+          <div key={key} className="flex items-center justify-between gap-3 text-xs">
+            <dt className="text-[#565959]">{label}</dt>
+            <dd className="flex items-center gap-2">
+              <span className="tabular-nums font-semibold text-[#0F1111]">{value}</span>
+              <button
+                type="button"
+                onClick={() => onCopy(key, value)}
+                className="rounded border border-[#D5D9D9] bg-white px-1.5 py-0.5 text-[#007185] hover:bg-[#F0F2F2]"
+                aria-label={`Copy ${label}`}
+              >
+                {copiedKey === key ? 'Copied' : 'Copy'}
+              </button>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-2 text-[11px] text-[#565959]">
+        Check the name your bank shows before you send. These details are deleted once the return is fully refunded.
+      </p>
     </div>
   );
 }

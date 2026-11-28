@@ -69,6 +69,10 @@ export async function GET(request: Request, context: RouteContext) {
         refundTransactions: {
           orderBy: { createdAt: 'desc' },
         },
+        // Where to send a Cash on Delivery refund (admins only; never sent to sellers).
+        refundPayoutDetail: {
+          select: { method: true, upiId: true, accountHolderName: true, accountNumber: true, ifsc: true, erasedAt: true, updatedAt: true },
+        },
         vendorAdjustments: {
           include: {
             allocations: {

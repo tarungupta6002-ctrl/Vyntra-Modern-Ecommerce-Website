@@ -27,6 +27,7 @@ import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 
 import { CometSpinner } from '@/components/ui/loading-spinner';
+import { EMPTY_PAYOUT, PayoutDetailsFields, checkPayoutForm, type PayoutFormValue } from '@/components/orders/payout-details-fields';
 interface RefundTx {
   id: string;
   status: string;
@@ -77,6 +78,10 @@ interface ReturnItem {
     storeSlug?: string;
   };
   refunds: RefundTx[];
+  paymentMethod?: string;
+  /** Cash on Delivery: where the refund goes (masked). */
+  payoutDetails?: { method: string; summary: string; erased: boolean } | null;
+  canEditPayoutDetails?: boolean;
 }
 
 export function CustomerReturnsView() {
@@ -376,6 +381,11 @@ export function CustomerReturnsView() {
                     )}
                   </div>
                 </div>
+
+                {/* Cash on Delivery: where the refund goes */}
+                {(ret.canEditPayoutDetails || ret.payoutDetails) && (
+                  <RefundPayoutBox ret={ret} onSaved={fetchReturns} />
+                )}
 
                 {/* Live Reverse Tracking Stepper */}
                 <div className="p-5 sm:p-6 bg-white space-y-6">
@@ -742,6 +752,104 @@ export function CustomerReturnsView() {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Where a Cash on Delivery refund goes: shown masked, with a form to add or change it while the return is open. */
+function RefundPayoutBox({ ret, onSaved }: { ret: ReturnItem; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState<PayoutFormValue>(EMPTY_PAYOUT);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const details = ret.payoutDetails;
+  const missing = !details && ret.canEditPayoutDetails;
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const check = checkPayoutForm(value);
+    if ('error' in check) {
+      setMessage(check.error);
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/returns/${ret.id}/payout-details`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(check.body),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error?.message || 'Could not save your refund details.');
+      setEditing(false);
+      setValue(EMPTY_PAYOUT);
+      onSaved();
+    } catch (err: any) {
+      setMessage(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={`border-b border-[#EAEDED] px-5 py-4 sm:px-6 ${missing ? 'bg-amber-50' : 'bg-white'}`}>
+      {!editing ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm">
+            <p className="font-semibold text-[#0F1111]">{missing ? 'Tell us where to send your refund' : 'Refund goes to'}</p>
+            <p className="text-[#565959]">
+              {missing
+                ? 'You paid cash on delivery, so we need a UPI ID or bank account to send the money back.'
+                : details?.erased
+                ? 'Your refund was sent, so we have deleted these bank details.'
+                : details?.summary}
+            </p>
+          </div>
+          {ret.canEditPayoutDetails && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(true);
+                setMessage(null);
+              }}
+              className={
+                missing
+                  ? 'inline-flex items-center rounded-full border border-[#FCD200] bg-[#FFD814] px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00]'
+                  : 'inline-flex items-center rounded-full border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7F8F8]'
+              }
+            >
+              {missing ? 'Add refund details' : 'Change'}
+            </button>
+          )}
+        </div>
+      ) : (
+        <form onSubmit={save} className="space-y-3">
+          <PayoutDetailsFields value={value} onChange={setValue} idPrefix={`payout-${ret.id}`} />
+          {message && (
+            <p role="alert" className="text-sm text-[#B12704]">
+              {message}
+            </p>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#FCD200] bg-[#FFD814] px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00] disabled:opacity-60"
+            >
+              {saving && <CometSpinner className="h-4 w-4 text-current" decorative />}
+              Save refund details
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="rounded-full border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7F8F8]"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

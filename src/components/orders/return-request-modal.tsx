@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Order, OrderItem } from '@/data/orders-data';
 import { formatINR } from '@/lib/utils';
+import { EMPTY_PAYOUT, PayoutDetailsFields, checkPayoutForm, type PayoutFormValue } from '@/components/orders/payout-details-fields';
 
 interface ReturnRequestModalProps {
   order: Order;
@@ -53,6 +54,7 @@ export function ReturnRequestModal({
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [payout, setPayout] = useState<PayoutFormValue>(EMPTY_PAYOUT);
 
   const modalRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -173,6 +175,8 @@ export function ReturnRequestModal({
   const sizeList = Array.from(new Set([...(item.size ? [item.size] : []), ...availableSizes])).filter(Boolean);
   const hasAlternativeSizes = isSizedItem && sizeList.length > 1;
 
+  const needsPayout = (order.paymentMethod || '').toUpperCase() === 'COD' && requestType === 'RETURN_REFUND';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -181,6 +185,17 @@ export function ReturnRequestModal({
     if (requestType === 'REPLACEMENT' && hasAlternativeSizes && !selectedReplacementSize) {
       setError('Please select a desired replacement size before submitting your replacement request.');
       return;
+    }
+
+    // Cash on Delivery refunds go to the customer's UPI ID or bank account.
+    let payoutDetails: Record<string, string> | undefined;
+    if (needsPayout) {
+      const check = checkPayoutForm(payout);
+      if ('error' in check) {
+        setError(check.error);
+        return;
+      }
+      payoutDetails = check.body;
     }
 
     setIsSubmitting(true);
@@ -205,6 +220,7 @@ export function ReturnRequestModal({
           detailedReason: detailedReason.trim() || undefined,
           customerNotes: notesPayload || undefined,
           requestedQuantity: quantity,
+          payoutDetails,
         }),
       });
 
@@ -497,6 +513,13 @@ export function ReturnRequestModal({
                 className="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900"
               />
             </div>
+
+            {/* Cash on Delivery: where to send the refund */}
+            {needsPayout && (
+              <div className="rounded-lg border border-[#D5D9D9] bg-[#F7F8F8] p-3.5">
+                <PayoutDetailsFields value={payout} onChange={setPayout} idPrefix="return-payout" />
+              </div>
+            )}
 
             {/* Guarantee / Notice */}
             <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-lg flex items-start gap-2.5 text-xs text-amber-900">

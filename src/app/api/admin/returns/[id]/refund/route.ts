@@ -7,6 +7,7 @@ import {
   ReturnRefundError,
 } from '@/lib/payments/return-refund';
 import { prisma } from '@/lib/prisma';
+import { erasePayoutDetailsIfDone, sendReturnRefundEmail } from '@/lib/email/refund-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,6 +68,9 @@ export async function POST(request: Request, context: RouteContext) {
       return apiSuccess({ refundId: created.refundId, status: created.status, isDuplicate: true });
     }
     if (created.kind === 'manual') {
+      // Money sent by bank / UPI: tell the customer, then drop their account details if the return is done.
+      await sendReturnRefundEmail(created.refundId);
+      await erasePayoutDetailsIfDone(returnRequestId);
       return apiSuccess(
         { refundId: created.refundId, status: 'CONFIRMED', mode: 'MANUAL_BANK_TRANSFER', amount: created.amount },
         undefined,
@@ -85,6 +89,7 @@ export async function POST(request: Request, context: RouteContext) {
         outcome.needsReconciliation ? 'REFUND_RECONCILIATION_REQUIRED' : 'REFUND_GATEWAY_REJECTED'
       );
     }
+    await sendReturnRefundEmail(outcome.refundId);
     return apiSuccess(
       {
         refundId: outcome.refundId,

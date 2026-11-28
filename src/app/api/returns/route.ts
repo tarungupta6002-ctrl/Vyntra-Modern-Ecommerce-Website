@@ -16,6 +16,7 @@ import {
   PREFERENCE_REASONS,
   DEFAULT_RETURN_WINDOW_DAYS,
 } from '@/lib/policy-constants';
+import { acceptsPayoutDetails, maskPayoutDetails, validatePayoutDetails, type CleanPayoutDetails } from '@/lib/returns/payout-details';
 import {
   computeIstReturnDeadline,
   isWithinDeadline,
@@ -54,8 +55,12 @@ export async function GET(request: Request) {
               orderNumber: true,
               status: true,
               paymentStatus: true,
+              paymentMethod: true,
               createdAt: true,
             },
+          },
+          refundPayoutDetail: {
+            select: { method: true, upiId: true, accountNumber: true, ifsc: true, erasedAt: true },
           },
           orderItem: {
             include: {
@@ -131,6 +136,12 @@ export async function GET(request: Request) {
         isDisputed: r.isDisputed,
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,
+        paymentMethod: r.order.paymentMethod,
+        // Cash on Delivery refunds: where the money goes (masked), and whether it can still be set.
+        payoutDetails: r.refundPayoutDetail
+          ? { method: r.refundPayoutDetail.method, summary: maskPayoutDetails(r.refundPayoutDetail), erased: Boolean(r.refundPayoutDetail.erasedAt) }
+          : null,
+        canEditPayoutDetails: acceptsPayoutDetails({ paymentMethod: r.order.paymentMethod, type: r.type, status: r.status }),
         item: {
           title: r.orderItem.product?.title || 'Artisanal Piece',
           brand: r.orderItem.product?.brand || 'Vyntra Collective',
@@ -182,6 +193,7 @@ export async function POST(request: Request) {
       detailedReason,
       customerNotes,
       requestedQuantity = 1,
+      payoutDetails,
     } = body;
 
     // 1. Mandatory Input Validation
@@ -416,6 +428,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // 11. Cash on Delivery refunds are paid by bank transfer or UPI, so ask where to send them.
+    let cleanPayout: CleanPayoutDetails | null = null;
+    if (orderItem.order.paymentMethod === 'COD' && type === ReturnType.RETURN_REFUND) {
+      const check = validatePayoutDetails(payoutDetails);
+      if ('error' in check) {
+        return apiError(check.error, 400, null, 'PAYOUT_DETAILS_REQUIRED');
+      }
+      cleanPayout = check.details;
+    }
+
     // 9. Atomic Creation: Never trust customer-supplied vendor ID (Rule 7)
     // Resolve vendorProfileId strictly from orderItem.vendorId!
     const returnRequest = await prisma.returnRequest.create({
@@ -430,6 +452,7 @@ export async function POST(request: Request) {
         detailedReason: detailedReason ? String(detailedReason).trim() : null,
         customerNotes: customerNotes ? String(customerNotes).trim() : null,
         requestedQuantity: parsedQty,
+        ...(cleanPayout ? { refundPayoutDetail: { create: { userId: auth.userId, ...cleanPayout } } } : {}),
       },
       include: {
         vendor: {

@@ -141,6 +141,11 @@ enum RefundStatus {
   RECONCILIATION_REQUIRED
 }
 
+enum RefundPayoutMethod {
+  UPI
+  BANK_ACCOUNT
+}
+
 enum RefundMode {
   ORIGINAL_PAYMENT
   STORE_CREDIT
@@ -860,6 +865,7 @@ model ReturnRequest {
 
   refundTransactions   RefundTransaction[]
   vendorAdjustments    VendorAdjustment[]
+  refundPayoutDetail   RefundPayoutDetail?
 
   @@unique([id, vendorProfileId])
   @@index([orderId])
@@ -870,6 +876,28 @@ model ReturnRequest {
   @@index([type])
   @@index([createdAt])
   @@index([rejectedAt])
+}
+
+/// Where a Cash on Delivery refund is sent: the customer's UPI ID or bank account.
+/// Shown in full only to admins, masked to the customer, never to sellers; cleared
+/// (erasedAt set, fields null) once the refund has been sent.
+model RefundPayoutDetail {
+  id                String              @id @default(cuid())
+  returnRequestId   String              @unique
+  userId            String
+  method            RefundPayoutMethod
+  upiId             String?
+  accountHolderName String?
+  accountNumber     String?
+  ifsc              String?
+  erasedAt          DateTime?
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  returnRequest     ReturnRequest       @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model RefundTransaction {
