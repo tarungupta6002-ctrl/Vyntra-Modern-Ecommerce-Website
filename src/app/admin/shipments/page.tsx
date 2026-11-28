@@ -20,7 +20,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
-import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
+import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -285,8 +285,8 @@ export default function AdminShipmentsPage() {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+      <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <div className="flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto [&>button]:shrink-0 [&>button]:whitespace-nowrap">
           {['ALL', 'PENDING', 'CONFIRMED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((st) => (
             <button
               key={st}
@@ -297,7 +297,7 @@ export default function AdminShipmentsPage() {
                   : 'bg-[#F7F8F8] text-[#565959] hover:bg-[#E3E6E6] hover:text-[#0F1111]'
               }`}
             >
-              {st}
+              {st === 'ALL' ? 'All' : humanize(st)}
             </button>
           ))}
         </div>
@@ -329,17 +329,17 @@ export default function AdminShipmentsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full min-w-[960px] text-left text-xs border-collapse">
               <thead className="bg-[#F7F8F8] text-[#565959] border-b border-[#D5D9D9] font-bold">
                 <tr>
-                  <th className="py-3 px-4">Consignment / Order</th>
-                  <th className="py-3 px-4">Vendor Partner</th>
-                  <th className="py-3 px-4">Customer &amp; City</th>
-                  <th className="py-3 px-4">Logistics / AWB</th>
-                  <th className="py-3 px-4">SLA Performance</th>
+                  <th className="py-3 px-4">Order</th>
+                  <th className="py-3 px-4">Seller</th>
+                  <th className="py-3 px-4">Customer</th>
+                  <th className="py-3 px-4">Courier &amp; tracking</th>
+                  <th className="py-3 px-4">Shipped on time?</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-center">Manage</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+                  <th className="relative py-3 px-4 text-center"><span className="sr-only">Manage</span></th>
+                  <th className="py-3 px-4 text-right">Notice</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#D5D9D9]">
@@ -355,8 +355,7 @@ export default function AdminShipmentsPage() {
                         <span>{s.orderNumber}</span>
                         <Eye className="w-3 h-3 text-[#565959] group-hover:text-[#007185]" />
                       </Link>
-                      <p className="text-[10px] text-[#565959] tabular-nums">{s.id}</p>
-                      <p className="text-[10px] text-[#565959] mt-0.5">{s.itemsCount} item(s)</p>
+                      <p className="text-[10px] text-[#565959] mt-0.5">{s.itemsCount} item{s.itemsCount === 1 ? '' : 's'}</p>
                     </td>
 
                     {/* Vendor */}
@@ -386,12 +385,14 @@ export default function AdminShipmentsPage() {
                       {s.isDelayed ? (
                         <span className="inline-flex items-center gap-1 text-rose-700 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-[10px]">
                           <AlertTriangle className="w-3 h-3 text-rose-600" />
-                          <span>Delayed (+{s.delayHours}h)</span>
+                          <span>Late by {s.delayHours}h</span>
                         </span>
+                      ) : s.status === 'CANCELLED' ? (
+                        <span className="text-[#8A8F8F]">—</span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[10px]">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>Within Handling SLA</span>
+                          <span>On time</span>
                         </span>
                       )}
                     </td>
@@ -409,22 +410,13 @@ export default function AdminShipmentsPage() {
                             : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}
                       >
-                        {s.status}
+                        {humanize(s.status)}
                       </span>
                     </td>
 
                     {/* Manage Button */}
                     <td className="py-3 px-4 text-center">
-                      {s.status === 'DELIVERED' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-2xs">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Delivered</span>
-                        </span>
-                      ) : s.status === 'CANCELLED' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-[#D5D9D9] bg-[#F0F2F2] text-[#565959] shadow-2xs">
-                          <span>Cancelled</span>
-                        </span>
-                      ) : (
+                      {s.status === 'DELIVERED' || s.status === 'CANCELLED' ? null : (
                         <button
                           type="button"
                           onClick={() => openManageModal(s)}
@@ -443,12 +435,12 @@ export default function AdminShipmentsPage() {
                           {noticesMap[s.orderNumber].status === 'ACKNOWLEDGED' ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Notice Ack&apos;d</span>
+                              <span>Notice seen</span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-300">
                               <Clock className="w-3 h-3 text-amber-600" />
-                              <span>Notice Pending Ack</span>
+                              <span>Notice not seen</span>
                             </span>
                           )}
                           <button
@@ -465,13 +457,10 @@ export default function AdminShipmentsPage() {
                           title="Fulfillment overdue: Issue official SLA breach notice"
                         >
                           <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Issue SLA Notice</span>
+                          <span>Send late notice</span>
                         </button>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#565959] bg-[#F7F8F8] px-2.5 py-1 rounded-lg border border-[#D5D9D9]">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Compliant</span>
-                        </span>
+                        <span className="text-[#8A8F8F]">—</span>
                       )}
                     </td>
                   </tr>

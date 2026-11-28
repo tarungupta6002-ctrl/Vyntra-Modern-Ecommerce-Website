@@ -285,7 +285,7 @@ export default function AdminPayoutsPage() {
         <div className="p-4 border-b border-[#D5D9D9] flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-bold text-[#0F1111] flex items-center gap-2">
             <Building2 className="h-4 w-4 text-[#007185]" />
-            Vendor Payout Balances &amp; Settlement Actions
+            Sellers
           </h2>
           <div className="flex items-center gap-2.5">
             <button
@@ -294,10 +294,10 @@ export default function AdminPayoutsPage() {
               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F7F8F8] hover:bg-[#EAEDED] text-[#0F1111] border border-[#D5D9D9] transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <FileText className="h-3.5 w-3.5 text-[#007185]" />
-              <span>All Settled Products Ledger</span>
+              <span>All paid items</span>
             </button>
             <span className="text-xs text-[#565959]">
-              {data?.vendors.length || 0} registered vendors
+              {data?.vendors.length || 0} sellers
             </span>
           </div>
         </div>
@@ -321,13 +321,13 @@ export default function AdminPayoutsPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px]">
-                  <th className="py-3 px-4">Vendor Store</th>
-                  <th className="py-3 px-4 text-center">Eligible Items</th>
-                  <th className="py-3 px-4 text-right">Gross Sales</th>
+                  <th className="py-3 px-4">Seller</th>
+                  <th className="py-3 px-4 text-center">Items ready</th>
+                  <th className="py-3 px-4 text-right">Sales</th>
                   <th className="py-3 px-4 text-right">Commission</th>
-                  <th className="py-3 px-4 text-right">Net Payout Balance</th>
-                  <th className="py-3 px-4 text-right">Settled to Date</th>
-                  <th className="py-3 px-4 text-center">Settlement Action</th>
+                  <th className="py-3 px-4 text-right">To pay</th>
+                  <th className="py-3 px-4 text-right">Paid so far</th>
+                  <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EAEDED]">
@@ -351,7 +351,7 @@ export default function AdminPayoutsPage() {
                               title="Click to view itemized return refund debits"
                             >
                               <AlertCircle className="h-3 w-3 text-rose-600 shrink-0" />
-                              <span>Return Refund Debit: -₹{(v.outstandingAdjustments ?? 0).toFixed(2)}</span>
+                              <span>Return debit -₹{(v.outstandingAdjustments ?? 0).toFixed(2)}</span>
                             </button>
                           )}
 
@@ -380,7 +380,7 @@ export default function AdminPayoutsPage() {
                               className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <History className="h-3 w-3" />
-                              <span>Payout History ({v.settledItems?.length || 0})</span>
+                              <span>Payouts ({v.settledItems?.length || 0})</span>
                             </button>
 
                             {v.adjustments && v.adjustments.length > 0 && (
@@ -391,7 +391,7 @@ export default function AdminPayoutsPage() {
                                   onClick={() => setActiveAdjustmentsModalVendor(v)}
                                   className="text-[10px] font-bold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1 cursor-pointer"
                                 >
-                                  <span>Refund Debits ({v.adjustments.length})</span>
+                                  <span>Return debits ({v.adjustments.length})</span>
                                 </button>
                               </>
                             )}
@@ -436,7 +436,7 @@ export default function AdminPayoutsPage() {
                             </button>
                           ) : (
                             <span className="text-[11px] text-[#565959] italic">
-                              No items ready
+                              Nothing to pay
                             </span>
                           )}
                         </td>
@@ -956,7 +956,7 @@ export default function AdminPayoutsPage() {
         </div>
       )}
 
-      {/* Modal 5: Marketplace All Settled Products Ledger Modal */}
+      {/* Modal 5: Marketplace All paid items Modal */}
       {allVendorsLedgerOpen && data && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-5xl w-full p-6 space-y-4 max-h-[92vh] flex flex-col">
