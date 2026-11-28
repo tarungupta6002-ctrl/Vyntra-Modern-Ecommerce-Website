@@ -34,6 +34,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
 interface VariantItem {
   id: string;
@@ -260,7 +261,7 @@ export default function AdminVendorDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-10 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-2 text-sm text-[#565959]">
           <Link href="/admin" className="hover:text-[#007185] flex items-center gap-1 font-semibold">
             <ChevronLeft className="h-4 w-4" /> Back to Admin Central
@@ -277,7 +278,7 @@ export default function AdminVendorDetailPage() {
 
   if (error || !vendor) {
     return (
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-10 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-2 text-sm text-[#565959]">
           <Link href="/admin" className="hover:text-[#007185] flex items-center gap-1 font-semibold">
             <ChevronLeft className="h-4 w-4" /> Back to Admin Central
@@ -322,176 +323,74 @@ export default function AdminVendorDetailPage() {
   const totalListedCount = (vendor.products?.length || 0) + (vendor.sellerOffers?.length || 0);
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6 select-none">
-      {/* 1. Breadcrumbs & Quick Back */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
-        <div className="flex items-center gap-2 text-xs text-[#565959]">
-          <Link href="/admin" className="hover:text-[#007185] hover:underline font-semibold flex items-center gap-1">
-            <ChevronLeft className="h-3.5 w-3.5" /> Admin Central
-          </Link>
-          <span>/</span>
-          <Link href="/admin/vendors?tab=verified" className="hover:text-[#007185] hover:underline font-semibold">
-            Vendors Directory
-          </Link>
-          <span>/</span>
-          <span className="font-bold text-[#0F1111]">{vendor.storeName}</span>
-        </div>
+    <div className="space-y-6">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#565959]">
+        <Link href="/admin/vendors?tab=verified" className="hover:text-[#007185] hover:underline">
+          Vendors
+        </Link>
+        <span aria-hidden>/</span>
+        <span className="text-[#0F1111]">{vendor.storeName}</span>
+      </nav>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleOpenNotice()}
-            className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            title="Send SLA breach warning or compliance notice to vendor"
-          >
-            <ShieldAlert className="h-3.5 w-3.5 text-rose-600" />
-            <span>Issue Notice</span>
-          </button>
-          <button
-            type="button"
-            onClick={fetchVendorDetails}
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F7F8F8] border border-[#D5D9D9] text-[#565959] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            title="Refresh Vendor Details"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Vendor Header Dossier Banner */}
-      <div className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-stone-800 to-black text-white flex items-center justify-center font-headline font-bold text-2xl shadow-md border-2 border-amber-400/40 shrink-0">
-              {vendor.storeName.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center flex-wrap gap-2">
-                <h1 className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111]">
-                  {vendor.storeName}
-                </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  {vendor.status}
-                </span>
-                {vendor.isVerified && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-[#007185] bg-[#E7F4F5] border border-[#007185]/30">
-                    <ShieldCheck className="h-3.5 w-3.5" /> Verified seller
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center flex-wrap gap-3 text-xs text-[#565959]">
-                <span className="tabular-nums bg-[#F7F8F8] px-2 py-0.5 rounded border border-[#E7E7E7]">
-                  /{vendor.storeSlug}
-                </span>
-
-                {/* Merchant ID pill with copy */}
-                <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded tabular-nums font-bold text-xs">
-                  <span>Merchant ID: {merchantId}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyMerchantId(merchantId)}
-                    className="p-0.5 hover:text-black cursor-pointer transition-colors"
-                    title="Copy Merchant ID"
-                  >
-                    {copiedId ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-
-                <span>
-                  Member since{' '}
-                  <strong className="text-[#0F1111]">
-                    {new Date(vendor.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 self-stretch md:self-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-[#E7E7E7]">
-            <div className="text-right">
-              <span className="text-[11px] font-bold text-[#565959] block">Platform Commission</span>
-              <span className="text-2xl font-bold tabular-nums text-[#0F1111]">{vendor.commissionRate}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. KPI Metrics Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Listed Products */}
-        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-[#565959] block">Listed Products</span>
-            <span className="text-3xl font-extrabold font-headline text-[#0F1111] block mt-1">
-              {totalListedCount}
+      <PageHeader
+        title={vendor.storeName}
+        description={
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+              {humanize(vendor.status)}
             </span>
-            <span className="text-[11px] text-[#565959]">
-              {vendor.products.length > 0 && vendor.sellerOffers && vendor.sellerOffers.length > 0
-                ? `${vendor.products.length} master • ${vendor.sellerOffers.length} co-listed`
-                : 'Live in Marketplace Catalog'}
+            {vendor.isVerified && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#007185]/30 bg-[#E7F4F5] px-2 py-0.5 text-xs font-semibold text-[#007185]">
+                <ShieldCheck className="h-3.5 w-3.5" /> Verified seller
+              </span>
+            )}
+            <span>/{vendor.storeSlug}</span>
+            <span>
+              Seller since{' '}
+              {new Date(vendor.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-sky-50 text-[#007185] flex items-center justify-center shrink-0">
-            <Package className="h-6 w-6" />
-          </div>
-        </div>
+            <button type="button" onClick={() => copyMerchantId(merchantId)} className="inline-flex items-center gap-1 text-[#007185] hover:underline">
+              {merchantId} {copiedId ? <Check className="h-3.5 w-3.5 text-[#067D62]" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          </span>
+        }
+        actions={
+          <>
+            <button type="button" onClick={() => handleOpenNotice()} className={consoleButton.secondary}>
+              <ShieldAlert className="h-4 w-4 text-[#B12704]" />
+              Send notice
+            </button>
+            <button type="button" onClick={fetchVendorDetails} className={consoleButton.secondary}>
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
-        {/* Card 2: Total Units in Stock */}
-        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-[#565959] block">Total Stock Units</span>
-            <span className="text-3xl font-extrabold font-headline text-[#0F1111] block mt-1">
-              {totalStockAcrossCatalog}
-            </span>
-            <span className="text-[11px] text-[#565959]">Physical Units Available</span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-            <Layers className="h-6 w-6" />
-          </div>
-        </div>
-
-        {/* Card 3: Registered Warehouses */}
-        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-[#565959] block">Dispatch Warehouses</span>
-            <span className="text-3xl font-extrabold font-headline text-[#0F1111] block mt-1">
-              {vendor.warehouses.length}
-            </span>
-            <span className="text-[11px] text-[#565959]">
-              {vendor.warehouses[0]?.city ? `Primary: ${vendor.warehouses[0].city}` : 'No Facility'}
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-            <Warehouse className="h-6 w-6" />
-          </div>
-        </div>
-
-        {/* Card 4: Payout Status */}
-        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-[#565959] block">Payout Settlement</span>
-            <span className={`text-base font-extrabold block mt-1.5 ${vendor.payoutsEnabled ? 'text-emerald-700' : 'text-amber-800'}`}>
-              {vendor.payoutsEnabled ? 'Active (Automated)' : 'Pending Bank Setup'}
-            </span>
-            <span className="text-[11px] text-[#565959]">
-              {vendor.bankName || 'COD / Manual'}
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <CreditCard className="h-6 w-6" />
-          </div>
-        </div>
-      </div>
+      <StatRow
+        items={[
+          {
+            label: 'Listings',
+            value: totalListedCount,
+            hint:
+              vendor.products.length > 0 && vendor.sellerOffers && vendor.sellerOffers.length > 0
+                ? `${vendor.products.length} own, ${vendor.sellerOffers.length} offers on other pages`
+                : undefined,
+          },
+          { label: 'Units in stock', value: totalStockAcrossCatalog },
+          {
+            label: 'Pickup addresses',
+            value: vendor.warehouses.length,
+            hint: vendor.warehouses[0]?.city ? `Default: ${vendor.warehouses[0].city}` : 'None added',
+            tone: vendor.warehouses.length === 0 ? 'warn' : 'neutral',
+          },
+          { label: 'Commission', value: `${vendor.commissionRate}%`, hint: vendor.bankName ? `Bank: ${vendor.bankName}` : 'No bank details yet' },
+        ]}
+      />
 
       {/* 4. Tab Navigation (Products | Compliance & Banking | Warehouses) */}
-      <div className="border-b border-[#D5D9D9] flex items-center gap-8">
+      <div className="border-b border-[#D5D9D9] flex items-center gap-6 overflow-x-auto whitespace-nowrap">
         <button
           type="button"
           onClick={() => setActiveTab('products')}
@@ -502,7 +401,7 @@ export default function AdminVendorDetailPage() {
           }`}
         >
           <Package className="h-4 w-4" />
-          <span>Listed Products ({totalListedCount})</span>
+          <span>Products ({totalListedCount})</span>
         </button>
 
         <button
@@ -515,7 +414,7 @@ export default function AdminVendorDetailPage() {
           }`}
         >
           <FileText className="h-4 w-4" />
-          <span>Compliance &amp; Banking</span>
+          <span>Tax and bank</span>
         </button>
 
         <button
@@ -528,7 +427,7 @@ export default function AdminVendorDetailPage() {
           }`}
         >
           <Warehouse className="h-4 w-4" />
-          <span>Registered Warehouses ({vendor.warehouses.length})</span>
+          <span>Pickup addresses ({vendor.warehouses.length})</span>
         </button>
 
         <button
@@ -541,7 +440,7 @@ export default function AdminVendorDetailPage() {
           }`}
         >
           <ShieldAlert className="h-4 w-4" />
-          <span>Notices &amp; SLA Warnings ({notices.length})</span>
+          <span>Notices ({notices.length})</span>
           {notices.filter((n) => n.status === 'OPEN').length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-600 text-white tabular-nums font-bold leading-none">
               {notices.filter((n) => n.status === 'OPEN').length} Pending
@@ -557,16 +456,16 @@ export default function AdminVendorDetailPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold font-headline text-[#0F1111] flex items-center gap-2">
-              <span>Catalog Pieces Listed by {vendor.storeName}</span>
+              <span>Products listed by {vendor.storeName}</span>
               <span className="text-xs bg-[#F7F8F8] text-[#565959] border border-[#D5D9D9] px-2.5 py-0.5 rounded-full font-sans font-semibold">
-                {totalListedCount} Items Live
+                {totalListedCount} listed
               </span>
             </h2>
           </div>
 
           {totalListedCount === 0 ? (
             <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3">
-              <Package className="h-10 w-10 text-stone-300 mx-auto" />
+              <Package className="h-10 w-10 text-[#D5D9D9] mx-auto" />
               <p className="text-base font-bold text-[#0F1111]">No Products Listed Yet</p>
               <p className="text-xs text-[#565959]">This vendor has not published or co-listed any products to the Vyntra storefront.</p>
             </div>
@@ -594,7 +493,7 @@ export default function AdminVendorDetailPage() {
                         >
                           {/* Left: Product Image & Core Details */}
                           <div className="flex items-start gap-4 flex-1 min-w-0">
-                            <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">
+                            <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-xl overflow-hidden bg-[#F0F2F2] border border-[#E3E6E6] shrink-0">
                               <Image
                                 src={primaryImage}
                                 alt={product.title}
@@ -606,7 +505,7 @@ export default function AdminVendorDetailPage() {
 
                             <div className="space-y-2 flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 text-[11px] font-bold">
+                                <span className="px-2 py-0.5 rounded bg-[#F0F2F2] text-[#0F1111] text-[11px] font-bold">
                                   {product.brand}
                                 </span>
                                 {product.category && (
@@ -618,7 +517,7 @@ export default function AdminVendorDetailPage() {
                                   product.isPublished ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-amber-50 text-amber-800'
                                 }`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${product.isPublished ? 'bg-emerald-600' : 'bg-amber-600'}`} />
-                                  {product.isPublished ? 'Published & Live' : 'Draft'}
+                                  {product.isPublished ? 'Live' : 'Draft'}
                                 </span>
                               </div>
 
@@ -642,106 +541,47 @@ export default function AdminVendorDetailPage() {
                                 )}
                               </div>
 
-                              {/* Variants Breakdown Grouped by Color */}
-                              {product.variants.length > 0 && (() => {
-                                // Group variants by colorway
-                                const colorGroups: Record<string, typeof product.variants> = {};
-                                product.variants.forEach((v) => {
-                                  const c = (v.color || 'Classic').trim();
-                                  if (!colorGroups[c]) colorGroups[c] = [];
-                                  colorGroups[c].push(v);
-                                });
-
-                                const colorKeys = Object.keys(colorGroups);
-
-                                return (
-                                  <div className="pt-2 border-t border-[#F0F0F0] space-y-3">
-                                    <span className="text-[11px] font-bold text-[#565959] block">
-                                      Colorways &amp; Sizes Matrix ({product.variants.length} Variants across {colorKeys.length} {colorKeys.length === 1 ? 'Color' : 'Colors'})
-                                    </span>
-
-                                    <div className="space-y-3">
-                                      {colorKeys.map((colorName) => {
-                                        const colorVariants = colorGroups[colorName];
-                                        const swatchUrl = colorVariants.find((cv) => cv.imageUrl)?.imageUrl || product.images[0]?.url;
-
-                                        return (
-                                          <div
-                                            key={colorName}
-                                            className="rounded-xl border border-stone-200 bg-[#FAFAFA] p-3 space-y-2.5"
-                                          >
-                                            {/* Colorway Header */}
-                                            <div className="flex items-center justify-between gap-2 border-b border-stone-200 pb-2">
-                                              <div className="flex items-center gap-2.5">
-                                                {swatchUrl ? (
-                                                  <div className="relative w-7 h-7 rounded-lg overflow-hidden border border-stone-300 shadow-2xs shrink-0">
-                                                    <Image
-                                                      src={swatchUrl}
-                                                      alt={colorName}
-                                                      fill
-                                                      unoptimized
-                                                      className="object-cover object-top"
-                                                    />
-                                                  </div>
-                                                ) : (
-                                                  <span className="w-5 h-5 rounded-full border border-stone-300 bg-stone-400 shrink-0" />
-                                                )}
-                                                <div>
-                                                  <span className="text-xs font-bold text-[#0F1111]">
-                                                    Colorway: <span className="text-[#007185] font-extrabold">{colorName}</span>
-                                                  </span>
-                                                </div>
-                                              </div>
-                                              <span className="text-[10px] bg-stone-200 text-stone-700 px-2 py-0.5 rounded-full font-bold">
-                                                {colorVariants.length} {colorVariants.length === 1 ? 'Size' : 'Sizes'} Available
-                                              </span>
-                                            </div>
-
-                                            {/* Sizes Grid */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
-                                              {colorVariants.map((v) => {
-                                                const inv = product.inventories.find(
-                                                  (i) =>
-                                                    (i.variantId && i.variantId === v.id) ||
-                                                    (i.sku && v.sku && i.sku.trim().toLowerCase() === v.sku.trim().toLowerCase())
-                                                );
-                                                const defaultWh = vendor.warehouses.find((w) => w.isDefault) || vendor.warehouses[0];
-                                                const fallbackWh = defaultWh ? `${defaultWh.facilityName} (${defaultWh.city})` : 'Vendor Dispatch Facility';
-                                                const warehouse = inv?.warehouseLocation || fallbackWh;
-
-                                                return (
-                                                  <div
-                                                    key={v.id}
-                                                    className="p-2.5 rounded-lg bg-white border border-[#E7E7E7] text-xs flex flex-col justify-between shadow-2xs hover:border-[#007185] transition-all"
-                                                  >
-                                                    <div className="flex items-center justify-between font-bold text-[#0F1111]">
-                                                      <span className="bg-stone-100 text-stone-900 px-2 py-0.5 rounded text-[11px] font-extrabold">
-                                                        Size {v.size || 'Standard'}
-                                                      </span>
-                                                      <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
-                                                        Qty: {inv?.quantity ?? 0}
-                                                      </span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-stone-100 tabular-nums text-[11px]">
-                                                      <span className="text-[#007185] font-bold">{v.sku}</span>
-                                                    </div>
-                                                    <div className="text-[10px] text-[#565959] truncate mt-1 flex items-center gap-1 font-sans">
-                                                      <span className="shrink-0">📍</span>
-                                                      <span className="truncate font-medium" title={warehouse}>
-                                                        {warehouse}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
+                              {/* Variants: compact table, collapsed by default */}
+                              {product.variants.length > 0 && (
+                                <details className="group rounded-lg border border-[#E3E6E6]">
+                                  <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-[#007185] hover:bg-[#F7F8F8]">
+                                    {product.variants.length} variant{product.variants.length === 1 ? '' : 's'} ·{' '}
+                                    {product.inventories.reduce((n, inv) => n + (inv.quantity || 0), 0)} in stock
+                                  </summary>
+                                  <div className="overflow-x-auto border-t border-[#E3E6E6]">
+                                    <table className="w-full min-w-[420px] text-left text-xs">
+                                      <thead className="bg-[#F7F8F8] text-[#565959]">
+                                        <tr>
+                                          <th className="px-3 py-2 font-semibold">Colour</th>
+                                          <th className="px-3 py-2 font-semibold">Size</th>
+                                          <th className="px-3 py-2 font-semibold">SKU</th>
+                                          <th className="px-3 py-2 text-right font-semibold">Stock</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-[#F0F2F2]">
+                                        {product.variants.map((v) => {
+                                          const inv = product.inventories.find(
+                                            (i) =>
+                                              (i.variantId && i.variantId === v.id) ||
+                                              (i.sku && v.sku && i.sku.trim().toLowerCase() === v.sku.trim().toLowerCase())
+                                          );
+                                          const qty = inv?.quantity ?? 0;
+                                          return (
+                                            <tr key={v.id}>
+                                              <td className="px-3 py-1.5">{v.color || '—'}</td>
+                                              <td className="px-3 py-1.5">{v.size || '—'}</td>
+                                              <td className="px-3 py-1.5 text-[#565959]">{v.sku}</td>
+                                              <td className={`px-3 py-1.5 text-right font-semibold tabular-nums ${qty === 0 ? 'text-[#B12704]' : qty <= 5 ? 'text-[#B7791F]' : 'text-[#0F1111]'}`}>
+                                                {qty}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
                                   </div>
-                                );
-                              })()}
+                                </details>
+                              )}
                             </div>
                           </div>
 
@@ -753,7 +593,7 @@ export default function AdminVendorDetailPage() {
                               className="px-3.5 py-2 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 text-center flex-1 lg:flex-initial"
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              <span>View on Storefront</span>
+                              <span>View</span>
                             </Link>
 
                             <Link
@@ -762,7 +602,7 @@ export default function AdminVendorDetailPage() {
                               title="Moderate, publish or delist this vendor's catalog"
                             >
                               <ShieldAlert className="h-3.5 w-3.5 text-[#007185]" />
-                              <span>Moderate Catalog</span>
+                              <span>Moderate</span>
                             </Link>
 
                             <button
@@ -772,7 +612,7 @@ export default function AdminVendorDetailPage() {
                               title="Issue pricing, quality or policy notice on this specific product"
                             >
                               <ShieldAlert className="h-3.5 w-3.5 text-rose-600" />
-                              <span>Issue Product Notice</span>
+                              <span>Send notice</span>
                             </button>
                           </div>
                         </div>
@@ -825,7 +665,7 @@ export default function AdminVendorDetailPage() {
                         >
                           {/* Left: Product Image & Details */}
                           <div className="flex items-start gap-4 flex-1 min-w-0">
-                            <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">
+                            <div className="relative aspect-[3/4] w-24 sm:w-28 rounded-xl overflow-hidden bg-[#F0F2F2] border border-[#E3E6E6] shrink-0">
                               <Image
                                 src={primaryImage}
                                 alt={prod?.title || 'Product'}
@@ -845,7 +685,7 @@ export default function AdminVendorDetailPage() {
                                     ★ Featured Buy Box Winner
                                   </span>
                                 )}
-                                <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 text-[10px] font-medium">
+                                <span className="px-2 py-0.5 rounded bg-[#F0F2F2] text-[#333333] text-[10px] font-medium">
                                   Creator: <strong className="text-[#0F1111]">{prod?.vendor?.storeName || 'Seller'}</strong>
                                 </span>
                                 {prod?.category && (
@@ -900,7 +740,7 @@ export default function AdminVendorDetailPage() {
                                           className="p-2.5 rounded-lg bg-teal-50/40 border border-teal-200 text-xs flex flex-col justify-between shadow-2xs hover:border-[#007185] transition-all"
                                         >
                                           <div className="flex items-center justify-between font-bold text-[#0F1111]">
-                                            <span className="bg-white text-stone-900 border border-stone-200 px-2 py-0.5 rounded text-[11px] font-extrabold">
+                                            <span className="bg-white text-[#0F1111] border border-[#E3E6E6] px-2 py-0.5 rounded text-[11px] font-extrabold">
                                               Size {ov.productVariant?.size || 'Standard'}
                                             </span>
                                             <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
@@ -928,7 +768,7 @@ export default function AdminVendorDetailPage() {
                               className="px-3.5 py-2 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 text-center flex-1 lg:flex-initial"
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              <span>View on Storefront</span>
+                              <span>View</span>
                             </Link>
 
                             <Link
@@ -937,7 +777,7 @@ export default function AdminVendorDetailPage() {
                               title="Moderate catalog"
                             >
                               <ShieldAlert className="h-3.5 w-3.5 text-[#007185]" />
-                              <span>Moderate Catalog</span>
+                              <span>Moderate</span>
                             </Link>
 
                             <button
@@ -990,7 +830,7 @@ export default function AdminVendorDetailPage() {
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Account Access Role:</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-stone-100 text-stone-800">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-[#F0F2F2] text-[#0F1111]">
                   {vendor.user?.role || 'VENDOR'}
                 </span>
               </div>
@@ -1050,7 +890,7 @@ export default function AdminVendorDetailPage() {
                   {merchantId}
                 </span>
               </div>
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-[11px] text-[#565959]">
+              <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] text-[11px] text-[#565959]">
                 💡 Settlements are credited every Tuesday and Friday directly via automated NEFT to the linked bank account after deducting standard marketplace commission ({vendor.commissionRate}%).
               </div>
             </div>
@@ -1072,8 +912,8 @@ export default function AdminVendorDetailPage() {
 
           {vendor.warehouses.length === 0 ? (
             <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3">
-              <Warehouse className="h-10 w-10 text-stone-300 mx-auto" />
-              <p className="text-base font-bold text-[#0F1111]">No Registered Warehouses</p>
+              <Warehouse className="h-10 w-10 text-[#D5D9D9] mx-auto" />
+              <p className="text-base font-bold text-[#0F1111]">No Pickup addresses</p>
               <p className="text-xs text-[#565959]">This vendor does not have a registered dispatch facility.</p>
             </div>
           ) : (

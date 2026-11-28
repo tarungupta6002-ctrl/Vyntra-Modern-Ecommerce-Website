@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
+import { PageHeader, consoleButton, humanize } from '@/components/console/console-ui';
 
 interface OrderItemDetail {
   id: string;
@@ -275,126 +276,79 @@ export default function AdminOrderDetailPage() {
   const trackingUrl = getCourierTrackingUrl(order.courierPartner, order.trackingNumber);
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6 select-none">
-      {/* 1. Breadcrumbs & Top Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
-        <div className="flex items-center gap-2 text-xs text-[#565959]">
-          <Link href="/admin" className="hover:text-[#007185] hover:underline font-semibold">
-            Admin Central
-          </Link>
-          <span>/</span>
-          <Link href="/admin/orders" className="hover:text-[#007185] hover:underline font-semibold flex items-center gap-1">
-            Orders
-          </Link>
-          <span>/</span>
-          <span className="font-bold text-[#0F1111]">{order.orderNumber}</span>
-        </div>
+    <div className="space-y-6">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-[#565959]">
+        <Link href="/admin/orders" className="hover:text-[#007185] hover:underline">
+          Orders
+        </Link>
+        <span aria-hidden>/</span>
+        <span className="text-[#0F1111]">{order.orderNumber}</span>
+      </nav>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Link
-            href={`/admin/shipments?search=${encodeURIComponent(order.orderNumber)}`}
-            className="px-3 py-1.5 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            title="Manage consignment logistics and carrier tracking in Shipments"
-          >
-            <Truck className="h-3.5 w-3.5" />
-            <span>Manage in Shipments</span>
-          </Link>
-
-          {!isCancelled && (
-            <Link
-              href={`/orders/${encodeURIComponent(order.orderNumber)}/invoice`}
-              target="_blank"
-              className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F7F8F8] border border-[#D5D9D9] text-[#0F1111] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-              title="Open the order invoice"
-            >
-              <FileText className="h-3.5 w-3.5 text-[#007185]" />
-              <span>Invoice</span>
+      <PageHeader
+        title={`Order ${order.orderNumber}`}
+        description={
+          <>
+            Placed {order.datePlaced}, {order.placedTime} · {order.items.length} item{order.items.length > 1 ? 's' : ''} ·{' '}
+            <span className="font-semibold text-[#0F1111]">{formatINR(order.financials.totalAmount)}</span>
+          </>
+        }
+        actions={
+          <>
+            <button type="button" onClick={() => copyOrderNumber(order.orderNumber)} className={consoleButton.secondary}>
+              {copiedId ? <Check className="h-4 w-4 text-[#067D62]" /> : <Copy className="h-4 w-4" />}
+              {copiedId ? 'Copied' : 'Copy number'}
+            </button>
+            {!isCancelled && (
+              <Link href={`/orders/${encodeURIComponent(order.orderNumber)}/invoice`} target="_blank" className={consoleButton.secondary}>
+                <FileText className="h-4 w-4" />
+                Invoice
+              </Link>
+            )}
+            <Link href={`/admin/shipments?search=${encodeURIComponent(order.orderNumber)}`} className={consoleButton.secondary}>
+              <Truck className="h-4 w-4" />
+              Shipments
             </Link>
-          )}
+          </>
+        }
+      />
 
-          <Link
-            href={`/orders/${encodeURIComponent(order.id)}/track`}
-            target="_blank"
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#F7F8F8] border border-[#D5D9D9] text-[#565959] hover:text-[#0F1111] text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            title="View customer-facing live order tracking view"
+      <div className="space-y-4 rounded-xl border border-[#D5D9D9] bg-white p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+              order.status === 'DELIVERED'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : order.status === 'SHIPPED' || order.status === 'OUT_FOR_DELIVERY'
+                ? 'border-sky-200 bg-sky-50 text-sky-800'
+                : order.status === 'PROCESSING'
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                : order.status === 'CANCELLED'
+                ? 'border-rose-200 bg-rose-50 text-rose-800'
+                : 'border-[#D5D9D9] bg-[#F7F8F8] text-[#333]'
+            }`}
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-            <span>Storefront View</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* 2. Order Header Dossier Banner */}
-      <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#F0F0F0] pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xl sm:text-2xl font-black font-headline text-[#0F1111]">
-                Order {order.orderNumber}
-              </span>
-              <button
-                type="button"
-                onClick={() => copyOrderNumber(order.orderNumber)}
-                className="p-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
-                title="Copy Order Number"
-              >
-                {copiedId ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-
-              {/* Status Badge */}
-              <span
-                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${
-                  order.status === 'DELIVERED'
-                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                    : order.status === 'SHIPPED' || order.status === 'OUT_FOR_DELIVERY'
-                    ? 'bg-sky-100 text-sky-900 border border-sky-300'
-                    : order.status === 'PROCESSING'
-                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                    : order.status === 'CANCELLED'
-                    ? 'bg-rose-100 text-rose-900 border border-rose-300'
-                    : 'bg-stone-100 text-stone-800 border border-stone-300'
-                }`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                {order.status.replace(/_/g, ' ')}
-              </span>
-
-              {/* Payment Mode Badge */}
-              <span className="text-[11px] font-semibold bg-stone-100 text-stone-800 px-2 py-0.5 rounded border border-stone-200">
-                {order.isCOD ? 'Cash on Delivery (COD)' : 'Prepaid (Online)'}
-              </span>
-
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${TONE_CLASS[paymentView.tone]}`}>
-                Payment: {paymentView.label}
-              </span>
-            </div>
-
-            <p className="text-xs text-[#565959] flex items-center gap-1.5 pt-0.5">
-              <Calendar className="h-3.5 w-3.5 text-stone-400" />
-              <span>Placed on <strong>{order.datePlaced}</strong> at <strong>{order.placedTime}</strong></span>
-              <span>•</span>
-              <span>{order.items.length} Product Line Item{order.items.length > 1 ? 's' : ''}</span>
-            </p>
-          </div>
-
-          <div className="text-left md:text-right tabular-nums">
-            <span className="text-[11px] font-bold text-[#565959] block">Total Consignment Value</span>
-            <span className="text-2xl sm:text-3xl font-extrabold text-[#0F1111]">
-              {formatINR(order.financials.totalAmount)}
-            </span>
-          </div>
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            {humanize(order.status)}
+          </span>
+          <span className="rounded-full border border-[#D5D9D9] bg-white px-2.5 py-0.5 text-xs font-semibold text-[#565959]">
+            {order.isCOD ? 'Cash on Delivery' : 'Paid online'}
+          </span>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[paymentView.tone]}`}>
+            Payment: {paymentView.label}
+          </span>
         </div>
 
         {/* Quick Highlights Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1 text-xs">
-          <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
+          <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-1">
             <span className="text-[10px] font-bold text-[#565959] block">Customer</span>
             <span className="font-bold text-[#0F1111] block truncate">{order.customer.name}</span>
             <span className="text-[11px] text-[#565959] block truncate">{order.customer.email}</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold text-[#565959] block">Destination City</span>
+          <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-1">
+            <span className="text-[10px] font-bold text-[#565959] block">Delivering to</span>
             <span className="font-bold text-[#0F1111] block truncate">
               {order.shippingAddress ? `${order.shippingAddress.city}, ${order.shippingAddress.state}` : 'N/A'}
             </span>
@@ -403,30 +357,30 @@ export default function AdminOrderDetailPage() {
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold text-[#565959] block">Logistics Partner</span>
+          <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-1">
+            <span className="text-[10px] font-bold text-[#565959] block">Courier</span>
             <span className="font-bold text-[#0F1111] block truncate">
-              {order.courierPartner || 'Unassigned / Pending Dispatch'}
+              {order.courierPartner || 'Not shipped yet'}
             </span>
             {order.trackingNumber ? (
               <span className="text-[11px] text-[#007185] tabular-nums font-bold block truncate">
                 AWB: {order.trackingNumber}
               </span>
             ) : (
-              <span className="text-[11px] text-[#565959] block italic">Awaiting AWB</span>
+              <span className="text-[11px] text-[#565959] block italic">No tracking number yet</span>
             )}
           </div>
 
-          <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold text-[#565959] block">Remittance &amp; Settlement</span>
+          <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-1">
+            <span className="text-[10px] font-bold text-[#565959] block">Payment settlement</span>
             <span className="font-bold text-[#0F1111] block truncate">
-              {order.settledAt ? 'Remitted & Settled' : 'Pending Settlement'}
+              {order.settledAt ? 'Settled' : 'Not settled yet'}
             </span>
             <span className="text-[11px] text-[#565959] block tabular-nums truncate">
               {order.remittanceReference
                 ? `${order.isCOD ? 'UTR' : 'Payment ID'}: ${order.remittanceReference}`
                 : order.isCOD
-                ? 'No UTR Reference'
+                ? 'No UTR yet'
                 : 'No Payment ID'}
             </span>
           </div>
@@ -442,7 +396,7 @@ export default function AdminOrderDetailPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <Package className="h-4 w-4 text-[#007185]" />
-                <span>Ordered Product Pieces ({order.items.length})</span>
+                <span>Items ({order.items.length})</span>
               </h2>
             </div>
 
@@ -450,7 +404,7 @@ export default function AdminOrderDetailPage() {
               {order.items.map((item) => (
                 <div key={item.id} className="pt-4 first:pt-0 flex flex-col sm:flex-row gap-4 items-start justify-between">
                   <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">
+                    <div className="relative w-20 h-24 rounded-xl overflow-hidden bg-[#F0F2F2] border border-[#E3E6E6] shrink-0">
                       <Image
                         src={item.image}
                         alt={item.title}
@@ -462,7 +416,7 @@ export default function AdminOrderDetailPage() {
 
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded bg-[#F0F2F2] text-[#0F1111] text-[10px] font-bold">
                           {item.brand}
                         </span>
 
@@ -509,7 +463,7 @@ export default function AdminOrderDetailPage() {
                   </div>
 
                   <div className="text-right sm:self-center shrink-0 tabular-nums">
-                    <span className="text-[10px] font-bold text-[#565959] block">Item Total</span>
+                    <span className="text-[10px] font-bold text-[#565959] block">Item total</span>
                     <span className="text-base font-bold text-[#0F1111]">
                       {formatINR(item.totalPrice)}
                     </span>
@@ -524,27 +478,27 @@ export default function AdminOrderDetailPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <Truck className="h-4 w-4 text-[#007185]" />
-                <span>Logistics &amp; Courier Fulfillment</span>
+                <span>Shipping</span>
               </h2>
 
               <Link
                 href={`/admin/shipments?search=${encodeURIComponent(order.orderNumber)}`}
                 className="text-xs text-[#007185] hover:underline font-bold flex items-center gap-1"
               >
-                <span>Open Shipments Hub</span>
+                <span>Open in Shipments</span>
                 <ExternalLink className="h-3 w-3" />
               </Link>
             </div>
 
-            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="p-4 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-[#565959] block">Primary Carrier</span>
+                <span className="text-[10px] font-bold text-[#565959] block">Courier</span>
                 <span className="text-base font-extrabold text-[#0F1111] block">
                   {order.courierPartner || 'Carrier Not Assigned Yet'}
                 </span>
                 {order.trackingNumber ? (
                   <span className="text-xs tabular-nums font-bold text-[#007185] block">
-                    AWB Tracking ID: {order.trackingNumber}
+                    Tracking: {order.trackingNumber}
                   </span>
                 ) : (
                   <span className="text-xs text-[#565959] italic block">AWB will generate on dispatch</span>
@@ -555,10 +509,10 @@ export default function AdminOrderDetailPage() {
                 <Link
                   href={trackingUrl}
                   target="_blank"
-                  className="px-3.5 py-2 rounded-lg bg-white hover:bg-stone-100 border border-stone-300 text-stone-900 font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0"
+                  className="px-3.5 py-2 rounded-lg bg-white hover:bg-[#F0F2F2] border border-[#D5D9D9] text-[#0F1111] font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 shrink-0"
                 >
                   <ExternalLink className="h-3.5 w-3.5 text-[#007185]" />
-                  <span>Track Carrier Website</span>
+                  <span>Track on courier site</span>
                 </Link>
               )}
             </div>
@@ -567,14 +521,14 @@ export default function AdminOrderDetailPage() {
             {order.vendorShipments && order.vendorShipments.length > 0 && (
               <div className="space-y-3 pt-2">
                 <span className="text-[11px] font-bold text-[#565959] block">
-                  Dispatched Vendor Consignments ({order.vendorShipments.length} Package{order.vendorShipments.length > 1 ? 's' : ''})
+                  Packages ({order.vendorShipments.length} Package{order.vendorShipments.length > 1 ? 's' : ''})
                 </span>
 
                 <div className="space-y-2.5">
                   {order.vendorShipments.map((vs, idx) => (
                     <div
                       key={vs.id}
-                      className="p-3.5 rounded-xl border border-stone-200 bg-white shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      className="p-3.5 rounded-xl border border-[#E3E6E6] bg-white shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -584,14 +538,14 @@ export default function AdminOrderDetailPage() {
                           <span className="font-bold text-[#0F1111] truncate">
                             {vs.shipmentNumber}
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#F0F2F2] text-[#333333]">
                             {vs.status}
                           </span>
                         </div>
 
                         <p className="text-[11px] text-[#565959] pl-7">
-                          Dispatched by: <strong className="text-[#0F1111]">{vs.vendor?.storeName || 'Seller'}</strong>
-                          {vs.warehouse && ` • Facility: ${vs.warehouse.facilityName} (${vs.warehouse.city})`}
+                          Seller: <strong className="text-[#0F1111]">{vs.vendor?.storeName || 'Seller'}</strong>
+                          {vs.warehouse && ` • Pickup: ${vs.warehouse.facilityName} (${vs.warehouse.city})`}
                         </p>
                       </div>
 
@@ -613,15 +567,15 @@ export default function AdminOrderDetailPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-[#007185]" />
-                <span>Delivery Address &amp; Customer Information</span>
+                <span>Delivery address and customer</span>
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
               {/* Shipping Address Details */}
-              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+              <div className="p-4 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-2">
                 <span className="text-[10px] font-bold text-[#565959] block">
-                  Delivery Destination ({order.shippingAddress?.addressType || 'RESIDENTIAL'})
+                  Deliver to ({order.shippingAddress?.addressType || 'RESIDENTIAL'})
                 </span>
 
                 {order.shippingAddress ? (
@@ -645,7 +599,7 @@ export default function AdminOrderDetailPage() {
               </div>
 
               {/* Customer User Account Details */}
-              <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+              <div className="p-4 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-2">
                 <span className="text-[10px] font-bold text-[#565959] block">
                   Customer
                 </span>
@@ -659,12 +613,12 @@ export default function AdminOrderDetailPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1 border-t border-stone-200/60">
+                  <div className="flex items-center gap-2 pt-1 border-t border-[#E3E6E6]/60">
                     <Mail className="h-3.5 w-3.5 text-[#565959] shrink-0" />
                     <span className="text-[#565959] font-medium truncate">{order.customer.email}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1 border-t border-stone-200/60">
+                  <div className="flex items-center gap-2 pt-1 border-t border-[#E3E6E6]/60">
                     <Phone className="h-3.5 w-3.5 text-[#565959] shrink-0" />
                     <span className="text-[#565959] tabular-nums">{order.customer.phone}</span>
                   </div>
@@ -681,13 +635,13 @@ export default function AdminOrderDetailPage() {
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-[#007185]" />
-                <span>Financial Summary</span>
+                <span>Payment</span>
               </h2>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="flex justify-between items-center text-[#565959]">
-                <span>Items Subtotal ({order.items.length} items)</span>
+                <span>Items ({order.items.length} items)</span>
                 <span className="tabular-nums font-bold text-[#0F1111]">
                   {formatINR(order.financials.subtotal)}
                 </span>
@@ -727,19 +681,30 @@ export default function AdminOrderDetailPage() {
 
               <div className="pt-3 border-t border-[#D5D9D9] flex justify-between items-baseline">
                 <div>
-                  <span className="font-headline font-black text-sm text-[#0F1111] block">Total Amount</span>
-                  <span className="text-[10px] text-[#565959]">Inclusive of all GST &amp; marketplace fees</span>
+                  <span className="font-headline font-black text-sm text-[#0F1111] block">Customer paid</span>
                 </div>
                 <span className="font-headline font-black text-xl text-[#0F1111] tabular-nums">
                   {formatINR(order.financials.totalAmount)}
                 </span>
               </div>
+              {order.refundedAmount > 0 && (
+                <>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#565959]">Refunded</span>
+                    <span className="font-semibold text-[#B12704] tabular-nums">−{formatINR(order.refundedAmount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-semibold">
+                    <span>Kept by Vyntra and sellers</span>
+                    <span className="tabular-nums">{formatINR(order.financials.totalAmount - order.refundedAmount)}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Payment Method Details */}
-            <div className="pt-3 border-t border-stone-200/80 space-y-2">
-              <span className="text-[10px] font-bold text-[#565959] block">Payment Gateway &amp; Mode</span>
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1.5 text-xs">
+            <div className="pt-3 border-t border-[#E3E6E6]/80 space-y-2">
+              <span className="text-[10px] font-bold text-[#565959] block">Payment method</span>
+              <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[#565959]">Method:</span>
                   <strong className="text-[#0F1111]">{order.isCOD ? 'Cash on Delivery (COD)' : order.paymentMethod}</strong>
@@ -751,7 +716,7 @@ export default function AdminOrderDetailPage() {
                   </span>
                 </div>
                 {order.remittanceReference && (
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-200 text-[11px]">
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#E3E6E6] text-[11px]">
                     <span className="text-[#565959] shrink-0">{order.isCOD ? 'Remittance UTR:' : 'Razorpay Payment ID:'}</span>
                     <span className="tabular-nums font-bold text-[#007185] truncate">{order.remittanceReference}</span>
                   </div>
@@ -791,7 +756,7 @@ export default function AdminOrderDetailPage() {
                         <button
                           type="button"
                           onClick={() => copyRefundId(refund.razorpayRefundId!)}
-                          className="p-0.5 rounded hover:bg-stone-200 text-stone-500 shrink-0"
+                          className="p-0.5 rounded hover:bg-[#E3E6E6] text-[#565959] shrink-0"
                           title="Copy refund ID"
                           aria-label="Copy refund ID"
                         >
@@ -846,7 +811,7 @@ export default function AdminOrderDetailPage() {
 
             <div className="space-y-2 pt-1 text-xs">
               {isCancelled ? (
-                <p className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-[#565959] leading-relaxed">
+                <p className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E3E6E6] text-[#565959] leading-relaxed">
                   This order is cancelled, so there is nothing to ship and no GST tax invoice is issued for it.
                 </p>
               ) : (
@@ -856,13 +821,13 @@ export default function AdminOrderDetailPage() {
                 className="w-full py-2.5 px-4 rounded-xl bg-[#007185] hover:bg-[#004B57] text-white font-bold text-center block shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <Truck className="h-4 w-4" />
-                <span>Update Tracking / Status in Shipments</span>
+                <span>Update tracking in Shipments</span>
               </Link>
 
               <Link
                 href={`/orders/${encodeURIComponent(order.orderNumber)}/invoice`}
                 target="_blank"
-                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-stone-50 border border-[#D5D9D9] text-[#0F1111] font-bold text-center block shadow-xs transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#F7F8F8] border border-[#D5D9D9] text-[#0F1111] font-bold text-center block shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <FileText className="h-4 w-4 text-[#007185]" />
                 <span>Print invoice</span>
@@ -872,9 +837,9 @@ export default function AdminOrderDetailPage() {
 
               <Link
                 href="/admin/orders"
-                className="w-full py-2.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-center block transition-all"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#F0F2F2] hover:bg-[#E3E6E6] text-[#333333] font-bold text-center block transition-all"
               >
-                ← Back to All Orders Directory
+                ← Back to orders
               </Link>
             </div>
           </div>
