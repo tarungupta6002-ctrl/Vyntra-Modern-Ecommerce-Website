@@ -88,6 +88,7 @@ const config: Config = {
         headline: ['"Amazon Ember"', 'Arial', 'sans-serif'],
         body: ['"Amazon Ember"', 'Arial', 'sans-serif'],
         mono: ['"Amazon Ember"', 'Arial', 'sans-serif'],
+        brand: ['var(--font-anek)', '"Amazon Ember"', 'Arial', 'sans-serif'],
       },
       spacing: {
         'space-xs': '0.25rem',

@@ -351,3 +351,20 @@
     margin: 6mm 8mm 6mm 8mm;
   }
 }
+
+/* Homepage directory board: rows appear once on load (skipped when motion is reduced). */
+@keyframes home-board-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.home-board-row {
+  animation: home-board-in 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-board-row { animation: none; }
+}
+
+/* Storefront display face (Anek Latin by Ek Type), loaded in app/layout.tsx. */
+.font-brand {
+  font-family: var(--font-anek), 'Amazon Ember', Arial, sans-serif;
+}
