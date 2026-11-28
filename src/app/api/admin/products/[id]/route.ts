@@ -41,18 +41,9 @@ export async function GET(request: Request, context: RouteContext) {
       }
 
       return apiSuccess({ product });
-    } catch {
-      // In-memory mock
-      const mockProduct = {
-        id: productId,
-        title: 'Marigold Lotus Banarasi Silk Saree',
-        slug: 'marigold-lotus-banarasi-saree',
-        brand: 'Varanasi Atelier',
-        isPublished: true,
-        category: { id: 'cat-sarees', name: 'Sarees', slug: 'sarees' },
-        sellerOffersCount: 2,
-      };
-      return apiSuccess({ product: mockProduct });
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
   } catch (err: any) {
     const authErr = handleAuthError(err);
@@ -86,14 +77,9 @@ export async function PATCH(request: Request, context: RouteContext) {
           vendorId: true,
         },
       });
-    } catch {
-      currentProduct = {
-        id: productId,
-        title: 'Sample Product Listing',
-        isPublished: false,
-        brand: 'Artisan Atelier',
-        vendorId: 'cm7banaras001',
-      };
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
 
     if (!currentProduct) {
@@ -140,8 +126,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         where: { id: productId },
         data: updateData,
       });
-    } catch {
-      updatedProduct = { ...currentProduct, ...updateData };
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
 
     // Record Audit Trail

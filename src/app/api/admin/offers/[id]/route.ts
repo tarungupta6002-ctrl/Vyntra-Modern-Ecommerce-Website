@@ -35,14 +35,9 @@ export async function PATCH(request: Request, context: RouteContext) {
           vendor: { select: { id: true, storeName: true } },
         },
       });
-    } catch {
-      currentOffer = {
-        id: offerId,
-        productId: 'prod-saree-001',
-        status: 'ACTIVE',
-        product: { id: 'prod-saree-001', title: 'Marigold Lotus Banarasi Silk Saree' },
-        vendor: { id: 'cm7banaras001', storeName: 'Varanasi Master Weavers Atelier' },
-      };
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
 
     if (!currentOffer) {
@@ -123,8 +118,9 @@ export async function PATCH(request: Request, context: RouteContext) {
           ]);
         }
       }
-    } catch {
-      updatedOffer = { ...currentOffer, status: nextStatus };
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
 
     // Record Audit Trail

@@ -19,32 +19,6 @@ export interface AuditLogItem {
   createdAt: string;
 }
 
-// In-memory fallback registry for offline sandboxing
-const MOCK_AUDIT_LOGS: AuditLogItem[] = [
-  {
-    id: 'audit-seed-1',
-    adminId: 'cm7admin_master',
-    adminEmail: 'admin@vyntra.com',
-    entity: 'VENDOR',
-    entityId: 'cm7banaras001',
-    action: 'VERIFICATION_TOGGLE',
-    details: { before: { isVerified: false }, after: { isVerified: true }, reason: 'Verified master handloom artisan credentials.' },
-    ipAddress: '127.0.0.1',
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 'audit-seed-2',
-    adminId: 'cm7admin_master',
-    adminEmail: 'admin@vyntra.com',
-    entity: 'OFFER',
-    entityId: 'off-banarasi-001',
-    action: 'OFFER_APPROVE',
-    details: { before: { status: 'PENDING' }, after: { status: 'ACTIVE' }, reason: 'Passed pricing and SLA compliance check.' },
-    ipAddress: '127.0.0.1',
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-  },
-];
-
 export async function logAdminAction(params: {
   adminId: string;
   adminEmail: string;
@@ -89,9 +63,9 @@ export async function logAdminAction(params: {
       ipAddress: created.ipAddress,
       createdAt: created.createdAt.toISOString(),
     };
-  } catch {
-    // Database connection fallback
-    MOCK_AUDIT_LOGS.unshift(item);
+  } catch (err: any) {
+    // The admin action itself already happened; never invent a log entry, but make the gap visible.
+    console.error(`[audit] could not record ${params.action} on ${params.entity} ${params.entityId}:`, err?.message || err);
     return item;
   }
 }
@@ -125,14 +99,8 @@ export async function listAuditLogs(options: {
       ipAddress: r.ipAddress,
       createdAt: r.createdAt.toISOString(),
     }));
-  } catch {
-    let filtered = [...MOCK_AUDIT_LOGS];
-    if (options.entity && options.entity !== 'ALL') {
-      filtered = filtered.filter((l) => l.entity === options.entity);
-    }
-    if (options.entityId) {
-      filtered = filtered.filter((l) => l.entityId === options.entityId);
-    }
-    return filtered.slice(0, limit);
+  } catch (err) {
+    // Fail visibly rather than showing invented history.
+    throw err;
   }
 }

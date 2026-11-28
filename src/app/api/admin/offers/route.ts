@@ -77,54 +77,9 @@ export async function GET(request: Request) {
       });
 
       return apiSuccess({ offers: formatted, total: formatted.length });
-    } catch {
-      // Offline fallback mock data
-      const mockOffers = [
-        {
-          id: 'off-banarasi-001',
-          productId: 'prod-saree-001',
-          productTitle: 'Marigold Lotus Banarasi Silk Saree',
-          productSlug: 'marigold-lotus-banarasi-saree',
-          vendorId: 'cm7banaras001',
-          vendorStoreName: 'Varanasi Master Weavers Atelier',
-          vendorRating: 4.9,
-          isVendorVerified: true,
-          status: 'ACTIVE',
-          condition: 'NEW',
-          fulfillmentType: 'SELLER_FULFILLED',
-          handlingDays: 2,
-          isBuyBoxWinner: true,
-          sellingPrice: 12499,
-          mrpPrice: 18999,
-          totalStock: 8,
-          variantsCount: 3,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'off-banarasi-002',
-          productId: 'prod-saree-001',
-          productTitle: 'Marigold Lotus Banarasi Silk Saree',
-          productSlug: 'marigold-lotus-banarasi-saree',
-          vendorId: 'cm7vendor_heritage_002',
-          vendorStoreName: 'Kashi Heritage Handloom Cooperative',
-          vendorRating: 4.6,
-          isVendorVerified: false,
-          status: 'ACTIVE',
-          condition: 'NEW',
-          fulfillmentType: 'SELLER_FULFILLED',
-          handlingDays: 3,
-          isBuyBoxWinner: false,
-          sellingPrice: 12999,
-          mrpPrice: 19500,
-          totalStock: 5,
-          variantsCount: 3,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-
-      return apiSuccess({ offers: mockOffers, total: mockOffers.length });
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
   } catch (err: any) {
     const authErr = handleAuthError(err);

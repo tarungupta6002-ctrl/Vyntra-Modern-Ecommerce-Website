@@ -111,55 +111,9 @@ export async function GET(request: Request) {
       });
 
       return apiSuccess({ products: monitoredProducts, total: monitoredProducts.length });
-    } catch {
-      // Offline fallback mock data
-      const mockMonitored = [
-        {
-          productId: 'prod-saree-001',
-          title: 'Marigold Lotus Banarasi Silk Saree',
-          slug: 'marigold-lotus-banarasi-saree',
-          totalOffersCount: 2,
-          winnerOfferId: 'off-banarasi-001',
-          winnerVendorName: 'Varanasi Master Weavers Atelier',
-          winnerPrice: 12499,
-          competingOffers: [
-            {
-              offerId: 'off-banarasi-001',
-              vendorId: 'cm7banaras001',
-              vendorStoreName: 'Varanasi Master Weavers Atelier',
-              sellingPrice: 12499,
-              stock: 8,
-              isBuyBoxWinner: true,
-              compositeScore: -5.0,
-              scoreBreakdown: {
-                pricePenalty: 0,
-                deliveryPenalty: 3.0,
-                ratingPenalty: 0.5,
-                verificationBonus: -5.0,
-                isOutOfStock: false,
-              },
-            },
-            {
-              offerId: 'off-banarasi-002',
-              vendorId: 'cm7vendor_heritage_002',
-              vendorStoreName: 'Kashi Heritage Handloom Cooperative',
-              sellingPrice: 12999,
-              stock: 5,
-              isBuyBoxWinner: false,
-              compositeScore: 12.5,
-              scoreBreakdown: {
-                pricePenalty: 2.0,
-                deliveryPenalty: 6.0,
-                ratingPenalty: 2.0,
-                verificationBonus: 0,
-                isOutOfStock: false,
-              },
-            },
-          ],
-        },
-      ];
-
-      return apiSuccess({ products: mockMonitored, total: mockMonitored.length });
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
   } catch (err: any) {
     const authErr = handleAuthError(err);

@@ -158,69 +158,9 @@ export async function GET(request: Request) {
 
       const filtered = delayedOnly ? formatted.filter((f) => f.isDelayed) : formatted;
       return apiSuccess({ shipments: filtered, total: filtered.length });
-    } catch {
-      // Offline fallback mock data
-      const mockShipments = [
-        {
-          id: 'vship-001',
-          orderId: 'ord-multi-001',
-          orderNumber: 'VYN-84920',
-          vendorId: 'cm7banaras001',
-          vendorStoreName: 'Varanasi Master Weavers Atelier',
-          status: 'IN_TRANSIT',
-          carrierName: 'BlueDart Express',
-          trackingNumber: 'BLUEDART-88294104',
-          trackingUrl: 'https://bluedart.com/tracking?awb=BLUEDART-88294104',
-          shippingFee: 149,
-          customerName: 'Ananya Sharma',
-          customerCity: 'Bengaluru',
-          orderCreatedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-          dispatchedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-          deliveredAt: null,
-          isDelayed: false,
-          delayHours: 0,
-          itemsCount: 1,
-          items: [
-            {
-              id: 'item-001',
-              title: 'Marigold Lotus Banarasi Silk Saree',
-              quantity: 1,
-              price: 12499,
-            },
-          ],
-        },
-        {
-          id: 'vship-002',
-          orderId: 'ord-multi-001',
-          orderNumber: 'VYN-84920',
-          vendorId: 'cm7vendor_linen_002',
-          vendorStoreName: 'Jaipur Heritage Weaves',
-          status: 'PENDING',
-          carrierName: 'Awaiting Logistics Pickup',
-          trackingNumber: null,
-          trackingUrl: null,
-          shippingFee: 99,
-          customerName: 'Ananya Sharma',
-          customerCity: 'Bengaluru',
-          orderCreatedAt: new Date(Date.now() - 3600000 * 54).toISOString(),
-          dispatchedAt: null,
-          deliveredAt: null,
-          isDelayed: true,
-          delayHours: 6,
-          itemsCount: 1,
-          items: [
-            {
-              id: 'item-002',
-              title: 'Handcrafted Premium Linen Kurta',
-              quantity: 1,
-              price: 3500,
-            },
-          ],
-        },
-      ];
-
-      const filtered = delayedOnly ? mockShipments.filter((f) => f.isDelayed) : mockShipments;
-      return apiSuccess({ shipments: filtered, total: filtered.length });
+    } catch (dbError) {
+      // No invented fallback data: let the request fail visibly.
+      throw dbError;
     }
   } catch (err: any) {
     const authErr = handleAuthError(err);
