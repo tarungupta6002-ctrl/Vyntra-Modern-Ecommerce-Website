@@ -98,7 +98,6 @@ export async function GET(request: Request, context: RouteContext) {
       detailedReason: returnRequest.detailedReason,
       customerNotes: returnRequest.customerNotes,
       vendorNotes: returnRequest.vendorNotes,
-      adminNotes: returnRequest.adminNotes,
       requestedQuantity: returnRequest.requestedQuantity,
       reverseTrackingNumber: returnRequest.reverseTrackingNumber,
       reverseCourierPartner: returnRequest.reverseCourierPartner,

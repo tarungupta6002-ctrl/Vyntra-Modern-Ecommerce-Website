@@ -132,7 +132,6 @@ export async function GET(request: Request) {
         qcCompletedAt: r.qcCompletedAt,
         qcFailedReason: r.qcFailedReason,
         rejectedAt: r.rejectedAt,
-        adminNotes: r.adminNotes,
         isDisputed: r.isDisputed,
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,

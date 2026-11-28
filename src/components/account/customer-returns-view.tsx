@@ -3,31 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  RotateCcw,
-  RefreshCw,
-  Package,
-  Truck,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  ExternalLink,
-  ShieldCheck,
-  CreditCard,
-  Building2,
-  Search,
-  Filter,
-  ArrowRight,
-  HelpCircle,
-  Sparkles,
-  Check,
-  X,
-} from 'lucide-react';
+import { Check, ExternalLink, Package, RefreshCw, RotateCcw, Search, X } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
-
 import { CometSpinner } from '@/components/ui/loading-spinner';
 import { EMPTY_PAYOUT, PayoutDetailsFields, checkPayoutForm, type PayoutFormValue } from '@/components/orders/payout-details-fields';
+
 interface RefundTx {
   id: string;
   status: string;
@@ -61,7 +42,7 @@ interface ReturnItem {
   qcCompletedAt?: string | null;
   qcFailedReason?: string | null;
   rejectedAt?: string | null;
-  adminNotes?: string | null;
+  isDisputed?: boolean;
   createdAt: string;
   updatedAt: string;
   item: {
@@ -84,11 +65,83 @@ interface ReturnItem {
   canEditPayoutDetails?: boolean;
 }
 
+const REASONS: Record<string, string> = {
+  DAMAGED_ON_ARRIVAL: 'Arrived damaged',
+  DEFECTIVE: 'Defective or not working',
+  WRONG_ITEM: 'Wrong item or variant',
+  SIZE_FIT_ISSUE: "Size or fit isn't right",
+  NOT_AS_DESCRIBED: "Doesn't match the description or photos",
+  QUALITY_NOT_EXPECTED: 'Quality not as expected',
+  BUYER_REMORSE: 'Changed my mind',
+};
+
+const formatDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+/** Status label, its colour, and a sentence on what happens next. */
+function describe(ret: ReturnItem, refunded: boolean): { label: string; tone: string; next: string } {
+  const refund = ret.type === 'RETURN_REFUND';
+  const why = ret.qcFailedReason ? `: ${ret.qcFailedReason.replace(/[.\s]+$/, '')}.` : '.';
+  switch (ret.status) {
+    case 'REQUESTED':
+      return { label: 'Requested', tone: 'bg-amber-50 text-amber-800', next: 'The seller is reviewing your request. This page updates when they respond.' };
+    case 'APPROVED':
+      return { label: 'Approved', tone: 'bg-sky-50 text-sky-800', next: 'A courier will pick up the item. Keep it packed with its tags and accessories.' };
+    case 'PICKED_UP':
+      return { label: 'Picked up', tone: 'bg-sky-50 text-sky-800', next: 'The item is on its way back to the seller.' };
+    case 'RECEIVED_AT_WH':
+      return { label: 'Being checked', tone: 'bg-sky-50 text-sky-800', next: 'The item has reached the seller and is being checked.' };
+    case 'QC_PASSED':
+      return refunded
+        ? { label: 'Refund sent', tone: 'bg-emerald-50 text-emerald-800', next: 'Your refund has been sent.' }
+        : {
+            label: 'Check passed',
+            tone: 'bg-emerald-50 text-emerald-800',
+            next: refund ? 'The item passed the check. Your refund is being processed.' : 'The item passed the check. Your replacement will be sent soon.',
+          };
+    case 'QC_FAILED':
+      return {
+        label: "Didn't pass the check",
+        tone: 'bg-rose-50 text-rose-800',
+        next: `The seller says the item didn't pass the check${why} If you disagree, raise a dispute from Your orders.`,
+      };
+    case 'QC_DISPUTED':
+      return { label: 'Under review', tone: 'bg-amber-50 text-amber-800', next: 'You disputed the check result. Vyntra is reviewing it and will update you here.' };
+    case 'REFUND_OFFERED':
+      return {
+        label: 'Refund offered',
+        tone: 'bg-amber-50 text-amber-800',
+        next: "A replacement isn't available, so you've been offered a refund instead. Accept it from Your orders.",
+      };
+    case 'COMPLETED':
+      return {
+        label: refund || refunded ? 'Refunded' : 'Replaced',
+        tone: 'bg-emerald-50 text-emerald-800',
+        next: refund || refunded ? 'Your refund has been sent.' : 'Your replacement has been delivered.',
+      };
+    case 'REJECTED':
+      return { label: 'Declined', tone: 'bg-rose-50 text-rose-800', next: `This request was declined${why}` };
+    case 'CANCELLED':
+      return { label: 'Cancelled', tone: 'bg-[#F0F2F2] text-[#0F1111]', next: 'This request was cancelled.' };
+    default:
+      return { label: ret.status.replace(/_/g, ' ').toLowerCase(), tone: 'bg-[#F0F2F2] text-[#0F1111]', next: '' };
+  }
+}
+
+const FILTERS = [
+  { id: 'ALL', label: 'All' },
+  { id: 'IN_PROGRESS', label: 'In progress' },
+  { id: 'RETURN_REFUND', label: 'Refunds' },
+  { id: 'REPLACEMENT', label: 'Replacements' },
+  { id: 'COMPLETED', label: 'Completed' },
+];
+const CLOSED = ['COMPLETED', 'REJECTED', 'CANCELLED'];
+
 export function CustomerReturnsView() {
   const [returns, setReturns] = useState<ReturnItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<string>('ALL');
+  const [filterType, setFilterType] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchReturns = async () => {
@@ -97,13 +150,10 @@ export function CustomerReturnsView() {
     try {
       const res = await fetch('/api/returns?limit=50');
       const json = await res.json();
-      if (res.ok && json.success && json.data) {
-        setReturns(json.data.returns || []);
-      } else {
-        setError(json.error?.message || 'Failed to fetch return orders.');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Network error fetching returns.');
+      if (res.ok && json.success && json.data) setReturns(json.data.returns || []);
+      else setError(json.error?.message || 'Could not load your returns.');
+    } catch {
+      setError('Could not load your returns. Check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -113,647 +163,297 @@ export function CustomerReturnsView() {
     fetchReturns();
   }, []);
 
-  const formatReasonText = (reason: string) => {
-    switch (reason) {
-      case 'DAMAGED_ON_ARRIVAL':
-        return 'Damaged on Arrival (Transit Damage)';
-      case 'DEFECTIVE':
-        return 'Defective / Workmanship Flaw';
-      case 'WRONG_ITEM':
-        return 'Wrong Item / Variant Delivered';
-      case 'SIZE_FIT_ISSUE':
-        return 'Size or Fit Issue';
-      case 'NOT_AS_DESCRIBED':
-        return 'Item Does Not Match Description';
-      case 'QUALITY_NOT_EXPECTED':
-        return 'Quality Below Luxury Standard';
-      case 'BUYER_REMORSE':
-        return 'Changed Mind / Preference';
-      default:
-        return reason.replace(/_/g, ' ');
-    }
-  };
-
-  const filteredReturns = returns.filter((r) => {
+  const filtered = returns.filter((r) => {
     if (filterType === 'RETURN_REFUND' && r.type !== 'RETURN_REFUND') return false;
     if (filterType === 'REPLACEMENT' && r.type !== 'REPLACEMENT') return false;
-    if (filterType === 'IN_PROGRESS' && (r.status === 'COMPLETED' || r.status === 'REJECTED' || r.status === 'CANCELLED')) return false;
+    if (filterType === 'IN_PROGRESS' && CLOSED.includes(r.status)) return false;
     if (filterType === 'COMPLETED' && r.status !== 'COMPLETED') return false;
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        r.orderNumber.toLowerCase().includes(q) ||
-        r.id.toLowerCase().includes(q) ||
-        r.item.title.toLowerCase().includes(q) ||
-        r.vendor.storeName.toLowerCase().includes(q) ||
-        (r.reverseTrackingNumber && r.reverseTrackingNumber.toLowerCase().includes(q))
-      );
-    }
-    return true;
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [r.orderNumber, r.item.title, r.vendor.storeName, r.reverseTrackingNumber || ''].some((v) => v.toLowerCase().includes(q));
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header Banner */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-sm border border-[#D5D9D9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#007185] mb-1">
-            <RotateCcw className="h-4 w-4" />
-            <span>Reverse Logistics &amp; Settlements</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-[#0F1111]">
-            Returns, Exchanges &amp; Refunds
-          </h1>
-          <p className="text-xs text-[#565959] mt-1 max-w-2xl leading-relaxed">
-            Live reverse tracking for your returned items. Track doorstep pickup, warehouse arrival, quality check (QC), replacement dispatch, and instant bank refund credit status.
+          <h1 className="text-2xl font-bold text-[#0F1111]">Returns and refunds</h1>
+          <p className="mt-1 max-w-2xl text-sm text-[#565959]">
+            Track each return from pickup to refund or replacement. To start a new return, go to{' '}
+            <Link href="/account?tab=orders" className="text-[#007185] hover:underline">
+              Your orders
+            </Link>
+            .
           </p>
         </div>
-
         <button
           type="button"
           onClick={fetchReturns}
           disabled={isLoading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F7F8F8] border border-[#D5D9D9] hover:bg-[#EAEDED] text-xs font-bold text-[#0F1111] transition-colors shrink-0 disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7F8F8] disabled:opacity-60 sm:self-auto"
         >
-          {isLoading ? <CometSpinner className="h-4 w-4 text-[#007185]" decorative /> : <RefreshCw className="h-4 w-4 text-[#007185]" />}
-          <span>Refresh Tracking</span>
+          {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+          Refresh
         </button>
       </div>
 
-      {/* Filter Tabs & Search Bar */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#D5D9D9] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none">
-          {[
-            { id: 'ALL', label: 'All Requests' },
-            { id: 'IN_PROGRESS', label: 'In Progress' },
-            { id: 'RETURN_REFUND', label: 'Returns for Refund' },
-            { id: 'REPLACEMENT', label: 'Replacements' },
-            { id: 'COMPLETED', label: 'Completed & Settled' },
-          ].map((tab) => (
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Filter returns">
+          {FILTERS.map((f) => (
             <button
-              key={tab.id}
+              key={f.id}
               type="button"
-              onClick={() => setFilterType(tab.id)}
-              className={`px-3.5 py-1.5 rounded-lg font-bold whitespace-nowrap transition-colors ${
-                filterType === tab.id
-                  ? 'bg-[#131921] text-[#FFD814]'
-                  : 'bg-[#F7F8F8] text-[#0F1111] border border-[#D5D9D9] hover:bg-white'
+              role="tab"
+              aria-selected={filterType === f.id}
+              onClick={() => setFilterType(f.id)}
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium ${
+                filterType === f.id ? 'bg-[#0F1111] text-white' : 'border border-[#D5D9D9] bg-white text-[#0F1111] hover:bg-[#F7F8F8]'
               }`}
             >
-              {tab.label}
+              {f.label}
             </button>
           ))}
         </div>
-
         <div className="relative w-full md:w-72">
-          <Search className="h-4 w-4 text-[#565959] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#565959]" aria-hidden="true" />
           <input
-            type="text"
+            type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Order #, Item, AWB..."
-            className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-2 focus:ring-[#FF9900]/30 text-[#0F1111]"
+            placeholder="Search by order number or item"
+            aria-label="Search returns"
+            className="w-full rounded-full border border-[#D5D9D9] bg-white py-2 pl-9 pr-3 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
           />
         </div>
       </div>
 
-      {/* Main Returns List */}
       {isLoading ? (
-        <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center text-xs text-[#565959]">
-          <CometSpinner className="h-12 w-12 mx-auto mb-3 block text-[#007185]" />
-          <p className="font-bold text-sm text-[#0F1111]">Retrieving Return &amp; Refund Records...</p>
-          <p className="text-xs text-[#565959] mt-1">Connecting to live courier reverse logistics tracking.</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#D5D9D9] bg-white py-16" aria-live="polite">
+          <CometSpinner className="h-12 w-12" decorative />
+          <p className="text-sm text-[#565959]">Loading your returns…</p>
         </div>
       ) : error ? (
-        <div className="bg-white rounded-2xl border border-rose-200 p-8 text-center text-xs text-rose-700 space-y-2">
-          <AlertCircle className="h-7 w-7 text-rose-600 mx-auto" />
-          <p className="font-bold text-sm">{error}</p>
-          <button
-            onClick={fetchReturns}
-            className="px-4 py-2 bg-rose-50 border border-rose-300 rounded-lg font-bold text-rose-800 hover:bg-rose-100"
-          >
-            Try Again
+        <div role="alert" className="space-y-3 rounded-xl border border-rose-200 bg-white p-8 text-center">
+          <p className="text-sm font-semibold text-rose-800">{error}</p>
+          <button type="button" onClick={fetchReturns} className="rounded-full border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7F8F8]">
+            Try again
           </button>
         </div>
-      ) : filteredReturns.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3">
-          <RotateCcw className="h-10 w-10 text-neutral-300 mx-auto" />
-          <h3 className="text-base font-bold text-[#0F1111]">No Return or Exchange Requests Found</h3>
-          <p className="text-xs text-[#565959] max-w-md mx-auto">
-            You currently do not have any items under return inspection, replacement exchange, or refund processing.
+      ) : filtered.length === 0 ? (
+        <div className="space-y-3 rounded-xl border border-dashed border-[#D5D9D9] bg-white p-10 text-center">
+          <RotateCcw className="mx-auto h-8 w-8 text-[#8A8F8F]" aria-hidden="true" />
+          <h2 className="text-base font-semibold text-[#0F1111]">
+            {returns.length === 0 ? 'No returns yet' : 'No returns match'}
+          </h2>
+          <p className="mx-auto max-w-md text-sm text-[#565959]">
+            {returns.length === 0
+              ? 'Delivered items can be returned or replaced within the return window from Your orders.'
+              : 'Try another filter or search.'}
           </p>
-          <Link
-            href="/account?tab=orders"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] font-bold text-xs rounded-lg shadow-sm"
-          >
-            <span>View Delivered Orders</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          {returns.length === 0 && (
+            <Link href="/account?tab=orders" className="inline-flex rounded-full border border-[#FCD200] bg-[#FFD814] px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00]">
+              Go to Your orders
+            </Link>
+          )}
         </div>
       ) : (
-        <div className="space-y-5">
-          {filteredReturns.map((ret) => {
-            const isRefund = ret.type === 'RETURN_REFUND';
-            const confirmedRefund = ret.refunds?.find((r) => r.status === 'CONFIRMED');
-            const pendingRefund = ret.refunds?.find((r) => r.status === 'INITIATED' || r.status === 'GATEWAY_PENDING');
-            const reverseTrackingUrl = getCourierTrackingUrl(ret.reverseCourierPartner, ret.reverseTrackingNumber);
-            const replacementTrackingUrl = getCourierTrackingUrl(ret.replacementCourierPartner, ret.replacementTrackingNumber);
-
-            // Determine active step index (0 to 4)
-            // 0: Requested
-            // 1: Picked Up by Boy
-            // 2: Received at WH
-            // 3: QC Passed
-            // 4: Refund Credited / Replacement Done
-            let stepIndex = 0;
-            if (ret.status === 'PICKED_UP') stepIndex = 1;
-            else if (ret.status === 'RECEIVED_AT_WH') stepIndex = 2;
-            else if (ret.status === 'QC_PASSED') stepIndex = 3;
-            else if (ret.status === 'REFUND_OFFERED' || ret.status === 'COMPLETED' || confirmedRefund) stepIndex = 4;
-
-            const isRejected = ret.status === 'REJECTED' || ret.status === 'QC_FAILED';
-
-            return (
-              <div
-                key={ret.id}
-                className="bg-white rounded-2xl border border-[#D5D9D9] shadow-sm overflow-hidden hover:border-[#007185]/40 transition-all"
-              >
-                {/* Card Top Bar */}
-                <div className="bg-[#F7F8F8] px-5 py-3.5 border-b border-[#EAEDED] flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                        isRefund
-                          ? 'bg-blue-50 text-blue-800 border border-blue-200'
-                          : 'bg-purple-50 text-purple-800 border border-purple-200'
-                      }`}
-                    >
-                      {isRefund ? 'Return for Refund' : 'Size Replacement'}
-                    </span>
-
-                    <span className="font-mono text-[#565959]">
-                      Req ID: <strong className="text-[#0F1111]">#{ret.id.slice(0, 12)}</strong>
-                    </span>
-
-                    <span className="text-[#565959]">
-                      Requested on:{' '}
-                      <strong className="text-[#0F1111]">
-                        {new Date(ret.createdAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#565959]">Original Order:</span>
-                    <Link
-                      href="/account?tab=orders"
-                      className="font-bold text-[#007185] hover:underline font-mono"
-                    >
-                      #{ret.orderNumber}
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Product Dossier & Reason */}
-                <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start border-b border-[#EAEDED]">
-                  {/* Product Details (Col 1-7) */}
-                  <div className="md:col-span-7 flex items-start gap-4">
-                    <div className="relative h-20 w-20 rounded-xl overflow-hidden bg-neutral-100 border border-[#D5D9D9] shrink-0">
-                      {ret.item.image ? (
-                        <Image
-                          src={ret.item.image}
-                          alt={ret.item.title}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <Package className="h-8 w-8 text-neutral-400 m-auto mt-6" />
-                      )}
-                    </div>
-
-                    <div className="space-y-1 min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185]">
-                        {ret.item.brand}
-                      </span>
-                      <h4 className="text-sm font-bold text-[#0F1111] leading-snug truncate">
-                        {ret.item.title}
-                      </h4>
-                      <p className="text-xs text-[#565959]">
-                        Size: <strong className="text-[#0F1111]">{ret.item.size}</strong> • Color:{' '}
-                        <strong className="text-[#0F1111]">{ret.item.color}</strong> • Qty:{' '}
-                        <strong className="text-[#0F1111]">{ret.requestedQuantity}</strong>
-                      </p>
-                      <p className="text-xs font-bold text-[#0F1111]">
-                        Item Value: {formatINR(ret.item.totalPrice || ret.item.unitPrice)}
-                      </p>
-                      <span className="inline-block text-[10px] font-semibold text-[#565959] bg-[#F7F8F8] px-2 py-0.5 rounded border border-[#D5D9D9]">
-                        Sold by: {ret.vendor.storeName}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Return Reason & Notes (Col 8-12) */}
-                  <div className="md:col-span-5 bg-[#F9FAFA] rounded-xl p-3.5 border border-[#EAEDED] text-xs space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[#565959] font-semibold">Reason Reported:</span>
-                      <span className="font-bold text-[#0F1111] text-[11px]">
-                        {formatReasonText(ret.reason)}
-                      </span>
-                    </div>
-
-                    {ret.detailedReason && (
-                      <div>
-                        <span className="text-[11px] text-[#565959]">Customer Note:</span>
-                        <p className="text-xs text-[#0F1111] italic mt-0.5">&ldquo;{ret.detailedReason}&rdquo;</p>
-                      </div>
-                    )}
-
-                    {ret.customerNotes && (
-                      <div className="pt-1 border-t border-[#EAEDED]">
-                        <span className="text-[11px] text-[#007185] font-semibold">Pickup Instruction:</span>
-                        <p className="text-xs text-[#0F1111]">{ret.customerNotes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Cash on Delivery: where the refund goes */}
-                {(ret.canEditPayoutDetails || ret.payoutDetails) && (
-                  <RefundPayoutBox ret={ret} onSaved={fetchReturns} />
-                )}
-
-                {/* Live Reverse Tracking Stepper */}
-                <div className="p-5 sm:p-6 bg-white space-y-6">
-                  <div>
-                    <h5 className="text-xs font-bold uppercase tracking-wider text-[#565959] mb-4 flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-[#007185]" />
-                      <span>Live Reverse Logistics &amp; Settlement Stepper</span>
-                    </h5>
-
-                    {/* Progress Bar & Steps */}
-                    <div className="relative">
-                      {/* Connecting Line */}
-                      <div className="absolute top-4 left-6 right-6 h-1 bg-[#EAEDED] -z-0 hidden sm:block">
-                        <div
-                          className={`h-full transition-all duration-500 ${
-                            isRejected
-                              ? 'bg-rose-500'
-                              : 'bg-emerald-500'
-                          }`}
-                          style={{
-                            width: `${isRejected ? 100 : (stepIndex / 4) * 100}%`,
-                          }}
-                        />
-                      </div>
-
-                      {/* 5 Milestones */}
-                      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 relative z-10 text-xs">
-                        {/* 1. Request Submitted */}
-                        <div className="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-2">
-                          <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
-                            <Check className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#0F1111] block">1. Return Raised</span>
-                            <span className="text-[11px] text-[#565959]">
-                              {new Date(ret.createdAt).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                            </span>
-                            <span className="text-[10px] text-emerald-700 font-semibold block">Authorized</span>
-                          </div>
-                        </div>
-
-                        {/* 2. Pickup Boy Collection */}
-                        <div className="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm shrink-0 ${
-                              stepIndex >= 1
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-[#EAEDED] text-[#565959]'
-                            }`}
-                          >
-                            {stepIndex >= 1 ? <Check className="h-4 w-4" /> : '2'}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#0F1111] block">2. Doorstep Pickup</span>
-                            {ret.pickedUpAt ? (
-                              <span className="text-[11px] text-emerald-700 font-semibold block">
-                                Picked Up by Boy
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-amber-700 font-semibold block">
-                                Pickup Scheduled
-                              </span>
-                            )}
-                            {ret.reverseCourierPartner && (
-                              <span className="text-[10px] text-[#565959] block">
-                                {ret.reverseCourierPartner}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 3. In Transit to Warehouse */}
-                        <div className="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm shrink-0 ${
-                              stepIndex >= 2
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-[#EAEDED] text-[#565959]'
-                            }`}
-                          >
-                            {stepIndex >= 2 ? <Check className="h-4 w-4" /> : '3'}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#0F1111] block">3. In Transit</span>
-                            {ret.receivedAtWarehouseAt ? (
-                              <span className="text-[11px] text-emerald-700 font-semibold block">
-                                Reached WH Hub
-                              </span>
-                            ) : stepIndex >= 1 ? (
-                              <span className="text-[11px] text-blue-700 font-semibold block">
-                                On the Way to WH
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-[#565959] block">Pending Pickup</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 4. Warehouse Quality Check (QC) */}
-                        <div className="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm shrink-0 ${
-                              isRejected
-                                ? 'bg-rose-600 text-white'
-                                : stepIndex >= 3
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-[#EAEDED] text-[#565959]'
-                            }`}
-                          >
-                            {isRejected ? (
-                              <X className="h-4 w-4" />
-                            ) : stepIndex >= 3 ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              '4'
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#0F1111] block">4. Quality Check</span>
-                            {isRejected ? (
-                              <span className="text-[11px] text-rose-700 font-bold block">QC Failed</span>
-                            ) : ret.qcPassed ? (
-                              <span className="text-[11px] text-emerald-700 font-bold block">QC Passed ✓</span>
-                            ) : stepIndex >= 2 ? (
-                              <span className="text-[11px] text-blue-700 font-semibold block">Inspection Ongoing</span>
-                            ) : (
-                              <span className="text-[11px] text-[#565959] block">Awaiting Arrival</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 5. Refund Settled / Replacement Delivered */}
-                        <div className="flex sm:flex-col items-center sm:text-center gap-3 sm:gap-2">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm shrink-0 ${
-                              stepIndex >= 4
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-[#EAEDED] text-[#565959]'
-                            }`}
-                          >
-                            {stepIndex >= 4 ? <Check className="h-4 w-4" /> : '5'}
-                          </div>
-                          <div>
-                            <span className="font-bold text-[#0F1111] block">
-                              {isRefund ? '5. Refund Credited' : '5. Replacement'}
-                            </span>
-                            {stepIndex >= 4 ? (
-                              <span className="text-[11px] text-emerald-700 font-bold block">
-                                {isRefund ? 'Money Transferred' : 'Item Dispatched'}
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-[#565959] block">
-                                {isRefund ? 'Post QC Settlement' : 'Exchange Pending'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Financial Settlement & AWB Banner */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    {/* Reverse Tracking Info Card */}
-                    <div className="bg-[#F7F8F8] p-4 rounded-xl border border-[#D5D9D9] text-xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-[#0F1111] flex items-center gap-1.5">
-                          <Truck className="h-4 w-4 text-[#007185]" />
-                          <span>Reverse Courier Logistics</span>
-                        </span>
-                        {ret.reverseCourierPartner && (
-                          <span className="font-bold text-[#007185] bg-[#E2E7FF] px-2 py-0.5 rounded text-[11px]">
-                            {ret.reverseCourierPartner}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[#565959]">Reverse Tracking AWB:</span>
-                          {ret.reverseTrackingNumber ? (
-                            <span className="font-mono font-bold text-[#0F1111] flex items-center gap-1">
-                              {ret.reverseTrackingNumber}
-                              {reverseTrackingUrl && (
-                                <a
-                                  href={reverseTrackingUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[#007185] hover:underline"
-                                  title="Track reverse parcel on carrier site"
-                                >
-                                  <ExternalLink className="h-3 w-3 inline" />
-                                </a>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="text-[#757684] italic">Generating Reverse AWB...</span>
-                          )}
-                        </div>
-
-                        {ret.pickedUpAt && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-[#565959]">Doorstep Picked Up On:</span>
-                            <span className="font-semibold text-[#0F1111]">
-                              {new Date(ret.pickedUpAt).toLocaleString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                        )}
-
-                        {ret.receivedAtWarehouseAt && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-[#565959]">Arrived at Hub:</span>
-                            <span className="font-semibold text-emerald-700">
-                              {new Date(ret.receivedAtWarehouseAt).toLocaleString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Refund or Replacement Settlement Status Card */}
-                    {isRefund ? (
-                      <div
-                        className={`p-4 rounded-xl border text-xs space-y-2 ${
-                          confirmedRefund
-                            ? 'bg-emerald-50/70 border-emerald-300'
-                            : pendingRefund
-                            ? 'bg-amber-50/70 border-amber-300'
-                            : 'bg-[#F7F8F8] border-[#D5D9D9]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#0F1111] flex items-center gap-1.5">
-                            <CreditCard className="h-4 w-4 text-[#007185]" />
-                            <span>Bank / Account Refund Status</span>
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              confirmedRefund
-                                ? 'bg-emerald-600 text-white'
-                                : pendingRefund
-                                ? 'bg-amber-200 text-amber-900'
-                                : 'bg-neutral-200 text-neutral-800'
-                            }`}
-                          >
-                            {confirmedRefund
-                              ? 'Refund Transferred'
-                              : pendingRefund
-                              ? 'Transfer In Progress'
-                              : 'Pending QC Approval'}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[#565959]">Total Refund Amount:</span>
-                            <span className="font-bold text-sm text-[#0F1111]">
-                              {formatINR(
-                                confirmedRefund?.amount ||
-                                  pendingRefund?.amount ||
-                                  ret.item.totalPrice ||
-                                  ret.item.unitPrice
-                              )}
-                            </span>
-                          </div>
-
-                          {confirmedRefund?.gatewayReference ? (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#565959]">Bank UTR / Ref Number:</span>
-                              <span className="font-mono font-bold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.2 rounded">
-                                {confirmedRefund.gatewayReference}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#565959]">Credited To:</span>
-                              <span className="font-semibold text-[#0F1111]">
-                                Original Payment Source / Bank Account
-                              </span>
-                            </div>
-                          )}
-
-                          {confirmedRefund?.processedAt ? (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#565959]">Transfer Cleared At:</span>
-                              <span className="font-semibold text-emerald-700">
-                                {new Date(confirmedRefund.processedAt).toLocaleString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </div>
-                          ) : (
-                            <p className="text-[11px] text-[#565959] mt-1">
-                              After the quality check, the refund goes to your original payment method. Banks usually take 5–7 business days.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      /* Replacement Info Card */
-                      <div className="bg-[#F7F8F8] p-4 rounded-xl border border-[#D5D9D9] text-xs space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#0F1111] flex items-center gap-1.5">
-                            <RefreshCw className="h-4 w-4 text-purple-700" />
-                            <span>Exchange Package Status</span>
-                          </span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-800">
-                            {ret.replacementTrackingNumber ? 'Dispatched' : 'Preparing New Size'}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1">
-                          {ret.replacementCourierPartner && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#565959]">Courier:</span>
-                              <span className="font-bold text-[#0F1111]">{ret.replacementCourierPartner}</span>
-                            </div>
-                          )}
-
-                          {ret.replacementTrackingNumber && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-[#565959]">Forward AWB:</span>
-                              <span className="font-mono font-bold text-[#007185] flex items-center gap-1">
-                                {ret.replacementTrackingNumber}
-                                {replacementTrackingUrl && (
-                                  <a
-                                    href={replacementTrackingUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[#007185] hover:underline"
-                                    title="Track replacement parcel"
-                                  >
-                                    <ExternalLink className="h-3 w-3 inline" />
-                                  </a>
-                                )}
-                              </span>
-                            </div>
-                          )}
-
-                          <p className="text-[11px] text-[#565959]">
-                            QC pass hone ke baad naya exchange size piece direct dispatch kar diya jata hai.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <ul className="space-y-4" role="list">
+          {filtered.map((ret) => (
+            <li key={ret.id}>
+              <ReturnCard ret={ret} onPayoutSaved={fetchReturns} />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
+  );
+}
+
+function ReturnCard({ ret, onPayoutSaved }: { ret: ReturnItem; onPayoutSaved: () => void }) {
+  const isRefund = ret.type === 'RETURN_REFUND';
+  const sent = ret.refunds.find((r) => r.status === 'CONFIRMED');
+  const pending = ret.refunds.find((r) => ['INITIATED', 'GATEWAY_PENDING', 'RECONCILIATION_REQUIRED'].includes(r.status));
+  const status = describe(ret, Boolean(sent));
+  const failed = ['QC_FAILED', 'REJECTED', 'CANCELLED'].includes(ret.status);
+  const showRefund = isRefund || ret.status === 'REFUND_OFFERED' || Boolean(sent || pending);
+  const pickupUrl = getCourierTrackingUrl(ret.reverseCourierPartner, ret.reverseTrackingNumber);
+  const replacementUrl = getCourierTrackingUrl(ret.replacementCourierPartner, ret.replacementTrackingNumber);
+
+  // Five steps; the last is the refund or the replacement.
+  const done = [
+    true,
+    Boolean(ret.pickedUpAt) || ['PICKED_UP', 'RECEIVED_AT_WH', 'QC_PASSED', 'QC_FAILED', 'QC_DISPUTED', 'REFUND_OFFERED', 'COMPLETED'].includes(ret.status),
+    Boolean(ret.receivedAtWarehouseAt) || ['RECEIVED_AT_WH', 'QC_PASSED', 'QC_FAILED', 'QC_DISPUTED', 'REFUND_OFFERED', 'COMPLETED'].includes(ret.status),
+    ret.qcPassed === true || ['QC_PASSED', 'REFUND_OFFERED', 'COMPLETED'].includes(ret.status),
+    Boolean(sent) || ret.status === 'COMPLETED' || Boolean(ret.replacementDispatchedAt),
+  ];
+  const steps = [
+    { label: 'Requested', date: formatDate(ret.createdAt) },
+    { label: 'Picked up', date: formatDate(ret.pickedUpAt) },
+    { label: 'Back with seller', date: formatDate(ret.receivedAtWarehouseAt) },
+    { label: ret.status === 'QC_FAILED' ? "Didn't pass check" : 'Checked', date: formatDate(ret.qcCompletedAt) },
+    { label: isRefund || sent ? 'Refund sent' : 'Replacement sent', date: formatDate(sent?.processedAt || ret.replacementDispatchedAt) },
+  ];
+  const current = done.lastIndexOf(true);
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-[#D5D9D9] bg-white">
+      {/* Item and status */}
+      <div className="flex gap-4 p-4 sm:p-5">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-[#EAEDED] bg-[#F7F8F8]">
+          {ret.item.image ? (
+            <Image src={ret.item.image} alt="" fill className="object-contain p-1" />
+          ) : (
+            <Package className="absolute inset-0 m-auto h-7 w-7 text-[#8A8F8F]" aria-hidden="true" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h2 className="text-sm font-semibold leading-snug text-[#0F1111]">{ret.item.title}</h2>
+            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+          </div>
+          <p className="text-sm text-[#565959]">
+            {isRefund ? 'Return for refund' : 'Replacement'} · Qty {ret.requestedQuantity}
+            {ret.item.size && !['N/A', 'Standard'].includes(ret.item.size) ? ` · Size ${ret.item.size}` : ''}
+            {ret.item.color && ret.item.color !== 'N/A' ? ` · ${ret.item.color}` : ''}
+          </p>
+          <p className="text-xs text-[#565959]">
+            Order{' '}
+            <Link href="/account?tab=orders" className="text-[#007185] hover:underline">
+              #{ret.orderNumber}
+            </Link>{' '}
+            · Requested {formatDate(ret.createdAt)} · Sold by {ret.vendor.storeName}
+          </p>
+        </div>
+      </div>
+
+      {/* What happens next */}
+      {status.next && (
+        <p className={`border-t border-[#EAEDED] px-4 py-3 text-sm sm:px-5 ${failed ? 'text-rose-800' : 'text-[#0F1111]'}`}>{status.next}</p>
+      )}
+
+      {/* Steps */}
+      {!['REJECTED', 'CANCELLED'].includes(ret.status) && (
+        <ol className="grid grid-cols-1 gap-2 border-t border-[#EAEDED] px-4 py-4 sm:grid-cols-5 sm:gap-0 sm:px-5" aria-label="Return progress">
+          {steps.map((step, i) => {
+            const isDone = done[i] && !(i === 3 && ret.status === 'QC_FAILED');
+            const isFail = i === 3 && ret.status === 'QC_FAILED';
+            return (
+              <li key={step.label} className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2" aria-current={i === current ? 'step' : undefined}>
+                <div className="flex w-full items-center sm:pr-2">
+                  <span
+                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${
+                      isFail ? 'bg-rose-600 text-white' : isDone ? 'bg-[#067D62] text-white' : 'border border-[#D5D9D9] bg-white text-[#565959]'
+                    }`}
+                  >
+                    {isFail ? <X className="h-3.5 w-3.5" aria-hidden="true" /> : isDone ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : i + 1}
+                  </span>
+                  {i < steps.length - 1 && (
+                    <span className={`ml-2 hidden h-0.5 flex-1 sm:block ${done[i + 1] ? 'bg-[#067D62]' : 'bg-[#E3E6E6]'}`} aria-hidden="true" />
+                  )}
+                </div>
+                <div className="text-sm">
+                  <p className={isDone || isFail ? 'font-medium text-[#0F1111]' : 'text-[#565959]'}>{step.label}</p>
+                  {step.date && (isDone || isFail) && <p className="text-xs text-[#565959]">{step.date}</p>}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {/* Details: why, pickup, refund / replacement */}
+      <dl className="grid gap-x-6 gap-y-3 border-t border-[#EAEDED] px-4 py-4 text-sm sm:grid-cols-2 sm:px-5">
+        <div>
+          <dt className="text-xs text-[#565959]">Reason</dt>
+          <dd className="text-[#0F1111]">
+            {REASONS[ret.reason] || ret.reason}
+            {ret.detailedReason && <span className="block text-[#565959]">&ldquo;{ret.detailedReason}&rdquo;</span>}
+          </dd>
+        </div>
+
+        {(ret.reverseTrackingNumber || ret.reverseCourierPartner) && (
+          <div>
+            <dt className="text-xs text-[#565959]">Pickup</dt>
+            <dd className="text-[#0F1111]">
+              {ret.reverseCourierPartner || 'Courier'}
+              {ret.reverseTrackingNumber && <span className="tabular-nums"> · {ret.reverseTrackingNumber}</span>}
+              {pickupUrl && (
+                <a href={pickupUrl} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-0.5 text-[#007185] hover:underline">
+                  Track <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
+              )}
+            </dd>
+          </div>
+        )}
+
+        {showRefund && (
+          <div>
+            <dt className="text-xs text-[#565959]">Refund</dt>
+            <dd className="text-[#0F1111]">
+              {sent ? (
+                <>
+                  <strong>{formatINR(sent.amount)}</strong> sent {formatDate(sent.processedAt)}
+                  {' to '}
+                  {sent.mode === 'MANUAL_BANK_TRANSFER'
+                    ? ret.payoutDetails && !ret.payoutDetails.erased
+                      ? ret.payoutDetails.summary
+                      : 'the bank account or UPI ID you gave'
+                    : 'your original payment method'}
+                  {sent.mode === 'MANUAL_BANK_TRANSFER' && sent.gatewayReference && (
+                    <span className="block text-[#565959]">
+                      Bank reference (UTR) <span className="tabular-nums text-[#0F1111]">{sent.gatewayReference}</span>
+                    </span>
+                  )}
+                  {sent.mode !== 'MANUAL_BANK_TRANSFER' && (
+                    <span className="block text-[#565959]">Banks usually show it within 5–7 working days.</span>
+                  )}
+                </>
+              ) : pending ? (
+                <>
+                  <strong>{formatINR(pending.amount)}</strong> is being processed.
+                </>
+              ) : failed ? (
+                <span className="text-[#565959]">No refund for this request.</span>
+              ) : (
+                <span className="text-[#565959]">The amount is confirmed after the item passes the check.</span>
+              )}
+            </dd>
+          </div>
+        )}
+
+        {!isRefund && ret.status !== 'REFUND_OFFERED' && !failed && (
+          <div>
+            <dt className="text-xs text-[#565959]">Replacement</dt>
+            <dd className="text-[#0F1111]">
+              {ret.replacementTrackingNumber ? (
+                <>
+                  Sent with {ret.replacementCourierPartner || 'courier'}
+                  <span className="tabular-nums"> · {ret.replacementTrackingNumber}</span>
+                  {replacementUrl && (
+                    <a href={replacementUrl} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-0.5 text-[#007185] hover:underline">
+                      Track <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  )}
+                </>
+              ) : (
+                <span className="text-[#565959]">Sent after the returned item passes the check.</span>
+              )}
+            </dd>
+          </div>
+        )}
+
+        {ret.customerNotes && (
+          <div>
+            <dt className="text-xs text-[#565959]">Your notes</dt>
+            <dd className="text-[#0F1111]">{ret.customerNotes}</dd>
+          </div>
+        )}
+      </dl>
+
+      {/* Cash on Delivery: where the refund goes */}
+      {(ret.canEditPayoutDetails || (ret.payoutDetails && !sent)) && <RefundPayoutBox ret={ret} onSaved={onPayoutSaved} />}
+    </article>
   );
 }
 
@@ -794,7 +494,7 @@ function RefundPayoutBox({ ret, onSaved }: { ret: ReturnItem; onSaved: () => voi
   };
 
   return (
-    <div className={`border-b border-[#EAEDED] px-5 py-4 sm:px-6 ${missing ? 'bg-amber-50' : 'bg-white'}`}>
+    <div className={`border-t border-[#EAEDED] px-4 py-4 sm:px-5 ${missing ? 'bg-amber-50' : 'bg-[#F7F8F8]'}`}>
       {!editing ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm">
