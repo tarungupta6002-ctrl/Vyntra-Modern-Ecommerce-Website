@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireVendor, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { findDefaultPickupAddress, PICKUP_ADDRESS_REQUIRED, warehouseLabel } from '@/lib/vendor/pickup-address';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { Prisma } from '@prisma/client';
@@ -245,6 +246,10 @@ export async function POST(request: Request) {
       return apiError(attributeCheck.errors[0], 400, { errors: attributeCheck.errors }, 'INVALID_ATTRIBUTES');
     }
 
+    if (isPublished && !(await findDefaultPickupAddress(auth.vendorProfileId))) {
+      return apiError(PICKUP_ADDRESS_REQUIRED, 400, null, 'PICKUP_ADDRESS_REQUIRED');
+    }
+
     let finalDescription = description;
     if (body.aplus || body.specs || body.highlights) {
       finalDescription = JSON.stringify({
@@ -314,9 +319,7 @@ export async function POST(request: Request) {
       const defaultWarehouse = await tx.vendorWarehouse.findFirst({
         where: { vendorId: auth.vendorProfileId, isDefault: true },
       });
-      const resolvedWarehouseLocation = defaultWarehouse
-        ? `${defaultWarehouse.facilityName} (${defaultWarehouse.city})`
-        : 'Vendor Dispatch Facility';
+      const resolvedWarehouseLocation = defaultWarehouse ? warehouseLabel(defaultWarehouse) : null;
 
       // Create Variants & Inventories
       if (variantsInput && variantsInput.length > 0) {

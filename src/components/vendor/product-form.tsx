@@ -1869,7 +1869,17 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {errorMessage && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-3 animate-in fade-in">
           <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
-          <span>{errorMessage}</span>
+          <span>
+            {errorMessage}
+            {/Pickup addresses/.test(errorMessage) && (
+              <>
+                {' '}
+                <Link href="/vendor/pickup-addresses" className="font-bold underline">
+                  Add a pickup address
+                </Link>
+              </>
+            )}
+          </span>
         </div>
       )}
       {successMessage && (

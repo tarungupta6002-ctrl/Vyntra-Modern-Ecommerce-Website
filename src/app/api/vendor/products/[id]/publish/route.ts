@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireVendor, verifyVendorOwnership, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { findDefaultPickupAddress, PICKUP_ADDRESS_REQUIRED, warehouseLabel } from '@/lib/vendor/pickup-address';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { validateListingAttributes } from '@/lib/catalog/category-path';
@@ -30,6 +31,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       typeof body.isPublished === 'boolean'
         ? body.isPublished
         : !(await prisma.product.findUnique({ where: { id }, select: { isPublished: true } }))?.isPublished;
+
+    // A listing can't go live without a pickup address (couriers collect from it; invoices print it).
+    if (nextPublished && !(await findDefaultPickupAddress(auth.vendorProfileId))) {
+      return apiError(PICKUP_ADDRESS_REQUIRED, 400, null, 'PICKUP_ADDRESS_REQUIRED');
+    }
 
     // A listing can't go live without the required category attributes (they power filters).
     if (nextPublished) {

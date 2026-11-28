@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireVendor, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { findDefaultPickupAddress, PICKUP_ADDRESS_REQUIRED, warehouseLabel } from '@/lib/vendor/pickup-address';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { OfferCondition, FulfillmentType } from '@prisma/client';
 import { resolveBuyBox } from '@/lib/buy-box';
@@ -150,28 +151,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Execute Creation inside a Prisma Database Transaction
-    const createdOffer = await prisma.$transaction(async (tx) => {
-      // 5.1 Ensure vendor has a default warehouse
-      let warehouse = await tx.vendorWarehouse.findFirst({
-        where: { vendorId: auth.vendorProfileId, isDefault: true },
-      });
+    // 5. Stock is recorded at the seller's default pickup address, which must be a real one.
+    if (!(await findDefaultPickupAddress(auth.vendorProfileId))) {
+      return apiError(PICKUP_ADDRESS_REQUIRED, 400, null, 'PICKUP_ADDRESS_REQUIRED');
+    }
 
-      if (!warehouse) {
-        warehouse = await tx.vendorWarehouse.create({
-          data: {
-            vendorId: auth.vendorProfileId,
-            warehouseCode: `WH-${auth.vendorProfileId.slice(-6).toUpperCase()}`,
-            facilityName: `${auth.dbUser.vendorProfile?.storeName || 'Artisan Store'} Primary Atelier`,
-            streetAddress: 'Commercial Artisan Atelier Hub',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            postalCode: '560001',
-            contactPhone: auth.dbUser.phone || '+91 9999999999',
-            isDefault: true,
-          },
-        });
-      }
+    // 6. Execute Creation inside a Prisma Database Transaction
+    const createdOffer = await prisma.$transaction(async (tx) => {
+      // 5.1 The default pickup address (checked above)
+      const warehouse = await findDefaultPickupAddress(auth.vendorProfileId, tx);
+      if (!warehouse) throw new Error(PICKUP_ADDRESS_REQUIRED);
 
       // 5.2 Create the SellerOffer
       const newOffer = await tx.sellerOffer.create({

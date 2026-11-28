@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireVendor, verifyVendorOwnership, handleAuthError } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { findDefaultPickupAddress, PICKUP_ADDRESS_REQUIRED, warehouseLabel } from '@/lib/vendor/pickup-address';
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { Prisma } from '@prisma/client';
@@ -199,6 +200,9 @@ export async function PUT(request: Request, context: RouteContext) {
 
     const originalPrice = body.originalPrice ? Number(body.originalPrice) : price;
     const isPublished = typeof body.isPublished === 'boolean' ? body.isPublished : undefined;
+    if (isPublished === true && !(await findDefaultPickupAddress(auth.vendorProfileId))) {
+      return apiError(PICKUP_ADDRESS_REQUIRED, 400, null, 'PICKUP_ADDRESS_REQUIRED');
+    }
     const description = body.description?.trim() || null;
     const subtitle = body.subtitle?.trim() || null;
     const stockQuantity = Math.max(0, parseInt(body.stock, 10) || 10);
@@ -282,9 +286,7 @@ export async function PUT(request: Request, context: RouteContext) {
       const defaultWarehouse = await tx.vendorWarehouse.findFirst({
         where: { vendorId: auth.vendorProfileId, isDefault: true },
       });
-      const resolvedWarehouseLocation = defaultWarehouse
-        ? `${defaultWarehouse.facilityName} (${defaultWarehouse.city})`
-        : 'Vendor Dispatch Facility';
+      const resolvedWarehouseLocation = defaultWarehouse ? warehouseLabel(defaultWarehouse) : null;
 
       // 4. Update variants & inventories if variants array provided
       if (variantsInput && variantsInput.length > 0) {
