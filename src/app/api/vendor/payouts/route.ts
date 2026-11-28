@@ -48,6 +48,26 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Return refunds on items that were already paid out are recovered from later payouts.
+    const returnDebits = await prisma.vendorAdjustment.findMany({
+      where: { vendorProfileId: vendorId, type: 'RETURN_REFUND_DEBIT', returnRequestId: { not: null } },
+      select: {
+        amount: true,
+        returnRequest: { select: { orderItemId: true } },
+        allocations: { where: { status: 'ACTIVE' }, select: { amount: true } },
+      },
+    });
+    const debitByItem = new Map<string, { amount: number; recovered: number }>();
+    for (const d of returnDebits) {
+      const key = d.returnRequest?.orderItemId;
+      if (!key) continue;
+      const prev = debitByItem.get(key) || { amount: 0, recovered: 0 };
+      debitByItem.set(key, {
+        amount: prev.amount + Number(d.amount),
+        recovered: prev.recovered + d.allocations.reduce((s, a) => s + Number(a.amount), 0),
+      });
+    }
+
     // 3. Categorize earnings and product-wise entries
     let pendingBalance = 0;
     let pendingCommission = 0;
@@ -112,6 +132,13 @@ export async function GET() {
         payoutStatus: it.payoutStatus,
         isEligibleForPayout: isEligibleNow && !voidReason,
         voidReason,
+        // Set when the item was returned after its payout: this much is taken back from payouts.
+        returnDebit: debitByItem.has(it.id)
+          ? {
+              amount: Number(debitByItem.get(it.id)!.amount.toFixed(2)),
+              recovered: Number(debitByItem.get(it.id)!.recovered.toFixed(2)),
+            }
+          : null,
         isLegacy,
         payoutReference: it.vendorPayout?.referenceNumber || null,
         paidAt: it.vendorPayout?.paidAt || null,
@@ -198,7 +225,8 @@ export async function GET() {
         estimatedNextPayout,
         totalPaidOut: Number(totalPaidOut.toFixed(2)),
         awaitingDeliveryEarnings: Number(awaitingDeliveryEarnings.toFixed(2)),
-        totalLifetimeNetEarnings: Number((totalPaidOut + pendingBaseNet).toFixed(2)),
+        // Paid out plus ready, less what returns still have to take back.
+        totalLifetimeNetEarnings: Number((totalPaidOut + pendingBaseNet - totalOutstandingAdjustments).toFixed(2)),
       },
       items: formattedItems,
       adjustments: formattedAdjustments,

@@ -1,3 +1,4 @@
+import { applyReturnRefundWebhook } from '@/lib/payments/return-refund';
 import { NextResponse } from 'next/server';
 import { verifyRazorpayWebhookSignature } from '@/lib/razorpay';
 import { prisma } from '@/lib/prisma';
@@ -226,12 +227,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: 'Payment failure logged in database ledger' }, { status: 200 });
     }
 
-    // Automatic cancellation refunds: Razorpay reports the final refund outcome here.
+    // Automatic cancellation and return refunds: Razorpay reports the final refund outcome here.
     // Apply first (idempotent), then record the event, so a failure is retried by Razorpay
     // instead of being swallowed as a "duplicate" on the next delivery.
     if (eventType === 'refund.processed' || eventType === 'refund.failed') {
       const refundEntity = eventPayload.payload?.refund?.entity;
-      const matched = await applyRefundWebhook(refundEntity, eventType);
+      const matched =
+        (await applyRefundWebhook(refundEntity, eventType)) ||
+        (await applyReturnRefundWebhook(refundEntity, eventType));
       await prisma.paymentWebhookEvent.create({
         data: {
           eventId,
@@ -242,7 +245,7 @@ export async function POST(request: Request) {
         },
       }).catch(() => {});
       return NextResponse.json(
-        { success: true, message: matched ? `Refund ${refundEntity?.id} updated` : 'Refund not linked to a cancellation; acknowledged' },
+        { success: true, message: matched ? `Refund ${refundEntity?.id} updated` : 'Refund not linked to a cancellation or return; acknowledged' },
         { status: 200 }
       );
     }

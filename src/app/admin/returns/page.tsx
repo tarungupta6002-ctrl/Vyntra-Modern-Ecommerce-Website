@@ -131,6 +131,10 @@ export default function AdminReturnsManagementPage() {
   const [utrReferenceInput, setUtrReferenceInput] = useState<string>('');
   const [adminNotesInput, setAdminNotesInput] = useState<string>('');
   const [isConfirmedCheckbox, setIsConfirmedCheckbox] = useState(false);
+  // Online payments are refunded through Razorpay; COD (or an online order with no Razorpay
+  // payment ID, which the server reports) is paid back by the team and needs a reference.
+  const [needsManualReference, setNeedsManualReference] = useState(false);
+  const [reconcilingId, setReconcilingId] = useState<string | null>(null);
   const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [modalSuccess, setModalSuccess] = useState<string | null>(null);
@@ -204,6 +208,7 @@ export default function AdminReturnsManagementPage() {
     setModalError(null);
     setModalSuccess(null);
     setIsConfirmedCheckbox(false);
+    setNeedsManualReference(ret.order.paymentMethod === 'COD');
     setUtrReferenceInput('');
     setAdminNotesInput('');
     setIsLoadingDetails(true);
@@ -246,8 +251,8 @@ export default function AdminReturnsManagementPage() {
     e.preventDefault();
     if (!activeReturn) return;
 
-    if (!utrReferenceInput.trim() || utrReferenceInput.trim().length < 4) {
-      setModalError('A valid verified bank settlement reference / UTR is mandatory (min 4 characters).');
+    if (needsManualReference && (!utrReferenceInput.trim() || utrReferenceInput.trim().length < 4)) {
+      setModalError('Enter the bank / UPI reference (UTR) of the money you sent (at least 4 characters).');
       return;
     }
 
@@ -262,7 +267,7 @@ export default function AdminReturnsManagementPage() {
     }
 
     if (!isConfirmedCheckbox) {
-      setModalError('You must confirm that the manual bank refund transfer has been completed.');
+      setModalError(needsManualReference ? 'Confirm that you have sent the money.' : 'Confirm the refund amount.');
       return;
     }
 
@@ -278,7 +283,7 @@ export default function AdminReturnsManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientRequestId,
-          referenceNumber: utrReferenceInput.trim(),
+          referenceNumber: needsManualReference ? utrReferenceInput.trim() : undefined,
           amount: parsedRefundAmount,
           adminNotes: adminNotesInput.trim() || undefined,
         }),
@@ -286,11 +291,17 @@ export default function AdminReturnsManagementPage() {
 
       const json = await res.json();
       if (!res.ok || !json.success) {
+        if (json.error?.code === 'MANUAL_REFERENCE_REQUIRED') setNeedsManualReference(true);
+        if (json.error?.code === 'REFUND_RECONCILIATION_REQUIRED' || json.error?.code === 'REFUND_GATEWAY_REJECTED') fetchReturns();
         throw new Error(json.error?.message || 'Refund processing failed');
       }
 
       setModalSuccess(
-        `Refund of ${formatINR(parsedRefundAmount)} confirmed successfully. Ref: ${utrReferenceInput.trim()}`
+        json.data?.mode === 'ORIGINAL_PAYMENT'
+          ? `Refund of ${formatINR(parsedRefundAmount)} sent to Razorpay (${json.data.razorpayRefundId}). ${
+              json.data.status === 'CONFIRMED' ? 'Razorpay has processed it.' : 'Razorpay will confirm it shortly.'
+            }`
+          : `Refund of ${formatINR(parsedRefundAmount)} recorded. Ref: ${utrReferenceInput.trim()}`
       );
       // Refresh list in background
       fetchReturns();
@@ -301,6 +312,32 @@ export default function AdminReturnsManagementPage() {
       setModalError(err.message || 'Refund settlement failed');
     } finally {
       setIsSubmittingRefund(false);
+    }
+  };
+
+  const handleReconcileRefund = async (ret: AdminReturnItem, refundId: string) => {
+    setReconcilingId(refundId);
+    try {
+      const res = await fetch(`/api/admin/returns/${ret.id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reconcileRefundId: refundId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error?.message || 'Could not check the refund');
+      const o = json.data.outcome;
+      alert(
+        o.status === 'initiated'
+          ? `Razorpay has the refund (${o.razorpayRefundId}, ${o.gatewayStatus}). It is now recorded.`
+          : o.needsReconciliation
+          ? `Razorpay could not be reached again (${o.reason}). Try again in a few minutes.`
+          : `Razorpay did not accept the refund: ${o.reason}. You can process the refund again.`
+      );
+      fetchReturns();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setReconcilingId(null);
     }
   };
 
@@ -460,8 +497,13 @@ export default function AdminReturnsManagementPage() {
                     ret.status === 'QC_PASSED' ||
                     (ret.status === 'QC_DISPUTED' && ret.disputeResolution === 'REFUND_APPROVED');
                   const alreadyRefunded = ret.refundTransactions
-                    .filter((t) => t.status === 'CONFIRMED')
+                    .filter((t) => t.status === 'CONFIRMED' || t.status === 'GATEWAY_PENDING')
                     .reduce((sum, t) => sum + Number(t.amount), 0);
+                  const pendingGateway = ret.refundTransactions.some((t) => t.status === 'GATEWAY_PENDING');
+                  const stuckRefund = ret.refundTransactions.find(
+                    (t) => t.status === 'INITIATED' || t.status === 'RECONCILIATION_REQUIRED'
+                  );
+                  const lastFailed = ret.refundTransactions[0]?.status === 'FAILED' ? ret.refundTransactions[0] : null;
 
                   return (
                     <tr key={ret.id} className="hover:bg-[#F7F8F8]/50 transition-colors">
@@ -560,6 +602,25 @@ export default function AdminReturnsManagementPage() {
                           <div className="text-[9px] text-zinc-500 font-mono mt-0.5">
                             {ret.refundTransactions.length} transaction(s)
                           </div>
+                        )}
+                        {pendingGateway && (
+                          <div className="mt-1 text-[10px] font-semibold text-sky-700">Razorpay processing</div>
+                        )}
+                        {lastFailed && !stuckRefund && (
+                          <div className="mt-1 text-[10px] font-semibold text-rose-700" title={(lastFailed as any).failureReason || ''}>
+                            Last refund failed
+                          </div>
+                        )}
+                        {stuckRefund && (
+                          <button
+                            type="button"
+                            onClick={() => handleReconcileRefund(ret, stuckRefund.id)}
+                            disabled={reconcilingId === stuckRefund.id}
+                            className="mt-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                            title="The last refund's outcome is unknown. Ask Razorpay before refunding again."
+                          >
+                            {reconcilingId === stuckRefund.id ? 'Checking…' : 'Check with Razorpay'}
+                          </button>
                         )}
                       </td>
 
@@ -789,9 +850,10 @@ export default function AdminReturnsManagementPage() {
                     </p>
                   </div>
 
+                  {needsManualReference ? (
                   <div>
                     <label className="block text-xs font-bold text-[#0F1111] mb-1">
-                      Actual Bank UTR / Settlement Reference <span className="text-rose-600">*</span>
+                      Bank / UPI reference (UTR) <span className="text-rose-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -804,9 +866,15 @@ export default function AdminReturnsManagementPage() {
                       placeholder="e.g. VYNTRA-REF-9928172648"
                     />
                     <p className="text-[10px] text-[#565959] mt-0.5">
-                      Enter the actual bank transaction reference or UTR provided by the payment gateway/bank.
+                      Send the money to the customer by bank transfer or UPI first, then enter its reference here.
                     </p>
                   </div>
+                  ) : (
+                    <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs text-sky-900">
+                      This order was paid online. The refund goes back to the customer&apos;s original payment method through
+                      Razorpay; banks usually show it in 5–7 business days.
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold text-[#0F1111] mb-1">
@@ -830,8 +898,15 @@ export default function AdminReturnsManagementPage() {
                         className="mt-0.5 rounded border-[#D5D9D9] text-[#800020] focus:ring-[#800020]"
                       />
                       <span className="text-xs text-[#0F1111]">
-                        I confirm that the manual bank refund transfer of{' '}
-                        <strong>{formatINR(parsedRefundAmount)}</strong> has been verified and this settlement transaction is authentic.
+                        {needsManualReference ? (
+                          <>
+                            I have sent <strong>{formatINR(parsedRefundAmount)}</strong> to the customer and the reference above is correct.
+                          </>
+                        ) : (
+                          <>
+                            Refund <strong>{formatINR(parsedRefundAmount)}</strong> to the customer through Razorpay.
+                          </>
+                        )}
                       </span>
                     </label>
                   </div>
@@ -855,12 +930,12 @@ export default function AdminReturnsManagementPage() {
                     {isSubmittingRefund ? (
                       <>
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                        <span>Committing Settlement...</span>
+                        <span>{needsManualReference ? 'Recording…' : 'Refunding via Razorpay…'}</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        <span>Confirm &amp; Settle Refund</span>
+                        <span>{needsManualReference ? 'Record refund' : 'Refund via Razorpay'}</span>
                       </>
                     )}
                   </button>

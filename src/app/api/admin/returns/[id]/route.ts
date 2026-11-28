@@ -113,24 +113,24 @@ export async function GET(request: Request, context: RouteContext) {
       effectiveItemCeiling: Number(orderItem.totalPrice),
     };
 
-    // 2. Cumulative confirmed refund totals
-    const confirmedRefunds = returnRequest.refundTransactions.filter(
-      (tx) => tx.status === 'CONFIRMED'
-    );
-    const confirmedItemRefunds = confirmedRefunds.reduce(
-      (sum, tx) => Math.round((sum + Number(tx.amount)) * 100) / 100,
-      0
-    );
+    // 2. Refunds already made or in progress (same rule as the refund endpoint: anything not
+    //    FAILED counts, and only the product part is checked against the product ceilings).
+    const countedStatuses = ['INITIATED', 'GATEWAY_PENDING', 'CONFIRMED', 'RECONCILIATION_REQUIRED'];
+    const productPart = (tx: { amount: any; shippingFeeRefund?: any }) =>
+      Number(tx.amount) - Number(tx.shippingFeeRefund || 0);
+    const confirmedItemRefunds = returnRequest.refundTransactions
+      .filter((tx) => countedStatuses.includes(tx.status))
+      .reduce((sum, tx) => Math.round((sum + productPart(tx)) * 100) / 100, 0);
 
     const allOrderConfirmedRefunds = await prisma.refundTransaction.findMany({
       where: {
         orderId: order.id,
-        status: 'CONFIRMED',
+        status: { in: countedStatuses as any },
       },
-      select: { amount: true },
+      select: { amount: true, shippingFeeRefund: true },
     });
     const confirmedOrderRefunds = allOrderConfirmedRefunds.reduce(
-      (sum, tx) => Math.round((sum + Number(tx.amount)) * 100) / 100,
+      (sum, tx) => Math.round((sum + productPart(tx)) * 100) / 100,
       0
     );
 

@@ -58,6 +58,8 @@ interface VendorPayoutsData {
     isEligibleForPayout: boolean;
     /** Set when the item was cancelled or returned before payout: it earns nothing. */
     voidReason?: 'CANCELLED' | 'RETURNED' | null;
+    /** Returned after payout: amount taken back (recovered = already deducted from a payout). */
+    returnDebit?: { amount: number; recovered: number } | null;
     isLegacy: boolean;
     payoutReference: string | null;
     paidAt: string | null;
@@ -290,9 +292,14 @@ export default function VendorPayoutsPage() {
                         ) : it.voidReason ? (
                           <span className="font-bold text-[#6F7373] text-sm">{rupees(0)}</span>
                         ) : (
-                          <span className="font-bold text-emerald-700 text-sm">
-                            {rupees(it.netEarnings ?? 0)}
-                          </span>
+                          <>
+                            <span className={`font-bold text-sm ${it.returnDebit ? 'text-[#6F7373] line-through' : 'text-emerald-700'}`}>
+                              {rupees(it.netEarnings ?? 0)}
+                            </span>
+                            {it.returnDebit && (
+                              <span className="block text-[11px] font-semibold text-[#B12704]">−{rupees(it.returnDebit.amount)} returned</span>
+                            )}
+                          </>
                         )}
                       </td>
 
@@ -316,6 +323,16 @@ export default function VendorPayoutsPage() {
                             {it.payoutReference && (
                               <span className="text-[9px] text-[#565959] font-mono mt-0.5 truncate max-w-[90px]" title={it.payoutReference}>
                                 UTR: {it.payoutReference}
+                              </span>
+                            )}
+                            {it.returnDebit && (
+                              <span
+                                className="mt-1 inline-block rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-800"
+                                title="The customer returned this item after you were paid for it. Your share is taken back from your payouts."
+                              >
+                                {it.returnDebit.recovered >= it.returnDebit.amount
+                                  ? 'Returned · deducted'
+                                  : 'Returned · from next payout'}
                               </span>
                             )}
                           </div>
