@@ -110,7 +110,7 @@ const nextConfig = {
       },
       {
         source: '/category/men',
-        destination: '/category/mens-clothing',
+        destination: '/fashion/men',
         permanent: true,
       },
       {
@@ -155,7 +155,7 @@ const nextConfig = {
       },
       {
         source: '/category/bags-luggage',
-        destination: '/category/bags-backpacks',
+        destination: '/fashion/bags-luggage',
         permanent: true,
       },
       {
@@ -175,7 +175,7 @@ const nextConfig = {
       },
       {
         source: '/category/kids',
-        destination: '/category/boys-clothing',
+        destination: '/fashion/kids',
         permanent: true,
       },
       {

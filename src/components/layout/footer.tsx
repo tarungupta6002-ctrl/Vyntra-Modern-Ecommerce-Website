@@ -14,7 +14,7 @@ const PROMISES = [
 ];
 
 const SHOP = [
-  { label: 'Fashion', href: '/products?category=fashion' },
+  { label: 'Fashion', href: '/fashion' },
   { label: 'Mobiles', href: '/mobiles' },
   { label: 'Laptops and electronics', href: '/electronics' },
   { label: 'Home appliances', href: '/appliances' },

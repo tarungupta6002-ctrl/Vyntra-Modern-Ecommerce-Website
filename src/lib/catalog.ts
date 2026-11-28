@@ -16,6 +16,7 @@ import { getBooksDetailedProductBySlug } from '@/data/books-fallback';
 import { APlusData, createDefaultAPlusContent } from '@/types/aplus';
 import { resolveBuyBox } from '@/lib/buy-box';
 import { SellerOfferItem, BuyBoxResult } from '@/types/multiseller';
+import { categoryHref } from '@/lib/category-routes';
 
 function getColorHex(colorName: string): string {
   const lower = (colorName || '').toLowerCase();
@@ -141,14 +142,6 @@ export function formatCatalogProduct(product: any): FormattedCatalogProduct {
 /**
  * Formats a Prisma product into the DetailedProduct structure for PDP.
  */
-/** Departments with their own landing page; other categories use the filtered catalog. */
-const DEPARTMENT_PAGES: Record<string, string> = {
-  appliances: '/appliances',
-  electronics: '/electronics',
-  mobiles: '/mobiles',
-  books: '/books',
-};
-
 /** Breadcrumb items from the root category down to the product's category. */
 function categoryTrail(category: any): Array<{ label: string; href: string }> {
   const chain: Array<{ name: string; slug: string }> = [];
@@ -157,13 +150,8 @@ function categoryTrail(category: any): Array<{ label: string; href: string }> {
     if (node.slug) chain.unshift({ name: node.name, slug: node.slug });
     node = node.parent;
   }
-  return chain.map((c, i) => ({
-    label: c.name,
-    href:
-      i === 0 && DEPARTMENT_PAGES[c.slug]
-        ? DEPARTMENT_PAGES[c.slug]
-        : `/products?category=${encodeURIComponent(c.slug)}`,
-  }));
+  const slugs = chain.map((c) => c.slug);
+  return chain.map((c, i) => ({ label: c.name, href: categoryHref(slugs, i) }));
 }
 
 export function formatDetailedProduct(product: any): DetailedProduct {
@@ -923,8 +911,8 @@ function getCachedProduct(slug: string): Promise<DetailedProduct | null> {
               id: true,
               name: true,
               slug: true,
-              // Ancestors for the breadcrumb (Home › Appliances › Air Conditioners › …)
-              parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true } } } } } },
+              // Ancestors for the breadcrumb (Home › Fashion › Women › Clothing › Western wear › …); five levels covers the deepest branch
+              parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true, parent: { select: { name: true, slug: true } } } } } } } } } },
             },
           },
           vendor: {
@@ -983,7 +971,8 @@ function getCachedProduct(slug: string): Promise<DetailedProduct | null> {
       const formatted = formatDetailedProduct(productFromDb);
       return JSON.parse(JSON.stringify(formatted));
     },
-    ['detailed-product', slug],
+    // v2: breadcrumbs link to the department and Fashion pages
+    ['detailed-product-v2', slug],
     {
       tags: ['products', `product-${slug}`],
       revalidate: 300,

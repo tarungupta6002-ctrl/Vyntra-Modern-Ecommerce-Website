@@ -78,6 +78,11 @@ export interface DepartmentConfig {
   parent?: { label: string; href: string };
   /** What "brand" means here (e.g. "Author" for books). */
   brandLabel?: string;
+  /**
+   * Show only products that belong to one of the types (e.g. a Shoes page drawn from the whole
+   * Fashion department lists men's, women's and kids' shoes and nothing else).
+   */
+  restrictToTypes?: boolean;
 }
 
 /** All attribute value sets of a listing: the listing itself plus each variant (Amazon: any child matches). */
@@ -121,6 +126,7 @@ const SORTS = [
   { id: 'price-high', label: 'Price: high to low' },
   { id: 'discount', label: 'Biggest discount' },
   { id: 'rating', label: 'Customer rating' },
+  { id: 'newest', label: 'Newest first' },
 ] as const;
 
 type SortId = (typeof SORTS)[number]['id'];
@@ -260,6 +266,11 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   const qParam = searchParams.get('q') || searchParams.get('search') || '';
   const subParam = searchParams.get('subcategory') || 'all';
   const brandParam = searchParams.get('brand') || '';
+  // A link can pick the sort (e.g. New arrivals -> ?sort=newest).
+  const sortParam = searchParams.get('sort') || '';
+  useEffect(() => {
+    if (SORTS.some((s) => s.id === sortParam)) setSortBy(sortParam as SortId);
+  }, [sortParam]);
   useEffect(() => setSearchQuery(qParam), [qParam]);
   useEffect(() => {
     setType(filterTypes.some((t) => t.slug === subParam) ? subParam : 'all');
@@ -299,9 +310,29 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
 
   const excluded = config.excludeCategorySlugs || [];
   const pathOf = (p: CategoryProductItem) => p.categoryPath || [p.category];
+  const matchesSearch = (p: CategoryProductItem) =>
+    matchesSearchQuery(
+      searchQuery,
+      [
+        p.title,
+        p.brand,
+        p.subCategory,
+        p.category,
+        ...Object.values(p.specs || {}).map(String),
+        ...Object.values(p.attributes || {}).map(String),
+      ],
+      config.searchStopWords
+    );
+  // A search narrows the whole page (heading counts, tiles and the spotlight), not only the grid.
   const products = useMemo(
-    () => liveProducts.filter((p) => !pathOf(p).some((slug) => excluded.includes(slug))),
-    [liveProducts] // eslint-disable-line react-hooks/exhaustive-deps
+    () =>
+      liveProducts.filter(
+        (p) =>
+          !pathOf(p).some((slug) => excluded.includes(slug)) &&
+          (!config.restrictToTypes || typeOf(p) !== null) &&
+          (!searchQuery.trim() || matchesSearch(p))
+      ),
+    [liveProducts, searchQuery] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Tiles: child categories, or (brand mode) the brands on sale, most products first.
@@ -368,22 +399,6 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   const applyFilters = (list: CategoryProductItem[], skip?: string) => {
     let out = list;
     if (type !== 'all') out = out.filter((p) => typeOf(p) === type);
-    if (searchQuery.trim()) {
-      out = out.filter((p) =>
-        matchesSearchQuery(
-          searchQuery,
-          [
-            p.title,
-            p.brand,
-            p.subCategory,
-            p.category,
-            ...Object.values(p.specs || {}).map(String),
-            ...Object.values(p.attributes || {}).map(String),
-          ],
-          config.searchStopWords
-        )
-      );
-    }
     if (skip !== 'brand' && brands.length) {
       out = out.filter((p) => brands.some((b) => b.toLowerCase() === (p.brand || '').toLowerCase()));
     }
@@ -413,6 +428,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
   else if (sortBy === 'price-high') filtered.sort((a, b) => b.price - a.price);
   else if (sortBy === 'discount') filtered.sort((a, b) => discountPct(b) - discountPct(a));
   else if (sortBy === 'rating') filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  else if (sortBy === 'newest') filtered.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
   const brandFacets = (() => {
     const base = applyFilters(products, 'brand');
@@ -815,7 +831,7 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
           <div className="mt-8 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
             <div
               className={`grid grid-flow-col auto-cols-[140px] sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-4 gap-3 ${
-                TILES.length > 6 ? 'lg:grid-cols-8' : 'lg:grid-cols-6'
+                TILES.length > 8 ? 'lg:grid-cols-9' : TILES.length > 6 ? 'lg:grid-cols-8' : 'lg:grid-cols-6'
               }`}
             >
               {TILES.map(({ slug, name, icon: Icon, href }) => {
@@ -847,7 +863,13 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
                         {href && <span className="sr-only"> (opens the {name} page)</span>}
                       </span>
                       <span className="block text-xs mt-0.5 text-stone-500">
-                        {isLoading ? '…' : count > 0 ? `${count} product${count === 1 ? '' : 's'}` : 'Coming soon'}
+                        {isLoading
+                          ? '…'
+                          : count > 0
+                          ? `${count} product${count === 1 ? '' : 's'}`
+                          : searchQuery.trim()
+                          ? 'No matches'
+                          : 'Coming soon'}
                         {href && <span aria-hidden="true"> ↗</span>}
                       </span>
                     </span>
@@ -1014,13 +1036,27 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
               ) : (
                 <div className="rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-14 text-center">
                   <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-stone-100 text-stone-500">
-                    {products.length === 0 || (type !== 'all' && (typeCounts[type] || 0) === 0) ? (
+                    {(products.length === 0 && !searchQuery.trim()) || (type !== 'all' && (typeCounts[type] || 0) === 0) ? (
                       <PackageOpen className="h-7 w-7" />
                     ) : (
                       <Search className="h-7 w-7" />
                     )}
                   </div>
-                  {products.length === 0 ? (
+                  {products.length === 0 && searchQuery.trim() ? (
+                    <>
+                      <h3 className="text-base font-bold">Nothing here matches “{searchQuery.trim()}”</h3>
+                      <p className="mt-1 text-sm text-stone-600 max-w-md mx-auto">
+                        Check the spelling, or try a shorter or more general word.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={clearAll}
+                        className="mt-5 rounded-full bg-[#FFD814] hover:bg-[#F7CA00] px-5 py-2 text-[13px] font-semibold"
+                      >
+                        Clear search
+                      </button>
+                    </>
+                  ) : products.length === 0 ? (
                     <>
                       <h3 className="text-base font-bold">
                         {nounMany.charAt(0).toUpperCase() + nounMany.slice(1)} are on their way

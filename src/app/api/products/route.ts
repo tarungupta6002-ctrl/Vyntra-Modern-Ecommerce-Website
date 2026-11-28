@@ -31,6 +31,8 @@ interface FormattedProductItem {
   inStock: boolean;
   /** Category slugs from the root down to the product's category. */
   categoryPath?: string[];
+  /** When the listing went up (ISO date), for "Newest first". */
+  createdAt?: string | null;
   /** Structured category attributes (see src/lib/catalog/attributes.ts). */
   attributes?: Record<string, string | number>;
   /** Per-variant attribute values (e.g. each capacity an AC is sold in). */
@@ -133,6 +135,7 @@ function formatProduct(product: any): FormattedProductItem {
     inStock: totalStock > 0,
     specs: Object.keys(specs).length > 0 ? specs : undefined,
     categoryPath: categoryPathOf(product.category),
+    createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : null,
     attributes: readStoredAttributes(product.attributes),
     variantAttributes: (product.variants || [])
       .map((v: any) => readStoredAttributes(v.attributes))
@@ -305,8 +308,8 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 slug: true,
-                // Ancestors, so listings can tell which department/type a product belongs to.
-                parent: { select: { slug: true, parent: { select: { slug: true, parent: { select: { slug: true } } } } } },
+                // Ancestors (five levels covers the deepest branch), so listings can tell which department/type a product belongs to.
+                parent: { select: { slug: true, parent: { select: { slug: true, parent: { select: { slug: true, parent: { select: { slug: true, parent: { select: { slug: true } } } } } } } } } },
               },
             },
             vendor: {

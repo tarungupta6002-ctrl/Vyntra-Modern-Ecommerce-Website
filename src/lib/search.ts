@@ -64,6 +64,7 @@ export const DEPARTMENT_WORDS = {
   electronics: ['electronic', 'electronics', 'gadget', 'gadgets'],
   appliances: ['appliance', 'appliances', 'home'],
   books: ['book', 'books'],
+  fashion: ['fashion', 'clothing', 'clothes', 'wear', 'apparel'],
 } as const;
 
 /**

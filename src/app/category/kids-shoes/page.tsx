@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function KidsShoesRedirectPage() {
-  redirect('/category/womens-shoes?sub=kids-shoes');
+export default function KidsShoesPage() {
+  redirect('/category/shoes?subcategory=kids-shoes');
 }

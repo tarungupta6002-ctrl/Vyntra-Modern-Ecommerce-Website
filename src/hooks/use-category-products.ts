@@ -23,6 +23,8 @@ export interface CategoryProductItem {
   isExpress?: boolean;
   /** Category slugs from the root down to the product's category. */
   categoryPath?: string[];
+  /** When the listing went up (ISO date). */
+  createdAt?: string;
   /** Structured category attributes (see src/lib/catalog/attributes.ts). */
   attributes?: Record<string, string | number>;
   /** Per-variant attribute values; a listing matches a filter if any variant does. */
@@ -61,6 +63,7 @@ export interface UseCategoryProductsOptions {
    */
   departmentSlug?: string;
 }
+// An empty departmentSlug ('') means every published product (the All products page).
 
 const CATEGORY_ALIASES: Record<string, string[]> = {
   'mobiles': ['mobile', 'smartphone', 'phone', '5g', 'iphone', 'galaxy', 'oneplus', 'redmi', 'realme', 'motorola', 'nothing', 'xiaomi', 'vivo', 'oppo'],
@@ -241,7 +244,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
         if (isMounted) {
           if (json.success && rawList.length > 0) {
             const matched: CategoryProductItem[] = rawList
-              .filter((p: any) => (departmentSlug ? true : matchesCategory(p, categoryKey, extraKeywords)))
+              .filter((p: any) => (departmentSlug !== undefined ? true : matchesCategory(p, categoryKey, extraKeywords)))
               .map((p: any) => ({
                 id: p.id,
                 slug: p.slug,
@@ -282,6 +285,7 @@ export function useCategoryProducts(options: UseCategoryProductsOptions) {
                 isQualityVerified: true,
                 specs: p.specs,
                 categoryPath: Array.isArray(p.categoryPath) ? p.categoryPath : undefined,
+                createdAt: typeof p.createdAt === 'string' ? p.createdAt : undefined,
                 attributes: p.attributes && typeof p.attributes === 'object' ? p.attributes : undefined,
                 variantAttributes: Array.isArray(p.variantAttributes) ? p.variantAttributes : undefined,
               }));

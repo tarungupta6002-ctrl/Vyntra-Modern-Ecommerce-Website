@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function KidsCategoryPage() {
-  redirect('/category/boys-clothing');
+// next.config sends this URL to the same place; this page covers it if that rule is removed.
+export default function Page() {
+  redirect('/fashion/kids');
 }

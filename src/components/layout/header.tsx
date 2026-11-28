@@ -39,7 +39,7 @@ const CATEGORIES: {
 }[] = [
   // Only departments that have products. Add Deals/Best sellers back once there is real data behind them.
   { name: 'All', href: '/products', isAll: true },
-  { name: 'Fashion', href: '/products?category=fashion' },
+  { name: 'Fashion', href: '/fashion' },
   { name: 'Mobiles', href: '/mobiles' },
   { name: 'Electronics', href: '/electronics' },
   { name: 'Appliances', href: '/appliances' },
@@ -402,12 +402,12 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
     }
 
     if (isFootwearKeyword) {
-      router.push(q ? `/products?search=${encoded}` : '/category/mens-footwear');
+      router.push(q ? `/category/shoes?q=${encoded}` : '/category/shoes');
       return;
     }
 
     if (isWatchKeyword) {
-      router.push(q ? `/products?search=${encoded}` : '/category/watches');
+      router.push(q ? `/category/watches?q=${encoded}` : '/category/watches');
       return;
     }
 
@@ -435,15 +435,15 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
         break;
 
       case 'Fashion & Apparel':
-        router.push(q ? `/products?category=apparel&search=${encoded}` : '/category/ethnic');
+        router.push(q ? `/fashion?q=${encoded}` : '/fashion');
         break;
 
       case 'Footwear':
-        router.push(q ? `/products?search=${encoded}` : '/category/mens-footwear');
+        router.push(q ? `/category/shoes?q=${encoded}` : '/category/shoes');
         break;
 
       case 'Accessories & Watches':
-        router.push(q ? `/products?search=${encoded}` : '/category/watches');
+        router.push(q ? `/category/watches?q=${encoded}` : '/category/watches');
         break;
 
       case 'Beauty & Fragrances':
