@@ -19,7 +19,6 @@ import {
   ShieldCheck,
   RotateCcw,
   Headphones,
-  Zap,
   Home,
   Check,
 } from 'lucide-react';
@@ -38,17 +37,14 @@ const CATEGORIES: {
   isAll?: boolean;
   isDeal?: boolean;
 }[] = [
+  // Only departments that have products. Add Deals/Best sellers back once there is real data behind them.
   { name: 'All', href: '/products', isAll: true },
   { name: 'Fashion', href: '/products?category=fashion' },
   { name: 'Mobiles', href: '/mobiles' },
-  { name: "Today's Deals", href: '/products?deals=true', isDeal: true },
   { name: 'Electronics', href: '/electronics' },
-  { name: 'Beauty', href: '/products?category=beauty-wellness' },
-  { name: 'Home', href: '/products?category=home-living' },
   { name: 'Appliances', href: '/appliances' },
   { name: 'Books', href: '/books' },
-  { name: 'New Releases', href: '/products?sort=newest' },
-  { name: 'Best Sellers', href: '/products?sort=curated' },
+  { name: 'New arrivals', href: '/products?sort=newest' },
 ];
 
 const SEARCH_CATEGORIES = [
@@ -60,9 +56,6 @@ const SEARCH_CATEGORIES = [
   'Fashion & Apparel',
   'Footwear',
   'Accessories & Watches',
-  'Beauty & Fragrances',
-  'Home & Living',
-  'Artisanal Crafts',
 ];
 
 interface HeaderProps {
@@ -355,13 +348,13 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
       case 'Footwear':
         return 'Search Sneakers, Formal Shoes, Heels, Boots...';
       case 'Accessories & Watches':
-        return 'Search Luxury Watches, Smartwatches, Bags...';
+        return 'Search watches, smartwatches, bags...';
       case 'Beauty & Fragrances':
         return 'Search Skincare, Perfumes, Makeup, Wellness...';
       case 'Home & Living':
         return 'Search Home Decor, Bedding, Kitchen & Living...';
       default:
-        return 'Search Vyntra: fashion, electronics, artisanal couture...';
+        return 'Search Vyntra';
     }
   };
 
@@ -849,14 +842,6 @@ export function Header({ initialUser = null, wishlistCount = 0 }: HeaderProps) {
             >
               <Headphones className="h-4 w-4 text-[#007185]" />
               <span>Customer Service</span>
-            </Link>
-            <span className="text-white/30">|</span>
-            <Link
-              href="/products?deals=festive"
-              className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#FF9900] text-[#0F1111] font-bold text-[12px] hover:bg-[#FA8900] transition-colors shadow-sm"
-            >
-              <Zap className="h-3.5 w-3.5" />
-              <span>Festive Deals</span>
             </Link>
           </div>
         </div>

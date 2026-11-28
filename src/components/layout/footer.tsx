@@ -3,174 +3,121 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  ShieldCheck,
-  Zap,
-  RotateCcw,
-  Lock,
-  ArrowRight,
-  ShieldAlert,
-  ChevronUp,
-} from 'lucide-react';
+import { ChevronUp, Lock, RotateCcw, Store, Truck } from 'lucide-react';
 import { BrandLogo } from './brand-logo';
+
+const PROMISES = [
+  { icon: Truck, title: 'Free delivery', body: 'No shipping charge; ₹49 packaging fee per order' },
+  { icon: RotateCcw, title: '7-day returns', body: 'On eligible items; refunds go to the original payment method' },
+  { icon: Lock, title: 'Secure payments', body: 'Card and UPI details are handled by Razorpay, never stored by Vyntra' },
+  { icon: Store, title: 'Approved sellers', body: 'Every seller is reviewed by Vyntra before they can list' },
+];
+
+const SHOP = [
+  { label: 'Fashion', href: '/products?category=fashion' },
+  { label: 'Mobiles', href: '/mobiles' },
+  { label: 'Laptops and electronics', href: '/electronics' },
+  { label: 'Home appliances', href: '/appliances' },
+  { label: 'Books', href: '/books' },
+  { label: 'New arrivals', href: '/products?sort=newest' },
+];
+
+const HELP = [
+  { label: 'Your orders', href: '/account?tab=orders' },
+  { label: 'Returns', href: '/account?tab=returns' },
+  { label: 'Help and support', href: '/support' },
+  { label: 'Saved addresses', href: '/account?tab=addresses' },
+  { label: 'Payments', href: '/account?tab=payments' },
+  { label: 'Login and security', href: '/account?tab=profile' },
+];
 
 export function Footer() {
   const pathname = usePathname();
 
-  if (
-    pathname === '/login' ||
-    pathname === '/signup' ||
-    pathname?.startsWith('/admin') ||
-    pathname?.startsWith('/vendor')
-  ) {
+  if (pathname === '/login' || pathname === '/signup' || pathname?.startsWith('/admin') || pathname?.startsWith('/vendor')) {
     return null;
   }
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    <footer className="w-full mt-16 bg-[#232F3E] text-white print:hidden">
-      {/* 1. Trust Assurance Feature Strip (Clean White) */}
-      <div className="w-full bg-white text-[#0F1111] py-6 border-y border-[#D5D9D9]">
-        <div className="max-w-[1400px] mx-auto px-4 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-lg bg-[#E7F4F5] text-[#007185] flex items-center justify-center shrink-0 border border-[#BDE3E8]">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#0F1111]">100% Genuine Products</h4>
-              <p className="text-[11px] text-[#565959] mt-0.5 leading-tight">
-                Sourced directly from verified brands &amp; artisans
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-lg bg-[#FFF4E5] text-[#FF9900] flex items-center justify-center shrink-0 border border-[#FFE1B5]">
-              <Zap className="h-6 w-6" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#0F1111]">Free delivery</h4>
-              <p className="text-[11px] text-[#565959] mt-0.5 leading-tight">
-                No shipping charge; ₹49 packaging fee per order
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-lg bg-[#E7F4F5] text-[#007185] flex items-center justify-center shrink-0 border border-[#BDE3E8]">
-              <RotateCcw className="h-6 w-6" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#0F1111]">7-day returns</h4>
-              <p className="text-[11px] text-[#565959] mt-0.5 leading-tight">
-                On eligible items; refunds to the original payment method
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-lg bg-[#F7F8F8] text-[#0F1111] flex items-center justify-center shrink-0 border border-[#D5D9D9]">
-              <Lock className="h-6 w-6" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#0F1111]">100% Secure Payments</h4>
-              <p className="text-[11px] text-[#565959] mt-0.5 leading-tight">
-                Encrypted via UPI, RuPay, NetBanking &amp; Cards
-              </p>
-            </div>
-          </div>
-        </div>
+    <footer className="mt-16 w-full bg-[#232F3E] text-white print:hidden">
+      {/* What every order gets */}
+      <div className="w-full border-y border-[#D5D9D9] bg-white py-6 text-[#0F1111]">
+        <ul className="mx-auto grid max-w-[1400px] grid-cols-1 gap-5 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
+          {PROMISES.map(({ icon: Icon, title, body }) => (
+            <li key={title} className="flex items-start gap-3">
+              <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#007185]" />
+              <div>
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="mt-0.5 text-xs leading-snug text-[#565959]">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* 2. Back to Top Button */}
       <button
-        onClick={scrollToTop}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         type="button"
-        className="w-full bg-[#37475A] hover:bg-[#485769] text-white text-xs font-semibold py-3.5 text-center transition-colors flex items-center justify-center gap-1.5"
+        className="flex w-full items-center justify-center gap-1.5 bg-[#37475A] py-3.5 text-center text-xs font-semibold text-white transition-colors hover:bg-[#485769]"
       >
-        <span>Back to top</span>
+        Back to top
         <ChevronUp className="h-4 w-4" />
       </button>
 
-      {/* 3. Main Footer Directory */}
-      <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-        {/* Brand Column */}
-        <div className="lg:col-span-2 space-y-3.5">
+      <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-5 lg:px-8">
+        <div className="space-y-3.5 lg:col-span-2">
           <BrandLogo className="h-8 w-auto" variant="light" />
-          <p className="text-xs text-[#CCCCCC] leading-relaxed max-w-sm">
-            India&apos;s premier multi-category lifestyle discovery marketplace. Curated luxury fashion, high-performance electronics, and mindful home essentials engineered for modern living.
+          <p className="max-w-sm text-sm leading-relaxed text-[#CCCCCC]">
+            Fashion, mobiles, laptops, home appliances and books from sellers across India.
           </p>
-
         </div>
 
-        {/* Popular Categories */}
-        <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-            Shop By Category
-          </h4>
-          <ul className="space-y-2 text-xs text-[#CCCCCC]">
-            <li><Link href="/products?category=fashion" className="hover:text-white hover:underline">Ethnic &amp; Fusion Wear</Link></li>
-            <li><Link href="/products?category=men" className="hover:text-white hover:underline">Men&apos;s Premium Fashion</Link></li>
-            <li><Link href="/products?category=footwear" className="hover:text-white hover:underline">Sneakers &amp; Formal Shoes</Link></li>
-            <li><Link href="/products?category=beauty" className="hover:text-white hover:underline">Clean Beauty &amp; Skincare</Link></li>
-            <li><Link href="/products?category=electronics" className="hover:text-white hover:underline">Smart Audio &amp; Gadgets</Link></li>
-            <li><Link href="/products?category=home" className="hover:text-white hover:underline">Artisanal Home &amp; Living</Link></li>
+        <nav aria-label="Shop">
+          <h2 className="mb-3 text-sm font-semibold text-white">Shop</h2>
+          <ul className="space-y-2 text-sm text-[#CCCCCC]">
+            {SHOP.map((l) => (
+              <li key={l.label}>
+                <Link href={l.href} className="hover:text-white hover:underline">
+                  {l.label}
+                </Link>
+              </li>
+            ))}
           </ul>
-        </div>
+        </nav>
 
-        {/* Customer Care */}
-        <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-            Let Us Help You
-          </h4>
-          <ul className="space-y-2 text-xs text-[#CCCCCC]">
-            <li><Link href="/account?tab=orders" className="hover:text-white hover:underline">Track Your Orders</Link></li>
-            <li><Link href="/account?tab=orders" className="hover:text-white hover:underline">Returns &amp; Replacements</Link></li>
-            <li><Link href="/support" className="hover:text-white hover:underline">Customer Help Center</Link></li>
-            <li><Link href="/account?tab=addresses" className="hover:text-white hover:underline">Manage Saved Addresses</Link></li>
-            <li><Link href="/account?tab=payments" className="hover:text-white hover:underline">Payments</Link></li>
-            <li><Link href="/account?tab=profile" className="hover:text-white hover:underline">Login &amp; Security</Link></li>
+        <nav aria-label="Help">
+          <h2 className="mb-3 text-sm font-semibold text-white">Help</h2>
+          <ul className="space-y-2 text-sm text-[#CCCCCC]">
+            {HELP.map((l) => (
+              <li key={l.label}>
+                <Link href={l.href} className="hover:text-white hover:underline">
+                  {l.label}
+                </Link>
+              </li>
+            ))}
           </ul>
-        </div>
+        </nav>
 
-        {/* About & Sell */}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-            About Vyntra
-          </h4>
-          <ul className="space-y-2 text-xs text-[#CCCCCC]">
-            <li><Link href="/products" className="hover:text-white hover:underline">About Our Marketplace</Link></li>
-            <li><Link href="/products" className="hover:text-white hover:underline">Direct Artisans of India</Link></li>
-            <li><Link href="/become-seller" className="hover:text-white hover:underline text-[#FFD814] font-semibold">Sell on Vyntra</Link></li>
-            <li><Link href="/support" className="hover:text-white hover:underline">Careers &amp; Press</Link></li>
-            <li><Link href="/support" className="hover:text-white hover:underline">Terms of Service</Link></li>
-            <li><Link href="/support" className="hover:text-white hover:underline">Privacy Notice</Link></li>
-          </ul>
+          <h2 className="mb-3 text-sm font-semibold text-white">Sell</h2>
+          <p className="mb-3 text-sm text-[#CCCCCC]">List your products and reach shoppers across India.</p>
+          <Link href="/become-seller" className="text-sm font-semibold text-[#FFD814] hover:underline">
+            Sell on Vyntra
+          </Link>
         </div>
       </div>
 
-      {/* 4. Bottom Compliance and Copyright Row */}
-      <div className="w-full bg-[#131921] py-4 border-t border-white/10 text-xs text-[#CCCCCC]">
-        <div className="max-w-[1400px] mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="w-full border-t border-white/10 bg-[#131921] py-4 text-xs text-[#CCCCCC]">
+        <div className="mx-auto flex max-w-[1400px] flex-col items-center justify-between gap-3 px-4 md:flex-row lg:px-8">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-[#007185] font-semibold">
-              <ShieldAlert className="h-3.5 w-3.5" />
-              100% Purchase Protection • Supported Gateways:
-            </span>
-            <div className="flex items-center gap-1.5 font-bold text-[10px] text-[#0F1111]">
-              <span className="bg-white px-2 py-0.5 rounded shadow-sm">UPI</span>
-              <span className="bg-white px-2 py-0.5 rounded shadow-sm">RuPay</span>
-              <span className="bg-white px-2 py-0.5 rounded shadow-sm">VISA</span>
-              <span className="bg-white px-2 py-0.5 rounded shadow-sm">Mastercard</span>
-              <span className="bg-white px-2 py-0.5 rounded shadow-sm">NetBanking</span>
-            </div>
+            <span>Pay with:</span>
+            {['UPI', 'Cards', 'Net banking', 'Cash on Delivery'].map((m) => (
+              <span key={m} className="rounded bg-white px-2 py-0.5 text-[10px] font-semibold text-[#0F1111]">
+                {m}
+              </span>
+            ))}
           </div>
-          <div className="text-center md:text-right">
-            © {new Date().getFullYear()} Vyntra Marketplace Private Limited. All rights reserved.
-          </div>
+          <p>© {new Date().getFullYear()} Vyntra</p>
         </div>
       </div>
     </footer>
