@@ -274,7 +274,7 @@ function AdminSupportInner() {
                 {(ticket.messages || []).map((m) => (
                   <li key={m.id} className={`flex ${m.fromStaff ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                         m.fromStaff ? 'rounded-tr-sm bg-[#E6F2F3]' : 'rounded-tl-sm bg-[#F0F2F2]'
                       }`}
                     >

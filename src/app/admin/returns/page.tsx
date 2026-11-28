@@ -28,7 +28,7 @@ import { formatINR } from '@/lib/utils';
 import { calculateRefundShares } from '@/lib/refund-math';
 import { AdminReturnDetailsModal } from '@/components/admin/admin-return-details-modal';
 import { AdminDisputeReviewModal } from '@/components/admin/admin-dispute-review-modal';
-import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
+import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
 interface AdminReturnItem {
   id: string;
@@ -375,11 +375,11 @@ export default function AdminReturnsManagementPage() {
       case 'APPROVED':
         return <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold px-2 py-0.5 rounded-full">Approved</span>;
       case 'REJECTED':
-        return <span className="bg-zinc-100 text-zinc-700 border border-zinc-300 text-[11px] font-bold px-2 py-0.5 rounded-full">Rejected</span>;
+        return <span className="bg-[#F0F2F2] text-[#333333] border border-[#D5D9D9] text-[11px] font-bold px-2 py-0.5 rounded-full">Rejected</span>;
       case 'RECEIVED_AT_WH':
         return <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-bold px-2 py-0.5 rounded-full">At Warehouse</span>;
       default:
-        return <span className="bg-zinc-100 text-zinc-600 text-[11px] font-bold px-2 py-0.5 rounded-full">{status}</span>;
+        return <span className="bg-[#F0F2F2] text-[#565959] text-[11px] font-bold px-2 py-0.5 rounded-full">{humanize(status)}</span>;
     }
   };
 
@@ -407,7 +407,7 @@ export default function AdminReturnsManagementPage() {
             placeholder="Search order #, customer, vendor, AWB..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#800020] focus:ring-1 focus:ring-[#800020]"
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185]"
           />
         </form>
 
@@ -422,7 +422,7 @@ export default function AdminReturnsManagementPage() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="text-xs py-2 px-3 rounded-lg border border-[#D5D9D9] bg-white focus:outline-none focus:border-[#800020]"
+            className="text-xs py-2 px-3 rounded-lg border border-[#D5D9D9] bg-white focus:outline-none focus:border-[#007185]"
           >
             <option value="ALL">All Statuses ({totalCount})</option>
             <option value="QC_PASSED">QC Passed (Refund Eligible)</option>
@@ -440,7 +440,7 @@ export default function AdminReturnsManagementPage() {
               setTypeFilter(e.target.value);
               setPage(1);
             }}
-            className="text-xs py-2 px-3 rounded-lg border border-[#D5D9D9] bg-white focus:outline-none focus:border-[#800020]"
+            className="text-xs py-2 px-3 rounded-lg border border-[#D5D9D9] bg-white focus:outline-none focus:border-[#007185]"
           >
             <option value="ALL">All Types</option>
             <option value="RETURN_REFUND">Return &amp; Refund</option>
@@ -453,7 +453,7 @@ export default function AdminReturnsManagementPage() {
       <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="py-16 text-center text-[#565959] space-y-2">
-            <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#800020]" />
+            <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#007185]" />
             <p className="text-xs font-semibold">Loading marketplace return requests...</p>
           </div>
         ) : error ? (
@@ -463,7 +463,7 @@ export default function AdminReturnsManagementPage() {
           </div>
         ) : returnRequests.length === 0 ? (
           <div className="py-16 text-center text-[#565959] space-y-2">
-            <RotateCcw className="h-8 w-8 mx-auto text-zinc-300" />
+            <RotateCcw className="h-8 w-8 mx-auto text-[#D5D9D9]" />
             <p className="text-sm font-bold text-[#0F1111]">No return requests found</p>
             <p className="text-xs">Adjust your search filters or status criteria.</p>
           </div>
@@ -502,7 +502,7 @@ export default function AdminReturnsManagementPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenDetailsModal(ret.id)}
-                            className="font-mono font-bold text-[#007185] hover:underline text-left block"
+                            className="tabular-nums font-bold text-[#007185] hover:underline text-left block"
                             title="Click to view comprehensive order ledger"
                           >
                             #{ret.id.slice(-8)}
@@ -517,7 +517,7 @@ export default function AdminReturnsManagementPage() {
                         </div>
                         <div className="mt-1">
                           <span
-                            className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                            className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
                               ret.type === 'REPLACEMENT'
                                 ? 'bg-purple-100 text-purple-700'
                                 : 'bg-blue-100 text-blue-700'
@@ -537,8 +537,8 @@ export default function AdminReturnsManagementPage() {
                           {ret.user.name || 'Customer'}
                         </div>
                         <div className="text-[10px] text-[#565959]">{ret.user.email}</div>
-                        <div className="mt-1 text-[10px] text-zinc-500 font-mono">
-                          Payment: {ret.order.paymentMethod} ({ret.order.paymentStatus})
+                        <div className="mt-1 text-[10px] text-[#565959] tabular-nums">
+                          Payment: {ret.order.paymentMethod} ({humanize(ret.order.paymentStatus).toLowerCase()})
                         </div>
                       </td>
 
@@ -548,14 +548,14 @@ export default function AdminReturnsManagementPage() {
                           {ret.orderItem.product.title}
                         </div>
                         <div className="text-[11px] text-[#565959] flex items-center gap-1 mt-0.5">
-                          <Building2 className="h-3 w-3 text-zinc-400" />
+                          <Building2 className="h-3 w-3 text-[#8A8F8F]" />
                           <span>{ret.vendor.storeName}</span>
                         </div>
-                        <div className="text-[10px] text-zinc-500 mt-1">
+                        <div className="text-[10px] text-[#565959] mt-1">
                           Qty: {ret.requestedQuantity} &bull; Price: {formatINR(ret.orderItem.unitPrice)}
                         </div>
-                        <div className="text-[10px] text-[#800020] font-semibold mt-0.5">
-                          Reason: {ret.reason.replace(/_/g, ' ')}
+                        <div className="text-[10px] text-[#007185] font-semibold mt-0.5">
+                          Reason: {humanize(ret.reason)}
                         </div>
                       </td>
 
@@ -564,13 +564,13 @@ export default function AdminReturnsManagementPage() {
                         <div>{getStatusBadge(ret.status)}</div>
                         {ret.qcPassed !== null && (
                           <div className="text-[10px] text-[#565959] mt-1">
-                            QC: <strong className={ret.qcPassed ? 'text-emerald-700' : 'text-rose-700'}>
-                              {ret.qcPassed ? 'PASSED' : 'FAILED'}
+                            Inspection: <strong className={ret.qcPassed ? 'text-emerald-700' : 'text-rose-700'}>
+                              {ret.qcPassed ? 'Passed' : 'Failed'}
                             </strong>
                           </div>
                         )}
                         {ret.reverseTrackingNumber && (
-                          <div className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                          <div className="text-[10px] text-[#565959] tabular-nums mt-0.5">
                             AWB: {ret.reverseTrackingNumber}
                           </div>
                         )}
@@ -588,7 +588,7 @@ export default function AdminReturnsManagementPage() {
                           Refunded: <span className="font-bold text-rose-700">{formatINR(alreadyRefunded)}</span>
                         </div>
                         {ret.refundTransactions.length > 0 && (
-                          <div className="text-[9px] text-zinc-500 font-mono mt-0.5">
+                          <div className="text-[9px] text-[#565959] tabular-nums mt-0.5">
                             {ret.refundTransactions.length} transaction(s)
                           </div>
                         )}
@@ -639,7 +639,7 @@ export default function AdminReturnsManagementPage() {
                           )}
                           {ret.disputeResolution && (
                             <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded w-full justify-center text-center">
-                              Arbitrated: {ret.disputeResolution.replace(/_/g, ' ')}
+                              Dispute decision: {humanize(ret.disputeResolution)}
                             </span>
                           )}
 
@@ -671,14 +671,14 @@ export default function AdminReturnsManagementPage() {
                                 <span>Delivered &amp; Settled</span>
                               </span>
                             ) : (
-                              <span className="text-[10px] text-zinc-400 font-medium italic">
+                              <span className="text-[10px] text-[#8A8F8F] font-medium italic">
                                 In Reverse Transit
                               </span>
                             )
                           ) : isEligibleForRefund ? (
                             <button
                               onClick={() => openRefundModal(ret)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#800020] hover:bg-[#600018] text-white text-xs font-bold shadow-sm transition-all w-full justify-center"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold shadow-sm transition-all w-full justify-center"
                             >
                               <DollarSign className="h-3.5 w-3.5" />
                               <span>Process Refund</span>
@@ -689,7 +689,7 @@ export default function AdminReturnsManagementPage() {
                               <span>Settled</span>
                             </span>
                           ) : (
-                            <span className="text-[10px] text-zinc-400 font-medium italic">
+                            <span className="text-[10px] text-[#8A8F8F] font-medium italic">
                               Awaiting QC
                             </span>
                           )}
@@ -707,11 +707,11 @@ export default function AdminReturnsManagementPage() {
       {/* Admin Refund Settlement Modal */}
       {activeReturn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#D5D9D9] shadow-2xl p-6 space-y-6">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#D5D9D9] shadow-2xl p-6 space-y-6">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-[#D5D9D9] pb-4">
               <div>
-                <div className="flex items-center gap-2 text-xs text-[#800020] font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2 text-xs text-[#007185] font-bold">
                   <ShieldCheck className="h-4 w-4" />
                   <span>Admin Manual Bank Settlement</span>
                 </div>
@@ -725,7 +725,7 @@ export default function AdminReturnsManagementPage() {
               <button
                 onClick={closeRefundModal}
                 disabled={isSubmittingRefund}
-                className="text-zinc-400 hover:text-zinc-700 p-1 rounded-lg"
+                className="text-[#8A8F8F] hover:text-[#333333] p-1 rounded-lg"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -733,7 +733,7 @@ export default function AdminReturnsManagementPage() {
 
             {isLoadingDetails ? (
               <div className="py-12 text-center text-[#565959] space-y-2">
-                <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#800020]" />
+                <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#007185]" />
                 <p className="text-xs font-semibold">Calculating allowable refund ceilings and platform shares...</p>
               </div>
             ) : modalError && !refundCalculation ? (
@@ -789,7 +789,7 @@ export default function AdminReturnsManagementPage() {
                 <div className="bg-emerald-50/60 border border-emerald-200/80 p-4 rounded-xl space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-emerald-950">Target Refund Amount:</span>
-                    <span className="font-mono font-bold text-emerald-900 text-sm">
+                    <span className="tabular-nums font-bold text-emerald-900 text-sm">
                       {formatINR(parsedRefundAmount)}
                     </span>
                   </div>
@@ -798,13 +798,13 @@ export default function AdminReturnsManagementPage() {
                       <span className="text-[10px] text-emerald-800 block">
                         Platform Commission Reversal ({commRate}%):
                       </span>
-                      <span className="font-mono font-bold text-emerald-900">
+                      <span className="tabular-nums font-bold text-emerald-900">
                         {formatINR(liveShares.platformShare)}
                       </span>
                     </div>
                     <div>
                       <span className="text-[10px] text-emerald-800 block">Vendor Share Debit:</span>
-                      <span className="font-mono font-bold text-emerald-900">
+                      <span className="tabular-nums font-bold text-emerald-900">
                         {formatINR(liveShares.vendorShare)}
                       </span>
                     </div>
@@ -831,7 +831,7 @@ export default function AdminReturnsManagementPage() {
                       value={refundAmountInput}
                       onChange={(e) => setRefundAmountInput(e.target.value)}
                       required
-                      className="w-full px-3 py-2 text-xs font-mono font-bold rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#800020] focus:ring-1 focus:ring-[#800020]"
+                      className="w-full px-3 py-2 text-xs tabular-nums font-bold rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185]"
                       placeholder="Enter refund amount"
                     />
                     <p className="text-[10px] text-[#565959] mt-0.5">
@@ -851,7 +851,7 @@ export default function AdminReturnsManagementPage() {
                       required
                       minLength={4}
                       maxLength={60}
-                      className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#800020] focus:ring-1 focus:ring-[#800020]"
+                      className="w-full px-3 py-2 text-xs tabular-nums rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185]"
                       placeholder="e.g. VYNTRA-REF-9928172648"
                     />
                     <p className="text-[10px] text-[#565959] mt-0.5">
@@ -873,7 +873,7 @@ export default function AdminReturnsManagementPage() {
                       value={adminNotesInput}
                       onChange={(e) => setAdminNotesInput(e.target.value)}
                       rows={2}
-                      className="w-full px-3 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#800020]"
+                      className="w-full px-3 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185]"
                       placeholder="e.g. Customer bank account transfer approved per QC report."
                     />
                   </div>
@@ -884,7 +884,7 @@ export default function AdminReturnsManagementPage() {
                         type="checkbox"
                         checked={isConfirmedCheckbox}
                         onChange={(e) => setIsConfirmedCheckbox(e.target.checked)}
-                        className="mt-0.5 rounded border-[#D5D9D9] text-[#800020] focus:ring-[#800020]"
+                        className="mt-0.5 rounded border-[#D5D9D9] text-[#007185] focus:ring-[#007185]"
                       />
                       <span className="text-xs text-[#0F1111]">
                         {needsManualReference ? (
@@ -914,7 +914,7 @@ export default function AdminReturnsManagementPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingRefund || !isConfirmedCheckbox || parsedRefundAmount <= 0}
-                    className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-lg bg-[#800020] hover:bg-[#600018] text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {isSubmittingRefund ? (
                       <>

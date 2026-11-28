@@ -266,7 +266,7 @@ export default function AdminVendorDetailPage() {
             <ChevronLeft className="h-4 w-4" /> Back to Admin Central
           </Link>
         </div>
-        <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
+        <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
           <RefreshCw className="h-8 w-8 text-[#007185] animate-spin mx-auto" />
           <h2 className="text-base font-bold text-[#0F1111]">Loading Vendor Details &amp; Catalog...</h2>
           <p className="text-xs text-[#565959]">Fetching live database profile, warehouses, and listed products.</p>
@@ -283,7 +283,7 @@ export default function AdminVendorDetailPage() {
             <ChevronLeft className="h-4 w-4" /> Back to Admin Central
           </Link>
         </div>
-        <div className="bg-white rounded-2xl border border-rose-200 p-8 text-center space-y-3 shadow-xs">
+        <div className="bg-white rounded-xl border border-rose-200 p-8 text-center space-y-3 shadow-xs">
           <p className="text-base font-bold text-rose-700">Vendor Not Found or Error Loading Profile</p>
           <p className="text-xs text-[#565959]">{error || 'Unable to retrieve vendor details.'}</p>
           <button
@@ -360,10 +360,10 @@ export default function AdminVendorDetailPage() {
       </div>
 
       {/* 2. Vendor Header Dossier Banner */}
-      <div className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-xs">
+      <div className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-xs">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-stone-800 to-black text-white flex items-center justify-center font-headline font-bold text-2xl shadow-md border-2 border-amber-400/40 shrink-0">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-stone-800 to-black text-white flex items-center justify-center font-headline font-bold text-2xl shadow-md border-2 border-amber-400/40 shrink-0">
               {vendor.storeName.slice(0, 2).toUpperCase()}
             </div>
             <div className="space-y-1">
@@ -371,7 +371,7 @@ export default function AdminVendorDetailPage() {
                 <h1 className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111]">
                   {vendor.storeName}
                 </h1>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                   {vendor.status}
                 </span>
@@ -383,12 +383,12 @@ export default function AdminVendorDetailPage() {
               </div>
 
               <div className="flex items-center flex-wrap gap-3 text-xs text-[#565959]">
-                <span className="font-mono bg-[#F7F8F8] px-2 py-0.5 rounded border border-[#E7E7E7]">
+                <span className="tabular-nums bg-[#F7F8F8] px-2 py-0.5 rounded border border-[#E7E7E7]">
                   /{vendor.storeSlug}
                 </span>
 
                 {/* Merchant ID pill with copy */}
-                <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded font-mono font-bold text-xs">
+                <div className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded tabular-nums font-bold text-xs">
                   <span>Merchant ID: {merchantId}</span>
                   <button
                     type="button"
@@ -416,8 +416,8 @@ export default function AdminVendorDetailPage() {
 
           <div className="flex items-center gap-3 self-stretch md:self-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-[#E7E7E7]">
             <div className="text-right">
-              <span className="text-[11px] font-bold text-[#565959] uppercase block">Platform Commission</span>
-              <span className="text-2xl font-bold font-mono text-[#0F1111]">{vendor.commissionRate}%</span>
+              <span className="text-[11px] font-bold text-[#565959] block">Platform Commission</span>
+              <span className="text-2xl font-bold tabular-nums text-[#0F1111]">{vendor.commissionRate}%</span>
             </div>
           </div>
         </div>
@@ -426,9 +426,9 @@ export default function AdminVendorDetailPage() {
       {/* 3. KPI Metrics Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Listed Products */}
-        <div className="bg-white rounded-2xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
+        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959] block">Listed Products</span>
+            <span className="text-xs font-bold text-[#565959] block">Listed Products</span>
             <span className="text-3xl font-extrabold font-headline text-[#0F1111] block mt-1">
               {totalListedCount}
             </span>
@@ -444,9 +444,9 @@ export default function AdminVendorDetailPage() {
         </div>
 
         {/* Card 2: Total Units in Stock */}
-        <div className="bg-white rounded-2xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
+        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959] block">Total Stock Units</span>
+            <span className="text-xs font-bold text-[#565959] block">Total Stock Units</span>
             <span className="text-3xl font-extrabold font-headline text-[#0F1111] block mt-1">
               {totalStockAcrossCatalog}
             </span>
@@ -458,9 +458,9 @@ export default function AdminVendorDetailPage() {
         </div>
 
         {/* Card 3: Registered Warehouses */}
-        <div className="bg-white rounded-2xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
+        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959] block">Dispatch Warehouses</span>
+            <span className="text-xs font-bold text-[#565959] block">Dispatch Warehouses</span>
             <span className="text-3xl font-extrabold font-headline text-[#0F1111] block mt-1">
               {vendor.warehouses.length}
             </span>
@@ -474,9 +474,9 @@ export default function AdminVendorDetailPage() {
         </div>
 
         {/* Card 4: Payout Status */}
-        <div className="bg-white rounded-2xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
+        <div className="bg-white rounded-xl p-5 border border-[#D5D9D9] shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959] block">Payout Settlement</span>
+            <span className="text-xs font-bold text-[#565959] block">Payout Settlement</span>
             <span className={`text-base font-extrabold block mt-1.5 ${vendor.payoutsEnabled ? 'text-emerald-700' : 'text-amber-800'}`}>
               {vendor.payoutsEnabled ? 'Active (Automated)' : 'Pending Bank Setup'}
             </span>
@@ -543,7 +543,7 @@ export default function AdminVendorDetailPage() {
           <ShieldAlert className="h-4 w-4" />
           <span>Notices &amp; SLA Warnings ({notices.length})</span>
           {notices.filter((n) => n.status === 'OPEN').length > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-600 text-white font-mono font-bold leading-none">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-600 text-white tabular-nums font-bold leading-none">
               {notices.filter((n) => n.status === 'OPEN').length} Pending
             </span>
           )}
@@ -565,7 +565,7 @@ export default function AdminVendorDetailPage() {
           </div>
 
           {totalListedCount === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3">
+            <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3">
               <Package className="h-10 w-10 text-stone-300 mx-auto" />
               <p className="text-base font-bold text-[#0F1111]">No Products Listed Yet</p>
               <p className="text-xs text-[#565959]">This vendor has not published or co-listed any products to the Vyntra storefront.</p>
@@ -576,7 +576,7 @@ export default function AdminVendorDetailPage() {
               {vendor.products.length > 0 && (
                 <div className="space-y-4">
                   {vendor.sellerOffers && vendor.sellerOffers.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#565959]">
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#565959]">
                       <Package className="h-4 w-4 text-[#007185]" />
                       <span>Original Master Creations ({vendor.products.length})</span>
                     </div>
@@ -590,7 +590,7 @@ export default function AdminVendorDetailPage() {
                       return (
                         <div
                           key={product.id}
-                          className="bg-white rounded-2xl border border-[#D5D9D9] p-5 shadow-xs hover:border-[#007185] transition-all flex flex-col lg:flex-row gap-6 items-start justify-between"
+                          className="bg-white rounded-xl border border-[#D5D9D9] p-5 shadow-xs hover:border-[#007185] transition-all flex flex-col lg:flex-row gap-6 items-start justify-between"
                         >
                           {/* Left: Product Image & Core Details */}
                           <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -606,7 +606,7 @@ export default function AdminVendorDetailPage() {
 
                             <div className="space-y-2 flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 text-[11px] font-bold uppercase tracking-wider">
+                                <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 text-[11px] font-bold">
                                   {product.brand}
                                 </span>
                                 {product.category && (
@@ -656,7 +656,7 @@ export default function AdminVendorDetailPage() {
 
                                 return (
                                   <div className="pt-2 border-t border-[#F0F0F0] space-y-3">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
+                                    <span className="text-[11px] font-bold text-[#565959] block">
                                       Colorways &amp; Sizes Matrix ({product.variants.length} Variants across {colorKeys.length} {colorKeys.length === 1 ? 'Color' : 'Colors'})
                                     </span>
 
@@ -715,14 +715,14 @@ export default function AdminVendorDetailPage() {
                                                     className="p-2.5 rounded-lg bg-white border border-[#E7E7E7] text-xs flex flex-col justify-between shadow-2xs hover:border-[#007185] transition-all"
                                                   >
                                                     <div className="flex items-center justify-between font-bold text-[#0F1111]">
-                                                      <span className="bg-stone-100 text-stone-900 px-2 py-0.5 rounded text-[11px] font-extrabold tracking-wide">
+                                                      <span className="bg-stone-100 text-stone-900 px-2 py-0.5 rounded text-[11px] font-extrabold">
                                                         Size {v.size || 'Standard'}
                                                       </span>
                                                       <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
                                                         Qty: {inv?.quantity ?? 0}
                                                       </span>
                                                     </div>
-                                                    <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-stone-100 font-mono text-[11px]">
+                                                    <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-stone-100 tabular-nums text-[11px]">
                                                       <span className="text-[#007185] font-bold">{v.sku}</span>
                                                     </div>
                                                     <div className="text-[10px] text-[#565959] truncate mt-1 flex items-center gap-1 font-sans">
@@ -786,7 +786,7 @@ export default function AdminVendorDetailPage() {
               {vendor.sellerOffers && vendor.sellerOffers.length > 0 && (
                 <div className="space-y-4 pt-6 border-t border-[#D5D9D9]">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-[#565959] flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-[#565959] flex items-center gap-2">
                       <Layers className="h-4 w-4 text-[#007185]" />
                       <span>Multi-Seller Co-Listed Offers ({vendor.sellerOffers.length})</span>
                       <span className="text-[10px] bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-full font-bold">
@@ -821,7 +821,7 @@ export default function AdminVendorDetailPage() {
                       return (
                         <div
                           key={offer.id}
-                          className="bg-white rounded-2xl border border-teal-200 p-5 shadow-xs hover:border-[#007185] transition-all flex flex-col lg:flex-row gap-6 items-start justify-between"
+                          className="bg-white rounded-xl border border-teal-200 p-5 shadow-xs hover:border-[#007185] transition-all flex flex-col lg:flex-row gap-6 items-start justify-between"
                         >
                           {/* Left: Product Image & Details */}
                           <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -837,7 +837,7 @@ export default function AdminVendorDetailPage() {
 
                             <div className="space-y-2 flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="px-2 py-0.5 rounded bg-teal-100 text-teal-900 text-[10px] font-bold uppercase tracking-wider">
+                                <span className="px-2 py-0.5 rounded bg-teal-100 text-teal-900 text-[10px] font-bold">
                                   Multi-Seller Listing
                                 </span>
                                 {offer.isBuyBoxWinner && (
@@ -885,7 +885,7 @@ export default function AdminVendorDetailPage() {
                               {/* Offer Variants Matrix */}
                               {offer.offerVariants && offer.offerVariants.length > 0 && (
                                 <div className="pt-2 border-t border-[#F0F0F0] space-y-2">
-                                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
+                                  <span className="text-[11px] font-bold text-[#565959] block">
                                     Vendor Offer Inventory ({offer.offerVariants.length} Sizes/Variants)
                                   </span>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
@@ -900,14 +900,14 @@ export default function AdminVendorDetailPage() {
                                           className="p-2.5 rounded-lg bg-teal-50/40 border border-teal-200 text-xs flex flex-col justify-between shadow-2xs hover:border-[#007185] transition-all"
                                         >
                                           <div className="flex items-center justify-between font-bold text-[#0F1111]">
-                                            <span className="bg-white text-stone-900 border border-stone-200 px-2 py-0.5 rounded text-[11px] font-extrabold tracking-wide">
+                                            <span className="bg-white text-stone-900 border border-stone-200 px-2 py-0.5 rounded text-[11px] font-extrabold">
                                               Size {ov.productVariant?.size || 'Standard'}
                                             </span>
                                             <span className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[11px]">
                                               Qty: {variantStock}
                                             </span>
                                           </div>
-                                          <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-teal-100 font-mono text-[11px]">
+                                          <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-teal-100 tabular-nums text-[11px]">
                                             <span className="text-teal-900 font-bold">₹{Number(ov.sellingPrice).toLocaleString('en-IN')}</span>
                                             <span className="text-[#565959] text-[10px]">{ov.sellerSku}</span>
                                           </div>
@@ -967,7 +967,7 @@ export default function AdminVendorDetailPage() {
       {activeTab === 'compliance' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           {/* Owner & Legal Identity */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
               <User className="h-5 w-5 text-[#007185]" />
               <h2 className="text-base font-bold font-headline text-[#0F1111]">
@@ -982,15 +982,15 @@ export default function AdminVendorDetailPage() {
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Registered Account Email:</span>
-                <span className="font-mono font-semibold text-xs text-[#0F1111]">{vendor.user?.email || 'N/A'}</span>
+                <span className="tabular-nums font-semibold text-xs text-[#0F1111]">{vendor.user?.email || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Dispatch Contact Phone:</span>
-                <span className="font-mono font-semibold text-xs text-[#0F1111]">{vendor.user?.phone || 'Not provided'}</span>
+                <span className="tabular-nums font-semibold text-xs text-[#0F1111]">{vendor.user?.phone || 'Not provided'}</span>
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Account Access Role:</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-stone-100 text-stone-800">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-stone-100 text-stone-800">
                   {vendor.user?.role || 'VENDOR'}
                 </span>
               </div>
@@ -999,14 +999,14 @@ export default function AdminVendorDetailPage() {
             {/* Tax IDs */}
             <div className="pt-3 border-t border-[#D5D9D9] grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">GSTIN</span>
-                <span className="font-mono font-bold text-xs text-[#0F1111]">
+                <span className="text-[10px] font-bold text-[#565959] block">GSTIN</span>
+                <span className="tabular-nums font-bold text-xs text-[#0F1111]">
                   {vendor.gstNumber || 'Not Required / Unregistered'}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">PAN Number</span>
-                <span className="font-mono font-bold text-xs text-[#0F1111]">
+                <span className="text-[10px] font-bold text-[#565959] block">PAN Number</span>
+                <span className="tabular-nums font-bold text-xs text-[#0F1111]">
                   {vendor.panNumber || 'Verified'}
                 </span>
               </div>
@@ -1014,7 +1014,7 @@ export default function AdminVendorDetailPage() {
           </div>
 
           {/* Bank Settlement Account */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-amber-600" />
@@ -1036,17 +1036,17 @@ export default function AdminVendorDetailPage() {
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">IFSC Code:</span>
-                <span className="font-mono font-bold text-xs text-[#0F1111]">{vendor.ifscCode || 'N/A'}</span>
+                <span className="tabular-nums font-bold text-xs text-[#0F1111]">{vendor.ifscCode || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Bank Account Number (Tokenized):</span>
-                <span className="font-mono font-bold text-xs text-[#0F1111]">
+                <span className="tabular-nums font-bold text-xs text-[#0F1111]">
                   •••• •••• •••• {vendor.bankAccountLast4 || 'XXXX'}
                 </span>
               </div>
               <div>
                 <span className="text-[#565959] block text-[11px]">Merchant Beneficiary ID:</span>
-                <span className="font-mono font-bold text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                <span className="tabular-nums font-bold text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                   {merchantId}
                 </span>
               </div>
@@ -1071,7 +1071,7 @@ export default function AdminVendorDetailPage() {
           </div>
 
           {vendor.warehouses.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3">
+            <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3">
               <Warehouse className="h-10 w-10 text-stone-300 mx-auto" />
               <p className="text-base font-bold text-[#0F1111]">No Registered Warehouses</p>
               <p className="text-xs text-[#565959]">This vendor does not have a registered dispatch facility.</p>
@@ -1081,12 +1081,12 @@ export default function AdminVendorDetailPage() {
               {vendor.warehouses.map((wh) => (
                 <div
                   key={wh.id}
-                  className="bg-white rounded-2xl border border-[#D5D9D9] p-5 shadow-xs space-y-3"
+                  className="bg-white rounded-xl border border-[#D5D9D9] p-5 shadow-xs space-y-3"
                 >
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-base text-[#0F1111]">{wh.facilityName}</h3>
-                      <span className="font-mono text-xs text-[#007185] font-bold block mt-0.5">
+                      <span className="tabular-nums text-xs text-[#007185] font-bold block mt-0.5">
                         Code: {wh.warehouseCode}
                       </span>
                     </div>
@@ -1100,12 +1100,12 @@ export default function AdminVendorDetailPage() {
                   <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#E7E7E7] space-y-1 text-xs text-[#0F1111]">
                     <p className="font-medium">{wh.streetAddress}</p>
                     <p className="text-[#565959]">
-                      {wh.city}, {wh.state} — <strong className="text-[#0F1111] font-mono">{wh.postalCode}</strong>
+                      {wh.city}, {wh.state} — <strong className="text-[#0F1111] tabular-nums">{wh.postalCode}</strong>
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1 text-[#565959]">
-                    <span>Dispatch Phone: <strong className="text-[#0F1111] font-mono">{wh.contactPhone}</strong></span>
+                    <span>Dispatch Phone: <strong className="text-[#0F1111] tabular-nums">{wh.contactPhone}</strong></span>
                     <span className="text-emerald-700 font-bold flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Courier Pickup Active
                     </span>
@@ -1148,19 +1148,19 @@ export default function AdminVendorDetailPage() {
           {/* Quick Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-4 border border-[#D5D9D9] shadow-xs">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#565959] block">Total Notices Issued</span>
+              <span className="text-xs font-bold text-[#565959] block">Total Notices Issued</span>
               <span className="text-2xl font-black text-[#0F1111] mt-1 block">{notices.length}</span>
               <span className="text-[11px] text-[#565959]">Lifetime governance notices</span>
             </div>
             <div className="bg-white rounded-xl p-4 border border-[#D5D9D9] shadow-xs">
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-700 block">Pending Seller Action</span>
+              <span className="text-xs font-bold text-rose-700 block">Pending Seller Action</span>
               <span className="text-2xl font-black text-rose-700 mt-1 block">
                 {notices.filter((n) => n.status === 'OPEN').length}
               </span>
               <span className="text-[11px] text-[#565959]">Awaiting seller acknowledgment</span>
             </div>
             <div className="bg-white rounded-xl p-4 border border-[#D5D9D9] shadow-xs">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 block">Acknowledged by Seller</span>
+              <span className="text-xs font-bold text-emerald-700 block">Acknowledged by Seller</span>
               <span className="text-2xl font-black text-emerald-700 mt-1 block">
                 {notices.filter((n) => n.status === 'ACKNOWLEDGED').length}
               </span>
@@ -1170,7 +1170,7 @@ export default function AdminVendorDetailPage() {
 
           {/* Notices Table */}
           {notices.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3">
+            <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3">
               <ShieldCheck className="h-10 w-10 text-emerald-500 mx-auto" />
               <p className="text-base font-bold text-[#0F1111]">No Notices Issued (Account in Good Standing)</p>
               <p className="text-xs text-[#565959]">
@@ -1192,11 +1192,11 @@ export default function AdminVendorDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-[#D5D9D9]">
                     {notices.map((n) => (
-                      <tr key={n.id} className="hover:bg-gray-50/80 transition-colors">
+                      <tr key={n.id} className="hover:bg-[#F7F8F8]/80 transition-colors">
                         <td className="py-3 px-4 max-w-xs">
                           <p className="font-bold text-[#0F1111]">{n.title}</p>
-                          <p className="text-gray-600 text-[11px] mt-0.5 line-clamp-2">{n.message}</p>
-                          <span className="inline-block mt-1 font-mono text-[10px] text-gray-400">
+                          <p className="text-[#565959] text-[11px] mt-0.5 line-clamp-2">{n.message}</p>
+                          <span className="inline-block mt-1 tabular-nums text-[10px] text-[#8A8F8F]">
                             ID: {n.id}
                           </span>
                         </td>
@@ -1204,20 +1204,20 @@ export default function AdminVendorDetailPage() {
                           {n.productTitle ? (
                             <div>
                               <span className="font-semibold text-[#0F1111] line-clamp-1">📦 {n.productTitle}</span>
-                              <span className="text-[10px] text-[#007185] font-mono">Product Notice</span>
+                              <span className="text-[10px] text-[#007185] tabular-nums">Product Notice</span>
                             </div>
                           ) : n.orderNumber ? (
                             <div>
                               <span className="font-bold text-[#0F1111]">Order #{n.orderNumber}</span>
-                              <span className="text-[10px] text-[#007185] font-mono">Consignment SLA</span>
+                              <span className="text-[10px] text-[#007185] tabular-nums">Consignment SLA</span>
                             </div>
                           ) : (
-                            <span className="text-gray-500">General Merchant Notice</span>
+                            <span className="text-[#565959]">General Merchant Notice</span>
                           )}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                            className={`inline-block px-2 py-0.5 rounded text-[10px] font-black ${
                               n.severity === 'CRITICAL'
                                 ? 'bg-rose-100 text-rose-800 border border-rose-300'
                                 : 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -1225,14 +1225,14 @@ export default function AdminVendorDetailPage() {
                           >
                             {n.severity}
                           </span>
-                          <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
+                          <p className="text-[11px] text-[#565959] mt-1 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {n.deadlineHours}h resolution
                           </p>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <p className="font-mono text-[11px] text-[#0F1111]">{n.adminEmail}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">
+                          <p className="tabular-nums text-[11px] text-[#0F1111]">{n.adminEmail}</p>
+                          <p className="text-[10px] text-[#565959] mt-0.5">
                             {new Date(n.issuedAt).toLocaleString('en-IN', {
                               dateStyle: 'medium',
                               timeStyle: 'short',
@@ -1247,7 +1247,7 @@ export default function AdminVendorDetailPage() {
                                 <span>Acknowledged by Seller</span>
                               </span>
                               {n.acknowledgedAt && (
-                                <p className="text-[10px] text-emerald-700 pl-1 font-mono">
+                                <p className="text-[10px] text-emerald-700 pl-1 tabular-nums">
                                   ✓ {new Date(n.acknowledgedAt).toLocaleString('en-IN', {
                                     dateStyle: 'medium',
                                     timeStyle: 'short',
@@ -1261,7 +1261,7 @@ export default function AdminVendorDetailPage() {
                                 <Clock className="w-3.5 h-3.5 text-amber-600" />
                                 <span>Pending Acknowledgment</span>
                               </span>
-                              <p className="text-[10px] text-gray-500 pl-1">
+                              <p className="text-[10px] text-[#565959] pl-1">
                                 Awaiting seller response
                               </p>
                             </div>
@@ -1280,8 +1280,8 @@ export default function AdminVendorDetailPage() {
       {/* Issue Official Notice Modal */}
       {showNoticeModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-start justify-between pb-4 border-b border-gray-100">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between pb-4 border-b border-[#F0F2F2]">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-600">
                   <ShieldAlert className="w-5 h-5" />
@@ -1291,7 +1291,7 @@ export default function AdminVendorDetailPage() {
                     {targetProduct ? 'Issue Product Listing Notice' : 'Issue Official Vendor Notice'}
                   </h3>
                   <p className="text-xs text-[#565959]">
-                    To: <span className="font-semibold text-gray-900">{vendor.storeName}</span>
+                    To: <span className="font-semibold text-[#0F1111]">{vendor.storeName}</span>
                     {targetProduct && (
                       <span className="block text-[11px] text-[#007185] font-semibold truncate max-w-sm mt-0.5">
                         📦 Product: {targetProduct.title}
@@ -1303,7 +1303,7 @@ export default function AdminVendorDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowNoticeModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
+                className="text-[#8A8F8F] hover:text-[#565959] p-1 rounded-lg hover:bg-[#F0F2F2]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1315,13 +1315,13 @@ export default function AdminVendorDetailPage() {
                   <Check className="w-5 h-5" />
                 </div>
                 <p className="text-sm font-bold text-emerald-800">{noticeSuccess}</p>
-                <p className="text-xs text-gray-500">Notice has been delivered to seller dashboard banner.</p>
+                <p className="text-xs text-[#565959]">Notice has been delivered to seller dashboard banner.</p>
               </div>
             ) : (
               <form onSubmit={handleSendNotice} className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-[#565959] mb-1">
                       Notice Category
                     </label>
                     <select
@@ -1349,7 +1349,7 @@ export default function AdminVendorDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-[#565959] mb-1">
                       Severity Level
                     </label>
                     <select
@@ -1364,7 +1364,7 @@ export default function AdminVendorDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-bold text-[#565959] mb-1">
                     Action Deadline Window
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -1376,7 +1376,7 @@ export default function AdminVendorDetailPage() {
                         className={`py-1.5 text-xs font-bold rounded-lg border text-center transition-colors ${
                           noticeDeadline === hours
                             ? 'bg-[#007185] text-white border-[#007185]'
-                            : 'bg-white border-[#D5D9D9] text-[#565959] hover:bg-gray-50'
+                            : 'bg-white border-[#D5D9D9] text-[#565959] hover:bg-[#F7F8F8]'
                         }`}
                       >
                         {hours} Hours
@@ -1386,7 +1386,7 @@ export default function AdminVendorDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-bold text-[#565959] mb-1">
                     Official Notice Message
                   </label>
                   <textarea
@@ -1402,11 +1402,11 @@ export default function AdminVendorDetailPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#F0F2F2]">
                   <button
                     type="button"
                     onClick={() => setShowNoticeModal(false)}
-                    className="px-3.5 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800"
+                    className="px-3.5 py-2 text-xs font-semibold text-[#565959] hover:text-[#0F1111]"
                   >
                     Cancel
                   </button>

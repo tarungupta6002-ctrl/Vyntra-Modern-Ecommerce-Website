@@ -109,7 +109,7 @@ export default function AdminBuyBoxPage() {
         </div>
       ) : products.length === 0 ? (
         <div className="bg-white border border-[#D5D9D9] rounded-xl p-16 text-center space-y-2">
-          <Trophy className="w-10 h-10 text-gray-300 mx-auto" />
+          <Trophy className="w-10 h-10 text-[#D5D9D9] mx-auto" />
           <p className="text-sm font-bold text-[#0F1111]">No active multi-seller products</p>
           <p className="text-xs text-[#565959]">Attach seller offers to catalog listings to observe competition.</p>
         </div>
@@ -161,13 +161,13 @@ export default function AdminBuyBoxPage() {
                     {prod.competingOffers.map((offer) => (
                       <tr
                         key={offer.offerId}
-                        className={offer.isBuyBoxWinner ? 'bg-amber-50/50 font-medium' : 'hover:bg-gray-50/80'}
+                        className={offer.isBuyBoxWinner ? 'bg-amber-50/50 font-medium' : 'hover:bg-[#F7F8F8]'}
                       >
                         <td className="py-3 px-4">
                           <span className="font-bold text-[#0F1111]">{offer.vendorStoreName}</span>
-                          <p className="text-[10px] text-[#565959] font-mono">{offer.offerId}</p>
+                          <p className="text-[10px] text-[#565959] tabular-nums">{offer.offerId}</p>
                         </td>
-                        <td className="py-3 px-4 font-mono font-bold text-[#0F1111]">
+                        <td className="py-3 px-4 tabular-nums font-bold text-[#0F1111]">
                           {formatINR(offer.sellingPrice)}
                         </td>
                         <td className="py-3 px-4">
@@ -175,15 +175,15 @@ export default function AdminBuyBoxPage() {
                             {offer.stock > 0 ? `${offer.stock} units` : 'OOS'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono">+{offer.scoreBreakdown.pricePenalty}</td>
-                        <td className="py-3 px-4 font-mono">+{offer.scoreBreakdown.ratingPenalty}</td>
-                        <td className="py-3 px-4 font-mono">+{offer.scoreBreakdown.deliveryPenalty}</td>
-                        <td className="py-3 px-4 font-mono text-emerald-700 font-bold">
+                        <td className="py-3 px-4 tabular-nums">+{offer.scoreBreakdown.pricePenalty}</td>
+                        <td className="py-3 px-4 tabular-nums">+{offer.scoreBreakdown.ratingPenalty}</td>
+                        <td className="py-3 px-4 tabular-nums">+{offer.scoreBreakdown.deliveryPenalty}</td>
+                        <td className="py-3 px-4 tabular-nums text-emerald-700 font-bold">
                           {offer.scoreBreakdown.verificationBonus < 0
                             ? `${offer.scoreBreakdown.verificationBonus} pts`
                             : '0 pts'}
                         </td>
-                        <td className="py-3 px-4 font-mono font-extrabold text-[#0F1111]">
+                        <td className="py-3 px-4 tabular-nums font-extrabold text-[#0F1111]">
                           {offer.scoreBreakdown.isOutOfStock ? 'Disqualified (OOS)' : offer.compositeScore.toFixed(2)}
                         </td>
                         <td className="py-3 px-4">

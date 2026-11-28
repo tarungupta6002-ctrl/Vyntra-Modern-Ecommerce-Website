@@ -351,7 +351,7 @@ export default function AdminReviewsPage() {
                         {rev.orderItem && (
                           <>
                             <span>&bull;</span>
-                            <span className="text-[11px] font-mono text-[#565959]">
+                            <span className="text-[11px] tabular-nums text-[#565959]">
                               Order #{rev.orderItem.orderId.slice(-8).toUpperCase()}
                             </span>
                           </>
@@ -452,10 +452,10 @@ export default function AdminReviewsPage() {
       {/* Moderation Decision Modal */}
       {activeModalReview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#565959]">
+                <span className="text-[10px] font-bold text-[#565959]">
                   Review Action Confirmation
                 </span>
                 <h3 className="font-headline font-bold text-base text-[#0F1111]">

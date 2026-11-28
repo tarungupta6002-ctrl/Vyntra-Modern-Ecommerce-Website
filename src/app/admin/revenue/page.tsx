@@ -170,9 +170,9 @@ export default function AdminRevenuePage() {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Vyntra Net Profit */}
-        <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+        <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white rounded-xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
+            <span className="text-xs font-bold text-emerald-200">
               Vyntra Net In-Hand Profit
             </span>
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
@@ -180,7 +180,7 @@ export default function AdminRevenuePage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold font-mono tracking-tight">
+            <div className="text-3xl font-extrabold tabular-nums tracking-tight">
               {formatINR(metrics?.vyntraNetProfit || 0)}
             </div>
             <p className="text-[11px] text-emerald-200/90 mt-1 flex items-center gap-1">
@@ -190,9 +190,9 @@ export default function AdminRevenuePage() {
         </div>
 
         {/* Card 2: Total Gross Platform Revenue */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#D5D9D9] flex flex-col justify-between min-h-[160px]">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-[#D5D9D9] flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959]">
+            <span className="text-xs font-bold text-[#565959]">
               Total Platform Revenue
             </span>
             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -200,7 +200,7 @@ export default function AdminRevenuePage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold font-mono text-[#0F1111] tracking-tight">
+            <div className="text-3xl font-extrabold tabular-nums text-[#0F1111] tracking-tight">
               {formatINR(metrics?.vyntraGrossRevenue || 0)}
             </div>
             <p className="text-[11px] text-[#565959] mt-1">
@@ -210,9 +210,9 @@ export default function AdminRevenuePage() {
         </div>
 
         {/* Card 3: Marketplace GMV */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#D5D9D9] flex flex-col justify-between min-h-[160px]">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-[#D5D9D9] flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959]">
+            <span className="text-xs font-bold text-[#565959]">
               Gross Merchandise Value (GMV)
             </span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
@@ -220,7 +220,7 @@ export default function AdminRevenuePage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold font-mono text-[#0F1111] tracking-tight">
+            <div className="text-3xl font-extrabold tabular-nums text-[#0F1111] tracking-tight">
               {formatINR(metrics?.totalGMV || 0)}
             </div>
             <p className="text-[11px] text-[#565959] mt-1">
@@ -230,9 +230,9 @@ export default function AdminRevenuePage() {
         </div>
 
         {/* Card 4: Vendor Payouts Obligation */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#D5D9D9] flex flex-col justify-between min-h-[160px]">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-[#D5D9D9] flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#565959]">
+            <span className="text-xs font-bold text-[#565959]">
               Total Vendor Share
             </span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
@@ -240,7 +240,7 @@ export default function AdminRevenuePage() {
             </div>
           </div>
           <div>
-            <div className="text-3xl font-extrabold font-mono text-[#0F1111] tracking-tight">
+            <div className="text-3xl font-extrabold tabular-nums text-[#0F1111] tracking-tight">
               {formatINR(metrics?.totalVendorPayoutObligation || 0)}
             </div>
             <p className="text-[11px] text-[#565959] mt-1">
@@ -253,7 +253,7 @@ export default function AdminRevenuePage() {
       {/* 2-Column Section: Revenue Streams Breakdown & Payment Channels */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Revenue Stream Breakdown (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-[#D5D9D9]">
+        <div className="lg:col-span-7 bg-white rounded-xl p-6 shadow-sm border border-[#D5D9D9]">
           <div className="flex items-center justify-between pb-4 border-b border-[#D5D9D9]">
             <div>
               <h2 className="font-headline font-bold text-base text-[#0F1111]">
@@ -263,7 +263,7 @@ export default function AdminRevenuePage() {
                 Exact breakdown of every rupee earned by Vyntra Marketplace
               </p>
             </div>
-            <span className="text-xs font-mono font-bold text-primary">
+            <span className="text-xs tabular-nums font-bold text-primary">
               Take Rate: {metrics?.totalGMV ? ((metrics.vyntraGrossRevenue / metrics.totalGMV) * 100).toFixed(1) : 0}%
             </span>
           </div>
@@ -276,7 +276,7 @@ export default function AdminRevenuePage() {
                   <span className="w-3 h-3 rounded-full bg-primary shrink-0" />
                   <span className="font-bold text-[#0F1111]">Marketplace Seller Commissions ({metrics?.platformCommissionRate || 10}%)</span>
                 </div>
-                <div className="font-mono text-right">
+                <div className="tabular-nums text-right">
                   <span className="font-bold text-[#0F1111]">{formatINR(metrics?.totalCommissionsEarned || 0)}</span>
                   <span className="text-xs text-[#565959] ml-1.5">({commissionPercent}%)</span>
                 </div>
@@ -296,7 +296,7 @@ export default function AdminRevenuePage() {
                   <span className="w-3 h-3 rounded-full bg-emerald-600 shrink-0" />
                   <span className="font-bold text-[#0F1111]">Packaging fees (₹49 per order)</span>
                 </div>
-                <div className="font-mono text-right">
+                <div className="tabular-nums text-right">
                   <span className="font-bold text-[#0F1111]">{formatINR(metrics?.totalPackagingFees || 0)}</span>
                   <span className="text-xs text-[#565959] ml-1.5">({packagingPercent}%)</span>
                 </div>
@@ -316,7 +316,7 @@ export default function AdminRevenuePage() {
                   <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
                   <span className="font-bold text-[#0F1111]">Cash on Delivery Verification Fees (₹49/COD)</span>
                 </div>
-                <div className="font-mono text-right">
+                <div className="tabular-nums text-right">
                   <span className="font-bold text-[#0F1111]">{formatINR(metrics?.totalCodFees || 0)}</span>
                   <span className="text-xs text-[#565959] ml-1.5">({codPercent}%)</span>
                 </div>
@@ -338,7 +338,7 @@ export default function AdminRevenuePage() {
                 Razorpay standard domestic gateway rate (~2.0% on prepaid transactions).
               </p>
             </div>
-            <div className="text-right font-mono font-bold text-rose-700 shrink-0">
+            <div className="text-right tabular-nums font-bold text-rose-700 shrink-0">
               - {formatINR(metrics?.estimatedGatewayFees || 0)}
             </div>
           </div>
@@ -351,14 +351,14 @@ export default function AdminRevenuePage() {
                 Refunded items and returned orders are strictly subtracted from GMV and net revenue. Vyntra retains ₹0 commission on refunded items.
               </p>
             </div>
-            <div className="text-right font-mono font-bold text-rose-700 shrink-0">
+            <div className="text-right tabular-nums font-bold text-rose-700 shrink-0">
               - {formatINR(metrics?.totalRefunds || 0)}
             </div>
           </div>
         </div>
 
         {/* Right: Payment Channels & Conversion (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl p-6 shadow-sm border border-[#D5D9D9]">
+        <div className="lg:col-span-5 bg-white rounded-xl p-6 shadow-sm border border-[#D5D9D9]">
           <h2 className="font-headline font-bold text-base text-[#0F1111] pb-4 border-b border-[#D5D9D9]">
             Payment Mode Distribution
           </h2>
@@ -375,11 +375,11 @@ export default function AdminRevenuePage() {
                   <span className="text-[11px] text-emerald-800">Card, UPI, Netbanking</span>
                 </div>
               </div>
-              <div className="text-right font-mono">
+              <div className="text-right tabular-nums">
                 <span className="font-bold text-sm text-emerald-950 block">
                   {formatINR(metrics?.totalOnlineOrdersAmount || 0)}
                 </span>
-                <span className="text-[10px] text-emerald-700 uppercase font-semibold">100% Upfront</span>
+                <span className="text-[10px] text-emerald-700 font-semibold">100% Upfront</span>
               </div>
             </div>
 
@@ -394,24 +394,24 @@ export default function AdminRevenuePage() {
                   <span className="text-[11px] text-amber-800">Settled post courier delivery</span>
                 </div>
               </div>
-              <div className="text-right font-mono">
+              <div className="text-right tabular-nums">
                 <span className="font-bold text-sm text-amber-950 block">
                   {formatINR(metrics?.totalCodOrdersAmount || 0)}
                 </span>
-                <span className="text-[10px] text-amber-700 uppercase font-semibold">Doorstep Remittance</span>
+                <span className="text-[10px] text-amber-700 font-semibold">Doorstep Remittance</span>
               </div>
             </div>
           </div>
 
           <div className="mt-5 pt-4 border-t border-[#D5D9D9] flex items-center justify-between text-xs text-[#565959]">
             <span>Active Platform Commission:</span>
-            <span className="font-mono font-bold text-[#0F1111]">{metrics?.platformCommissionRate || 10.0}% Global</span>
+            <span className="tabular-nums font-bold text-[#0F1111]">{metrics?.platformCommissionRate || 10.0}% Global</span>
           </div>
         </div>
       </div>
 
       {/* Vendor Revenue Contribution Leaderboard */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#D5D9D9] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] overflow-hidden">
         <div className="p-6 border-b border-[#D5D9D9] flex items-center justify-between">
           <div>
             <h2 className="font-headline font-bold text-base text-[#0F1111]">
@@ -432,7 +432,7 @@ export default function AdminRevenuePage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F7F8F8] text-[#565959] uppercase font-bold border-b border-[#D5D9D9]">
+            <thead className="bg-[#F7F8F8] text-[#565959] font-bold border-b border-[#D5D9D9]">
               <tr>
                 <th className="py-3 px-6">Merchant Store</th>
                 <th className="py-3 px-4">Units Sold</th>
@@ -453,17 +453,17 @@ export default function AdminRevenuePage() {
                         </span>
                         <div>
                           <span className="font-bold text-[#0F1111] block">{v.storeName}</span>
-                          <span className="text-[10px] text-[#565959] font-mono">ID: {v.storeSlug}</span>
+                          <span className="text-[10px] text-[#565959] tabular-nums">ID: {v.storeSlug}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-medium">{v.itemsSold} pcs</td>
-                    <td className="py-3.5 px-4 font-mono font-medium">{v.ordersCount} orders</td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#0F1111]">{formatINR(v.grossSales)}</td>
-                    <td className="py-3.5 px-4 font-mono font-extrabold text-emerald-700 bg-emerald-50/40">
+                    <td className="py-3.5 px-4 tabular-nums font-medium">{v.itemsSold} pcs</td>
+                    <td className="py-3.5 px-4 tabular-nums font-medium">{v.ordersCount} orders</td>
+                    <td className="py-3.5 px-4 tabular-nums font-bold text-[#0F1111]">{formatINR(v.grossSales)}</td>
+                    <td className="py-3.5 px-4 tabular-nums font-extrabold text-emerald-700 bg-emerald-50/40">
                       + {formatINR(v.commissionContributed)}
                     </td>
-                    <td className="py-3.5 px-6 text-right font-mono font-medium text-[#565959]">
+                    <td className="py-3.5 px-6 text-right tabular-nums font-medium text-[#565959]">
                       {formatINR(v.vendorNet)}
                     </td>
                   </tr>
@@ -481,7 +481,7 @@ export default function AdminRevenuePage() {
       </div>
 
       {/* Order-by-Order Revenue Ledger */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#D5D9D9] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] overflow-hidden">
         <div className="p-6 border-b border-[#D5D9D9] flex items-center justify-between">
           <div>
             <h2 className="font-headline font-bold text-base text-[#0F1111]">
@@ -502,7 +502,7 @@ export default function AdminRevenuePage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#F7F8F8] text-[#565959] uppercase font-bold border-b border-[#D5D9D9]">
+            <thead className="bg-[#F7F8F8] text-[#565959] font-bold border-b border-[#D5D9D9]">
               <tr>
                 <th className="py-3 px-6">Order Number</th>
                 <th className="py-3 px-4">Date</th>
@@ -520,7 +520,7 @@ export default function AdminRevenuePage() {
                     <td className="py-3.5 px-6">
                       <Link
                         href={`/admin/orders/${o.orderId}`}
-                        className="font-mono font-bold text-primary hover:underline"
+                        className="tabular-nums font-bold text-primary hover:underline"
                       >
                         {o.orderNumber}
                       </Link>
@@ -538,17 +538,17 @@ export default function AdminRevenuePage() {
                     <td className="py-3.5 px-4 font-semibold text-[#0F1111]">
                       {o.paymentMethod}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-[#0F1111]">
+                    <td className="py-3.5 px-4 tabular-nums font-bold text-[#0F1111]">
                       {formatINR(o.totalAmount)}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-[#565959]">
+                    <td className="py-3.5 px-4 tabular-nums text-[#565959]">
                       {formatINR(o.vendorNet)}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-extrabold text-emerald-700 bg-emerald-50/40">
+                    <td className="py-3.5 px-4 tabular-nums font-extrabold text-emerald-700 bg-emerald-50/40">
                       + {formatINR(o.vyntraTake)}
                     </td>
                     <td className="py-3.5 px-6 text-right">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                         {o.status}
                       </span>
                     </td>

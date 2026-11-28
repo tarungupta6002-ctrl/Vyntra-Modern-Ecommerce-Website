@@ -92,18 +92,18 @@ export function AdminDisputeReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div className="relative w-full max-w-3xl max-h-[92vh] flex flex-col bg-white rounded-xl shadow-2xl border border-[#E3E6E6] overflow-hidden">
         {/* Header (Pinned) */}
         <div className="px-6 py-4 bg-[#131921] text-white flex items-center justify-between shrink-0 border-b border-[#232F3E]">
           <div className="flex items-center gap-2.5">
             <Scale className="h-5 w-5 text-[#FF9900]" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-[#FF9900] bg-[#232F3E] px-2 py-0.5 rounded border border-[#FF9900]/40">
+                <span className="text-[10px] font-bold text-[#FF9900] bg-[#232F3E] px-2 py-0.5 rounded border border-[#FF9900]/40">
                   Dispute review
                 </span>
-                <span className="text-zinc-400 text-xs">•</span>
-                <span className="text-xs font-mono text-zinc-300">
+                <span className="text-[#8A8F8F] text-xs">•</span>
+                <span className="text-xs tabular-nums text-[#D5D9D9]">
                   Return #{returnRequest.id.slice(-8)}
                 </span>
               </div>
@@ -115,7 +115,7 @@ export function AdminDisputeReviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-[#8A8F8F] hover:text-white hover:bg-white/10 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -124,29 +124,29 @@ export function AdminDisputeReviewModal({
         {/* Order & Return Context Bar */}
         <div className="bg-[#EAEDED] px-6 py-2.5 border-b border-[#D5D9D9] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs shrink-0">
           <div>
-            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Customer</span>
-            <span className="font-semibold text-zinc-900 truncate block">
+            <span className="text-[10px] font-bold text-[#565959] block">Customer</span>
+            <span className="font-semibold text-[#0F1111] truncate block">
               {returnRequest.user?.name || 'Customer'}
             </span>
-            <span className="text-[10px] text-zinc-500 block truncate">{returnRequest.user?.email}</span>
+            <span className="text-[10px] text-[#565959] block truncate">{returnRequest.user?.email}</span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Seller</span>
-            <span className="font-semibold text-zinc-900 truncate block">
+            <span className="text-[10px] font-bold text-[#565959] block">Seller</span>
+            <span className="font-semibold text-[#0F1111] truncate block">
               {returnRequest.vendor?.storeName || 'Vendor'}
             </span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Item / Total</span>
-            <span className="font-semibold text-zinc-900 block font-mono">
+            <span className="text-[10px] font-bold text-[#565959] block">Item / Total</span>
+            <span className="font-semibold text-[#0F1111] block tabular-nums">
               {formatINR(returnRequest.orderItem?.totalPrice || returnRequest.order?.totalAmount || 0)}
             </span>
-            <span className="text-[10px] text-zinc-500 block">
+            <span className="text-[10px] text-[#565959] block">
               Qty: {returnRequest.requestedQuantity}
             </span>
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-zinc-500 block">Current Status</span>
+            <span className="text-[10px] font-bold text-[#565959] block">Current Status</span>
             <span className="inline-block text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
               {returnRequest.status?.replace(/_/g, ' ')}
             </span>
@@ -165,14 +165,14 @@ export function AdminDisputeReviewModal({
 
             {/* Vendor Rejection Record */}
             <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-lg space-y-1 text-xs">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-rose-900 block">
+              <span className="text-[11px] font-bold text-rose-900 block">
                 Seller's inspection result
               </span>
               <p className="text-rose-950 font-medium">
                 {returnRequest.vendorNotes || returnRequest.qcFailedReason || 'Rejection record noted by seller.'}
               </p>
               {returnRequest.qcNotes && (
-                <p className="text-zinc-600 text-[11px]">QC Notes: {returnRequest.qcNotes}</p>
+                <p className="text-[#565959] text-[11px]">QC Notes: {returnRequest.qcNotes}</p>
               )}
             </div>
 
@@ -181,7 +181,7 @@ export function AdminDisputeReviewModal({
               <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-amber-700" />
-                  <span className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-amber-950">
                     Claimant Formal Dispute
                   </span>
                 </div>
@@ -191,29 +191,29 @@ export function AdminDisputeReviewModal({
               </div>
 
               <div>
-                <span className="text-[11px] uppercase font-bold text-amber-900 block">Ground / Reason</span>
-                <p className="text-xs font-semibold text-zinc-900 mt-0.5">
+                <span className="text-[11px] font-bold text-amber-900 block">Ground / Reason</span>
+                <p className="text-xs font-semibold text-[#0F1111] mt-0.5">
                   {disputeReason.replace(/_/g, ' ')}
                 </p>
               </div>
 
               <div>
-                <span className="text-[11px] uppercase font-bold text-amber-900 block">Claimant Explanation</span>
-                <p className="text-xs text-zinc-800 bg-white p-3 rounded-md border border-amber-200 mt-0.5 whitespace-pre-wrap leading-relaxed">
+                <span className="text-[11px] font-bold text-amber-900 block">Claimant Explanation</span>
+                <p className="text-xs text-[#0F1111] bg-white p-3 rounded-md border border-amber-200 mt-0.5 whitespace-pre-wrap leading-relaxed">
                   {disputeExplanation}
                 </p>
               </div>
 
               {/* Photographic Evidence */}
               <div>
-                <span className="text-[11px] uppercase font-bold text-amber-900 block mb-1.5">
+                <span className="text-[11px] font-bold text-amber-900 block mb-1.5">
                   Photographic Evidence ({evidencePhotos.length})
                 </span>
                 {evidencePhotos.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {evidencePhotos.map((url, idx) => (
                       <div key={idx} className="relative group rounded-lg overflow-hidden border border-amber-200 bg-white p-1">
-                        <div className="relative h-28 w-full rounded bg-gray-100 overflow-hidden">
+                        <div className="relative h-28 w-full rounded bg-[#F0F2F2] overflow-hidden">
                           <Image
                             src={url}
                             alt={`Dispute Evidence ${idx + 1}`}
@@ -235,14 +235,14 @@ export function AdminDisputeReviewModal({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-zinc-500 italic">No external photo URLs provided by claimant.</p>
+                  <p className="text-xs text-[#565959] italic">No external photo URLs provided by claimant.</p>
                 )}
               </div>
             </div>
 
             {/* Arbitration Decision Selector */}
             <div>
-              <label className="block text-xs font-bold text-zinc-900 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-[#0F1111] mb-2">
                 Arbitration Determination <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -250,8 +250,8 @@ export function AdminDisputeReviewModal({
                 <label
                   className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
                     resolution === 'REFUND_APPROVED'
-                      ? 'border-[#800020] bg-rose-50/60 ring-2 ring-[#800020]/20'
-                      : 'border-zinc-200 bg-white hover:bg-zinc-50'
+                      ? 'border-[#007185] bg-[#F0F8F9] ring-2 ring-[#007185]/20'
+                      : 'border-[#E3E6E6] bg-white hover:bg-[#F7F8F8]'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -261,11 +261,11 @@ export function AdminDisputeReviewModal({
                       value="REFUND_APPROVED"
                       checked={resolution === 'REFUND_APPROVED'}
                       onChange={() => setResolution('REFUND_APPROVED')}
-                      className="text-[#800020] focus:ring-[#800020]"
+                      className="text-[#007185] focus:ring-[#007185]"
                     />
-                    <span className="text-xs font-bold text-zinc-900">Approve Cash Refund</span>
+                    <span className="text-xs font-bold text-[#0F1111]">Approve Cash Refund</span>
                   </div>
-                  <p className="text-[11px] text-zinc-600 leading-snug pl-5">
+                  <p className="text-[11px] text-[#565959] leading-snug pl-5">
                     Overrules vendor rejection. Authorizes customer refund ledger ceiling.
                   </p>
                 </label>
@@ -275,7 +275,7 @@ export function AdminDisputeReviewModal({
                   className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
                     resolution === 'REPLACEMENT_APPROVED'
                       ? 'border-purple-800 bg-purple-50/60 ring-2 ring-purple-600/20'
-                      : 'border-zinc-200 bg-white hover:bg-zinc-50'
+                      : 'border-[#E3E6E6] bg-white hover:bg-[#F7F8F8]'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -287,9 +287,9 @@ export function AdminDisputeReviewModal({
                       onChange={() => setResolution('REPLACEMENT_APPROVED')}
                       className="text-purple-700 focus:ring-purple-700"
                     />
-                    <span className="text-xs font-bold text-zinc-900">Approve Replacement</span>
+                    <span className="text-xs font-bold text-[#0F1111]">Approve Replacement</span>
                   </div>
-                  <p className="text-[11px] text-zinc-600 leading-snug pl-5">
+                  <p className="text-[11px] text-[#565959] leading-snug pl-5">
                     Overrules rejection. Orders vendor to dispatch replacement piece.
                   </p>
                 </label>
@@ -298,8 +298,8 @@ export function AdminDisputeReviewModal({
                 <label
                   className={`p-3 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${
                     resolution === 'REJECTED'
-                      ? 'border-zinc-900 bg-zinc-100 ring-2 ring-zinc-500/20'
-                      : 'border-zinc-200 bg-white hover:bg-zinc-50'
+                      ? 'border-[#0F1111] bg-[#F0F2F2] ring-2 ring-[#565959]/20'
+                      : 'border-[#E3E6E6] bg-white hover:bg-[#F7F8F8]'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -309,11 +309,11 @@ export function AdminDisputeReviewModal({
                       value="REJECTED"
                       checked={resolution === 'REJECTED'}
                       onChange={() => setResolution('REJECTED')}
-                      className="text-zinc-900 focus:ring-zinc-900"
+                      className="text-[#0F1111] focus:ring-[#0F1111]"
                     />
-                    <span className="text-xs font-bold text-zinc-900">Dismiss Dispute</span>
+                    <span className="text-xs font-bold text-[#0F1111]">Dismiss Dispute</span>
                   </div>
-                  <p className="text-[11px] text-zinc-600 leading-snug pl-5">
+                  <p className="text-[11px] text-[#565959] leading-snug pl-5">
                     Upholds rejection. Return remains closed/rejected without payout.
                   </p>
                 </label>
@@ -322,7 +322,7 @@ export function AdminDisputeReviewModal({
 
             {/* Mandatory Concierge Resolution Notes */}
             <div>
-              <label htmlFor="admin-dispute-notes" className="block text-xs font-bold text-zinc-900 uppercase tracking-wider mb-1">
+              <label htmlFor="admin-dispute-notes" className="block text-xs font-bold text-[#0F1111] mb-1">
                 Your decision and reason <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -332,19 +332,19 @@ export function AdminDisputeReviewModal({
                 onChange={(e) => setAdminNotes(e.target.value)}
                 disabled={isSubmitting}
                 placeholder="Document physical tag inspection records, courier transit timeline, and legal policy basis..."
-                className="w-full text-xs border border-zinc-300 rounded-lg p-3 text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-900 resize-none disabled:bg-zinc-100"
+                className="w-full text-xs border border-[#D5D9D9] rounded-lg p-3 text-[#0F1111] placeholder-[#8A8F8F] focus:outline-none focus:ring-1 focus:ring-[#0F1111] resize-none disabled:bg-[#F0F2F2]"
                 required
               />
             </div>
           </div>
 
           {/* Sticky Footer */}
-          <div className="shrink-0 px-6 py-3.5 bg-zinc-50 border-t border-zinc-200 flex items-center justify-end gap-3">
+          <div className="shrink-0 px-6 py-3.5 bg-[#F7F8F8] border-t border-[#E3E6E6] flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-200/70 rounded-lg transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-[#333333] hover:bg-[#E3E6E6]/70 rounded-lg transition-colors"
             >
               Cancel
             </button>

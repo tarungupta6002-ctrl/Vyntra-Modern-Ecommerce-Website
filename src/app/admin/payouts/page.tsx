@@ -281,7 +281,7 @@ export default function AdminPayoutsPage() {
       )}
 
       {/* Vendors Payout Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#D5D9D9] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] overflow-hidden">
         <div className="p-4 border-b border-[#D5D9D9] flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-bold text-[#0F1111] flex items-center gap-2">
             <Building2 className="h-4 w-4 text-[#007185]" />
@@ -320,7 +320,7 @@ export default function AdminPayoutsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold uppercase tracking-wider text-[11px]">
+                <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px]">
                   <th className="py-3 px-4">Vendor Store</th>
                   <th className="py-3 px-4 text-center">Eligible Items</th>
                   <th className="py-3 px-4 text-right">Gross Sales</th>
@@ -372,7 +372,7 @@ export default function AdminPayoutsPage() {
                               )}
                             </button>
 
-                            <span className="text-neutral-300">•</span>
+                            <span className="text-[#D5D9D9]">•</span>
 
                             <button
                               type="button"
@@ -385,7 +385,7 @@ export default function AdminPayoutsPage() {
 
                             {v.adjustments && v.adjustments.length > 0 && (
                               <>
-                                <span className="text-neutral-300">•</span>
+                                <span className="text-[#D5D9D9]">•</span>
                                 <button
                                   type="button"
                                   onClick={() => setActiveAdjustmentsModalVendor(v)}
@@ -406,19 +406,19 @@ export default function AdminPayoutsPage() {
                           </span>
                         </td>
 
-                        <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#0F1111]">
+                        <td className="py-3.5 px-4 text-right tabular-nums font-semibold text-[#0F1111]">
                           ₹{v.pendingGross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
 
-                        <td className="py-3.5 px-4 text-right font-mono text-[#565959]">
+                        <td className="py-3.5 px-4 text-right tabular-nums text-[#565959]">
                           ₹{v.pendingCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
 
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-700 text-sm">
+                        <td className="py-3.5 px-4 text-right tabular-nums font-bold text-emerald-700 text-sm">
                           ₹{v.pendingNetPayout.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
 
-                        <td className="py-3.5 px-4 text-right font-mono text-[#007185] font-semibold">
+                        <td className="py-3.5 px-4 text-right tabular-nums text-[#007185] font-semibold">
                           ₹{v.totalPaidOut.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
 
@@ -472,7 +472,7 @@ export default function AdminPayoutsPage() {
                                     <tbody className="divide-y divide-[#EAEDED]">
                                       {v.eligibleItems.map((item) => (
                                         <tr key={item.id} className="hover:bg-[#F9FAFA]">
-                                          <td className="py-2 px-3 font-mono font-bold text-[#0F1111]">
+                                          <td className="py-2 px-3 tabular-nums font-bold text-[#0F1111]">
                                             #{item.orderNumber}
                                           </td>
                                           <td className="py-2 px-3 font-medium text-[#0F1111]">
@@ -481,13 +481,13 @@ export default function AdminPayoutsPage() {
                                           <td className="py-2 px-3 text-[#565959]">
                                             {item.paymentMethod}
                                           </td>
-                                          <td className="py-2 px-3 text-right font-mono">
+                                          <td className="py-2 px-3 text-right tabular-nums">
                                             ₹{item.totalPrice.toFixed(2)}
                                           </td>
-                                          <td className="py-2 px-3 text-right font-mono text-[#565959]">
+                                          <td className="py-2 px-3 text-right tabular-nums text-[#565959]">
                                             ₹{item.commissionAmount.toFixed(2)}
                                           </td>
-                                          <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700">
+                                          <td className="py-2 px-3 text-right tabular-nums font-bold text-emerald-700">
                                             ₹{item.netEarnings.toFixed(2)}
                                           </td>
                                         </tr>
@@ -512,7 +512,7 @@ export default function AdminPayoutsPage() {
       {/* Modal 1: Configure Global Commission */}
       {isCommissionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-md w-full p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
                 <Settings className="h-5 w-5 text-[#007185]" />
@@ -520,7 +520,7 @@ export default function AdminPayoutsPage() {
               </h3>
               <button
                 onClick={() => setIsCommissionModalOpen(false)}
-                className="text-neutral-400 hover:text-neutral-600"
+                className="text-[#8A8F8F] hover:text-[#565959]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -540,7 +540,7 @@ export default function AdminPayoutsPage() {
                     required
                     value={newCommissionRate}
                     onChange={(e) => setNewCommissionRate(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#888C8C] rounded-lg text-sm font-mono font-bold text-[#0F1111] focus:ring-2 focus:ring-[#007185] focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#888C8C] rounded-lg text-sm tabular-nums font-bold text-[#0F1111] focus:ring-2 focus:ring-[#007185] focus:outline-none"
                     placeholder="10.00"
                   />
                   <span className="absolute right-3 top-2.5 text-sm text-[#565959] font-bold">%</span>
@@ -588,7 +588,7 @@ export default function AdminPayoutsPage() {
       {/* Modal 2: Process Bank Settlement */}
       {settlementVendor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-lg w-full p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-[#007185]" />
@@ -596,7 +596,7 @@ export default function AdminPayoutsPage() {
               </h3>
               <button
                 onClick={() => setSettlementVendor(null)}
-                className="text-neutral-400 hover:text-neutral-600"
+                className="text-[#8A8F8F] hover:text-[#565959]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -614,14 +614,14 @@ export default function AdminPayoutsPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[#565959]">Base Net Earnings:</span>
-                  <span className="font-mono font-bold text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-[#0F1111]">
                     ₹{settlementVendor.pendingNetPayout.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 {(settlementVendor.outstandingAdjustments ?? 0) > 0 && (
                   <div className="flex justify-between items-center text-rose-600">
                     <span>Less Adjustment Deductions:</span>
-                    <span className="font-mono font-bold">
+                    <span className="tabular-nums font-bold">
                       -₹{Math.min(settlementVendor.pendingNetPayout, settlementVendor.outstandingAdjustments || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -632,7 +632,7 @@ export default function AdminPayoutsPage() {
                       ? 'Net Settlement Amount (Internal Offset):'
                       : 'Net Payable Bank Transfer:'}
                   </span>
-                  <span className="font-mono font-bold text-lg text-emerald-700">
+                  <span className="tabular-nums font-bold text-lg text-emerald-700">
                     ₹{(settlementVendor.projectedNetPayout ?? settlementVendor.pendingNetPayout).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -662,7 +662,7 @@ export default function AdminPayoutsPage() {
                       value={payoutReference}
                       onChange={(e) => setPayoutReference(e.target.value)}
                       placeholder="e.g. HDFC2026110900019283"
-                      className="w-full px-3 py-2 border border-[#888C8C] rounded-lg text-xs font-mono font-bold text-[#0F1111] focus:ring-2 focus:ring-[#007185] focus:outline-none"
+                      className="w-full px-3 py-2 border border-[#888C8C] rounded-lg text-xs tabular-nums font-bold text-[#0F1111] focus:ring-2 focus:ring-[#007185] focus:outline-none"
                     />
                     <p className="text-[10px] text-[#565959] mt-1">
                       Enter the real transaction reference or UTR provided by your bank after executing the electronic fund transfer.
@@ -723,7 +723,7 @@ export default function AdminPayoutsPage() {
       {/* Modal 3: Vendor Payout & Product Settlement History Modal */}
       {activeHistoryModalVendor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-4xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-4xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED] shrink-0">
               <div>
                 <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
@@ -737,7 +737,7 @@ export default function AdminPayoutsPage() {
               <button
                 type="button"
                 onClick={() => setActiveHistoryModalVendor(null)}
-                className="text-neutral-400 hover:text-neutral-600 p-1 rounded-lg"
+                className="text-[#8A8F8F] hover:text-[#565959] p-1 rounded-lg"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -747,7 +747,7 @@ export default function AdminPayoutsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#F7F8F8] p-3.5 rounded-xl border border-[#EAEDED] shrink-0 text-xs">
               <div>
                 <span className="text-[#565959] block">Total Settled to Bank</span>
-                <span className="font-headline font-bold text-base text-[#007185] font-mono">
+                <span className="font-headline font-bold text-base text-[#007185] tabular-nums">
                   ₹{activeHistoryModalVendor.totalPaidOut.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -765,7 +765,7 @@ export default function AdminPayoutsPage() {
               </div>
               <div>
                 <span className="text-[#565959] block">Outstanding Debits</span>
-                <span className={`font-headline font-bold text-base font-mono ${
+                <span className={`font-headline font-bold text-base tabular-nums ${
                   (activeHistoryModalVendor.outstandingAdjustments ?? 0) > 0 ? 'text-rose-700' : 'text-emerald-700'
                 }`}>
                   -₹{(activeHistoryModalVendor.outstandingAdjustments ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -781,7 +781,7 @@ export default function AdminPayoutsPage() {
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="sticky top-0 bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px] uppercase tracking-wider">
+                  <thead className="sticky top-0 bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px]">
                     <tr>
                       <th className="py-2.5 px-3">Order #</th>
                       <th className="py-2.5 px-3">Product</th>
@@ -795,7 +795,7 @@ export default function AdminPayoutsPage() {
                   <tbody className="divide-y divide-[#EAEDED]">
                     {activeHistoryModalVendor.settledItems.map((item) => (
                       <tr key={item.id} className="hover:bg-[#F9FAFA] transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-[#0F1111]">
+                        <td className="py-3 px-3 tabular-nums font-bold text-[#0F1111]">
                           #{item.orderNumber}
                         </td>
                         <td className="py-3 px-3">
@@ -815,18 +815,18 @@ export default function AdminPayoutsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-right font-mono font-semibold text-[#0F1111]">
+                        <td className="py-3 px-3 text-right tabular-nums font-semibold text-[#0F1111]">
                           ₹{item.totalPrice.toFixed(2)}
                         </td>
-                        <td className="py-3 px-3 text-right font-mono text-[#565959]">
+                        <td className="py-3 px-3 text-right tabular-nums text-[#565959]">
                           <span className="block font-semibold">₹{item.commissionAmount.toFixed(2)}</span>
-                          <span className="text-[10px] text-neutral-400">({item.commissionRate}%)</span>
+                          <span className="text-[10px] text-[#8A8F8F]">({item.commissionRate}%)</span>
                         </td>
-                        <td className="py-3 px-3 text-right font-mono font-bold text-emerald-700">
+                        <td className="py-3 px-3 text-right tabular-nums font-bold text-emerald-700">
                           ₹{item.netEarnings.toFixed(2)}
                         </td>
                         <td className="py-3 px-3">
-                          <span className="inline-block px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono text-[10px] font-bold border border-emerald-200">
+                          <span className="inline-block px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 tabular-nums text-[10px] font-bold border border-emerald-200">
                             {item.payoutReference}
                           </span>
                         </td>
@@ -862,7 +862,7 @@ export default function AdminPayoutsPage() {
       {/* Modal 4: Return Refund Debit Adjustments Modal */}
       {activeAdjustmentsModalVendor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-2xl w-full p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-2xl w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <div>
                 <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
@@ -876,7 +876,7 @@ export default function AdminPayoutsPage() {
               <button
                 type="button"
                 onClick={() => setActiveAdjustmentsModalVendor(null)}
-                className="text-neutral-400 hover:text-neutral-600 p-1 rounded-lg"
+                className="text-[#8A8F8F] hover:text-[#565959] p-1 rounded-lg"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -889,7 +889,7 @@ export default function AdminPayoutsPage() {
                   This amount will be automatically offset when next orders are settled.
                 </span>
               </div>
-              <span className="text-xl font-bold font-mono text-rose-700">
+              <span className="text-xl font-bold tabular-nums text-rose-700">
                 -₹{(activeAdjustmentsModalVendor.outstandingAdjustments ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -901,7 +901,7 @@ export default function AdminPayoutsPage() {
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px] uppercase">
+                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px]">
                     <tr>
                       <th className="py-2.5 px-3">Type</th>
                       <th className="py-2.5 px-3">Description</th>
@@ -914,17 +914,17 @@ export default function AdminPayoutsPage() {
                     {activeAdjustmentsModalVendor.adjustments.map((adj) => (
                       <tr key={adj.id} className="hover:bg-[#F9FAFA]">
                         <td className="py-2.5 px-3">
-                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-bold text-[10px] rounded font-mono">
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-bold text-[10px] rounded tabular-nums">
                             {adj.type}
                           </span>
                         </td>
                         <td className="py-2.5 px-3 text-[#0F1111] font-medium text-[11px]">
                           {adj.description}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-700">
+                        <td className="py-2.5 px-3 text-right tabular-nums font-bold text-rose-700">
                           -₹{adj.amount.toFixed(2)}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0F1111]">
+                        <td className="py-2.5 px-3 text-right tabular-nums font-bold text-[#0F1111]">
                           ₹{adj.outstandingBalance.toFixed(2)}
                         </td>
                         <td className="py-2.5 px-3">
@@ -959,7 +959,7 @@ export default function AdminPayoutsPage() {
       {/* Modal 5: Marketplace All Settled Products Ledger Modal */}
       {allVendorsLedgerOpen && data && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-5xl w-full p-6 space-y-4 max-h-[92vh] flex flex-col">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-5xl w-full p-6 space-y-4 max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED] shrink-0">
               <div>
                 <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
@@ -973,7 +973,7 @@ export default function AdminPayoutsPage() {
               <button
                 type="button"
                 onClick={() => setAllVendorsLedgerOpen(false)}
-                className="text-neutral-400 hover:text-neutral-600 p-1 rounded-lg"
+                className="text-[#8A8F8F] hover:text-[#565959] p-1 rounded-lg"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -982,7 +982,7 @@ export default function AdminPayoutsPage() {
             {/* Search Filter Bar */}
             <div className="flex items-center justify-between gap-3 shrink-0">
               <div className="relative flex-1 max-w-sm">
-                <Search className="h-4 w-4 text-neutral-400 absolute left-3 top-2.5" />
+                <Search className="h-4 w-4 text-[#8A8F8F] absolute left-3 top-2.5" />
                 <input
                   type="text"
                   value={ledgerSearch}
@@ -1023,7 +1023,7 @@ export default function AdminPayoutsPage() {
 
                 return (
                   <table className="w-full text-left border-collapse text-xs">
-                    <thead className="sticky top-0 bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px] uppercase tracking-wider">
+                    <thead className="sticky top-0 bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold text-[11px]">
                       <tr>
                         <th className="py-2.5 px-3">Vendor</th>
                         <th className="py-2.5 px-3">Order #</th>
@@ -1041,7 +1041,7 @@ export default function AdminPayoutsPage() {
                           <td className="py-3 px-3 font-bold text-[#0F1111]">
                             {item.vendorName}
                           </td>
-                          <td className="py-3 px-3 font-mono font-bold text-[#0F1111]">
+                          <td className="py-3 px-3 tabular-nums font-bold text-[#0F1111]">
                             #{item.orderNumber}
                           </td>
                           <td className="py-3 px-3">
@@ -1061,18 +1061,18 @@ export default function AdminPayoutsPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-semibold text-[#0F1111]">
+                          <td className="py-3 px-3 text-right tabular-nums font-semibold text-[#0F1111]">
                             ₹{item.totalPrice.toFixed(2)}
                           </td>
-                          <td className="py-3 px-3 text-right font-mono text-[#565959]">
+                          <td className="py-3 px-3 text-right tabular-nums text-[#565959]">
                             <span className="block font-semibold">₹{item.commissionAmount.toFixed(2)}</span>
-                            <span className="text-[10px] text-neutral-400">({item.commissionRate}%)</span>
+                            <span className="text-[10px] text-[#8A8F8F]">({item.commissionRate}%)</span>
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-700">
+                          <td className="py-3 px-3 text-right tabular-nums font-bold text-emerald-700">
                             ₹{item.netEarnings.toFixed(2)}
                           </td>
                           <td className="py-3 px-3">
-                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-mono text-[10px] font-bold border border-emerald-200">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 tabular-nums text-[10px] font-bold border border-emerald-200">
                               {item.payoutReference}
                             </span>
                           </td>

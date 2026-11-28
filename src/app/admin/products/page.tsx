@@ -182,14 +182,14 @@ export default function AdminProductModerationPage() {
       />
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-[#D5D9D9] shadow-sm space-y-4">
+      <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           {/* Status Tabs */}
           <div className="flex items-center gap-2">
             {[
-              { id: 'all', label: 'All Listings' },
-              { id: 'published', label: 'Live / Published' },
-              { id: 'draft', label: 'Draft / Unpublished' },
+              { id: 'all', label: 'All' },
+              { id: 'published', label: 'Live' },
+              { id: 'draft', label: 'Unpublished' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -217,13 +217,13 @@ export default function AdminProductModerationPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search piece, brand, boutique..."
+                placeholder="Search product, brand or seller"
                 className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white"
               />
             </div>
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-lg bg-[#007185] text-white text-xs font-bold hover:bg-[#004B57]"
+              className="px-3 py-1.5 rounded-lg bg-[#007185] text-white text-xs font-bold hover:bg-[#004B57] whitespace-nowrap"
             >
               Search
             </button>
@@ -252,7 +252,7 @@ export default function AdminProductModerationPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[#565959] font-semibold whitespace-nowrap">Vendor Boutique:</span>
+            <span className="text-[#565959] font-semibold whitespace-nowrap">Seller:</span>
             <select
               value={vendorFilter}
               onChange={(e) => {
@@ -273,7 +273,7 @@ export default function AdminProductModerationPage() {
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-2xl border border-[#D5D9D9] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-8 space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -304,14 +304,14 @@ export default function AdminProductModerationPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+              <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] text-[10px]">
                 <tr>
-                  <th className="py-3 px-4 font-bold">Product Piece</th>
+                  <th className="py-3 px-4 font-bold">Product</th>
                   <th className="py-3 px-4 font-bold">Seller</th>
                   <th className="py-3 px-4 font-bold">Category</th>
                   <th className="py-3 px-4 font-bold">Price &amp; Stock</th>
-                  <th className="py-3 px-4 font-bold">Moderation State</th>
-                  <th className="py-3 px-4 font-bold text-right">Moderator Action</th>
+                  <th className="py-3 px-4 font-bold">Status</th>
+                  <th className="py-3 px-4 font-bold text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#D5D9D9]/60">
@@ -347,7 +347,7 @@ export default function AdminProductModerationPage() {
                         <span className="text-[10px] text-[#565959] font-normal">(Creator)</span>
                       </div>
                       <span
-                        className={`inline-block mt-0.5 text-[9px] font-bold uppercase px-1.5 py-0.2 rounded ${
+                        className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded ${
                           prod.vendor.status === 'APPROVED'
                             ? 'bg-emerald-50 text-emerald-800'
                             : 'bg-amber-50 text-amber-800'
@@ -370,7 +370,7 @@ export default function AdminProductModerationPage() {
                               >
                                 <span className="font-bold text-[#0F1111] truncate max-w-[110px]">{so.vendorName}</span>
                                 {so.minOfferPrice != null && (
-                                  <span className="font-bold text-emerald-700 font-mono">₹{so.minOfferPrice}</span>
+                                  <span className="font-bold text-emerald-700 tabular-nums">₹{so.minOfferPrice}</span>
                                 )}
                                 <span className="text-[9px] text-[#565959]">({so.totalStock} units)</span>
                                 {so.isBuyBoxWinner && (
@@ -403,16 +403,16 @@ export default function AdminProductModerationPage() {
 
                     <td className="py-3 px-4">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        className={`inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           prod.isPublished
                             ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-zinc-100 text-zinc-700'
+                            : 'bg-[#F0F2F2] text-[#333333]'
                         }`}
                       >
                         {prod.isPublished ? (
                           <>
                             <Eye className="h-2.5 w-2.5" />
-                            <span>Live Marketplace</span>
+                            <span>Live</span>
                           </>
                         ) : (
                           <>
@@ -434,17 +434,17 @@ export default function AdminProductModerationPage() {
                               setModalOpen(true);
                             }}
                             disabled={isSubmitting}
-                            className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-700 hover:bg-rose-100 text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-300 text-rose-700 hover:bg-rose-100 text-xs font-bold transition-all shadow-sm flex items-center gap-1 whitespace-nowrap"
                           >
                             <ShieldAlert className="h-3 w-3" />
-                            <span>Take Down</span>
+                            <span>Unpublish</span>
                           </button>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(prod, true)}
                             disabled={isSubmitting}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1 whitespace-nowrap"
                           >
                             <CheckCircle2 className="h-3 w-3" />
                             <span>Publish / Reinstate</span>
@@ -488,12 +488,12 @@ export default function AdminProductModerationPage() {
       {/* MODAL: TAKE DOWN / MODERATION REASON MODAL */}
       {modalOpen && selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2 text-rose-700">
                 <ShieldAlert className="h-5 w-5" />
                 <h3 className="font-headline font-bold text-base text-[#0F1111]">
-                  Take Down Product
+                  Unpublish product
                 </h3>
               </div>
               <button
@@ -516,7 +516,7 @@ export default function AdminProductModerationPage() {
               className="space-y-4"
             >
               <div>
-                <label className="text-[11px] font-bold text-[#565959] uppercase block mb-1">
+                <label className="text-[11px] font-bold text-[#565959] block mb-1">
                   Moderation Reason (Optional)
                 </label>
                 <textarea
@@ -532,16 +532,16 @@ export default function AdminProductModerationPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED]"
+                  className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED] whitespace-nowrap"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm whitespace-nowrap"
                 >
-                  {isSubmitting ? 'Unpublishing...' : 'Confirm Take Down'}
+                  {isSubmitting ? 'Unpublishing...' : 'Unpublish'}
                 </button>
               </div>
             </form>

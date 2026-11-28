@@ -123,7 +123,7 @@ export default function AdminOverviewPage() {
 
       {/* Pending Application Alert Banner */}
       {kpis && kpis.pendingApplications > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-xl bg-amber-50 border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
               <Clock className="h-5 w-5" />
@@ -173,7 +173,7 @@ export default function AdminOverviewPage() {
       />
 
       {/* Approved sellers */}
-      <div className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-4">
+      <div className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
@@ -219,7 +219,7 @@ export default function AdminOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+                <tr className="border-b border-[#D5D9D9] text-[#565959] text-[10px]">
                   <th className="pb-3 font-bold">Storefront Name</th>
                   <th className="pb-3 font-bold">Owner / Merchant</th>
                   <th className="pb-3 font-bold">Verification Status</th>
@@ -234,7 +234,7 @@ export default function AdminOverviewPage() {
                     {/* Storefront Info */}
                     <td className="py-3.5 pr-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-lg bg-[#800020]/10 text-[#800020] flex items-center justify-center font-bold text-xs shrink-0 border border-[#800020]/20">
+                        <div className="w-9 h-9 rounded-lg bg-[#007185]/10 text-[#007185] flex items-center justify-center font-bold text-xs shrink-0 border border-[#007185]/20">
                           {vendor.storeName.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -247,10 +247,10 @@ export default function AdminOverviewPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[11px] font-mono text-[#565959]">
+                            <span className="text-[11px] tabular-nums text-[#565959]">
                               slug: {vendor.storeSlug}
                             </span>
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-300">
+                            <span className="text-[10px] tabular-nums font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-900 border border-amber-300">
                               {vendor.merchantId || `VYN-SELLER-${vendor.id.slice(-5).toUpperCase()}`}
                             </span>
                           </div>
@@ -261,19 +261,19 @@ export default function AdminOverviewPage() {
                     {/* Owner Details */}
                     <td className="py-3.5 pr-4">
                       <div className="font-semibold text-[#0F1111]">{vendor.ownerName}</div>
-                      <div className="text-[11px] text-[#565959] font-mono">{vendor.ownerEmail}</div>
+                      <div className="text-[11px] text-[#565959] tabular-nums">{vendor.ownerEmail}</div>
                     </td>
 
                     {/* Status Badge */}
                     <td className="py-3.5 pr-4">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                         <CheckCircle2 className="h-3 w-3 text-emerald-700" />
                         <span>{vendor.status}</span>
                       </span>
                     </td>
 
                     {/* Commission Rate */}
-                    <td className="py-3.5 text-center font-mono font-bold text-[#0F1111]">
+                    <td className="py-3.5 text-center tabular-nums font-bold text-[#0F1111]">
                       {vendor.commissionRate}%
                     </td>
 
@@ -313,7 +313,7 @@ export default function AdminOverviewPage() {
       {/* 2-Column Section: Recent Applications & Quick Administrative Links */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left 8 Cols: Recent Vendor Applications */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-4">
+        <div className="lg:col-span-8 bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
             <div>
               <h3 className="font-headline font-bold text-base text-[#0F1111]">
@@ -346,7 +346,7 @@ export default function AdminOverviewPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+                  <tr className="border-b border-[#D5D9D9] text-[#565959] text-[10px]">
                     <th className="pb-2.5 font-bold">Boutique / Store</th>
                     <th className="pb-2.5 font-bold">Applicant</th>
                     <th className="pb-2.5 font-bold">Status</th>
@@ -360,11 +360,11 @@ export default function AdminOverviewPage() {
                       <td className="py-3 font-bold text-[#0F1111]">{app.storeName}</td>
                       <td className="py-3 text-[#565959]">
                         <div>{app.applicantName}</div>
-                        <div className="text-[10px] text-outline font-mono">{app.applicantEmail}</div>
+                        <div className="text-[10px] text-outline tabular-nums">{app.applicantEmail}</div>
                       </td>
                       <td className="py-3">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             app.status === 'APPROVED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : app.status === 'REJECTED'
@@ -399,7 +399,7 @@ export default function AdminOverviewPage() {
 
         {/* Right 4 Cols: Quick Administrative Links & Moderation Controls */}
         <div className="lg:col-span-4 space-y-5">
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 shadow-sm space-y-3">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 shadow-sm space-y-3">
             <h3 className="font-headline font-bold text-sm text-[#0F1111]">
               Shortcuts
             </h3>
@@ -450,8 +450,8 @@ export default function AdminOverviewPage() {
             </div>
           </div>
 
-          <div className="bg-[#131921] text-white rounded-2xl p-5 shadow-sm space-y-2 border border-[#232F3E]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFD814]">
+          <div className="bg-[#131921] text-white rounded-xl p-5 shadow-sm space-y-2 border border-[#232F3E]">
+            <span className="text-[10px] font-bold text-[#FFD814]">
               Security Policy
             </span>
             <h4 className="font-headline font-bold text-sm">
@@ -467,16 +467,16 @@ export default function AdminOverviewPage() {
       {/* VERIFIED VENDOR DOSSIER MODAL */}
       {selectedVendor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#D5D9D9]">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185] flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-[#007185] flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                     Seller details
                   </span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                     {selectedVendor.status}
                   </span>
                 </div>
@@ -484,11 +484,11 @@ export default function AdminOverviewPage() {
                   {selectedVendor.storeName}
                 </h3>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[11px] font-mono text-[#565959]">
+                  <span className="text-[11px] tabular-nums text-[#565959]">
                     /{selectedVendor.storeSlug}
                   </span>
                   {/* Unique Merchant ID with Copy */}
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300 font-mono text-[11px] font-bold">
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300 tabular-nums text-[11px] font-bold">
                     <span>{selectedVendor.merchantId || `VYN-SELLER-${selectedVendor.id.slice(-5).toUpperCase()}`}</span>
                     <button
                       type="button"
@@ -519,7 +519,7 @@ export default function AdminOverviewPage() {
             <div className="space-y-4 text-xs">
               {/* Owner & Legal Identity */}
               <div className="p-3.5 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] space-y-2">
-                <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                <span className="text-[10px] font-bold text-[#565959] block">
                   Owner &amp; Authorised Contact
                 </span>
                 <div className="grid grid-cols-2 gap-3">
@@ -537,13 +537,13 @@ export default function AdminOverviewPage() {
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Registered Email:</span>
-                    <span className="font-mono font-semibold text-[#0F1111] break-all">
+                    <span className="tabular-nums font-semibold text-[#0F1111] break-all">
                       {selectedVendor.ownerEmail}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Phone Number:</span>
-                    <span className="font-mono font-semibold text-[#0F1111]">
+                    <span className="tabular-nums font-semibold text-[#0F1111]">
                       {selectedVendor.ownerPhone || 'N/A'}
                     </span>
                   </div>
@@ -551,9 +551,9 @@ export default function AdminOverviewPage() {
               </div>
 
               {/* Tax & Compliance Identifiers */}
-              <div className="grid grid-cols-2 gap-3 font-mono">
+              <div className="grid grid-cols-2 gap-3 tabular-nums">
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block font-sans">
+                  <span className="text-[10px] font-bold text-[#565959] block font-sans">
                     GSTIN
                   </span>
                   <span className="font-bold text-[#0F1111]">
@@ -561,7 +561,7 @@ export default function AdminOverviewPage() {
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block font-sans">
+                  <span className="text-[10px] font-bold text-[#565959] block font-sans">
                     PAN Card
                   </span>
                   <span className="font-bold text-[#0F1111]">
@@ -573,7 +573,7 @@ export default function AdminOverviewPage() {
               {/* Bank Settlement & Payout Info */}
               <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px] uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px]">
                     <CreditCard className="h-3.5 w-3.5 text-amber-700" />
                     <span>Payout &amp; Settlement Account</span>
                   </div>
@@ -590,13 +590,13 @@ export default function AdminOverviewPage() {
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">IFSC Code:</span>
-                    <span className="font-mono font-bold text-[#0F1111]">
+                    <span className="tabular-nums font-bold text-[#0F1111]">
                       {selectedVendor.ifscCode || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Account Number:</span>
-                    <span className="font-mono font-bold text-[#0F1111]">
+                    <span className="tabular-nums font-bold text-[#0F1111]">
                       {selectedVendor.bankAccountLast4 ? `•••• •••• ${selectedVendor.bankAccountLast4}` : 'Not provided'}
                     </span>
                   </div>
@@ -612,26 +612,26 @@ export default function AdminOverviewPage() {
               {/* Commercial Metrics */}
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Commission
                   </span>
-                  <span className="font-mono font-bold text-base text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-base text-[#0F1111]">
                     {selectedVendor.commissionRate}%
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Active Catalog
                   </span>
-                  <span className="font-mono font-bold text-base text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-base text-[#0F1111]">
                     {selectedVendor.productsCount} items
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Total Orders
                   </span>
-                  <span className="font-mono font-bold text-base text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-base text-[#0F1111]">
                     {selectedVendor.ordersCount}
                   </span>
                 </div>

@@ -72,3 +72,11 @@ export const consoleButton = {
   secondary:
     'inline-flex items-center justify-center gap-1.5 rounded-full border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-semibold text-[#0F1111] shadow-sm transition-colors hover:bg-[#F7F8F8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007185] disabled:opacity-60',
 };
+
+/** "OUT_FOR_DELIVERY" -> "Out for delivery"; keeps short codes such as UPI, COD or QC as they are. */
+export function humanize(value: string | null | undefined): string {
+  if (!value) return '';
+  if (/^[A-Z]{2,4}$/.test(value)) return value;
+  const words = value.replace(/_/g, ' ').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

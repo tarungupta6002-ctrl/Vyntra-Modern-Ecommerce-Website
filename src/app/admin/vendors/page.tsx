@@ -436,10 +436,10 @@ export default function AdminVendorsPage() {
       {activeTab === 'verified' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           {/* Search Bar & Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-[#D5D9D9] shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
             <div className="flex items-center gap-2 text-xs font-semibold text-[#565959]">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>Showing approved, operational merchants with store credentials</span>
+              <span>Sellers who can list and sell on Vyntra</span>
             </div>
 
             <form onSubmit={handleVerifiedSearch} className="flex items-center gap-2">
@@ -455,7 +455,7 @@ export default function AdminVendorsPage() {
               </div>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 rounded-lg bg-[#007185] text-white text-xs font-bold hover:bg-[#004B57] transition-all"
+                className="px-3.5 py-1.5 rounded-lg bg-[#007185] text-white text-xs font-bold hover:bg-[#004B57] transition-all whitespace-nowrap"
               >
                 Search
               </button>
@@ -463,7 +463,7 @@ export default function AdminVendorsPage() {
           </div>
 
           {/* Verified Vendors Table */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
             {isLoadingVerified ? (
               <div className="p-8 space-y-4">
                 {[1, 2, 3].map((i) => (
@@ -496,14 +496,14 @@ export default function AdminVendorsPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] text-[10px]">
                     <tr>
-                      <th className="py-3.5 px-4 font-bold">Boutique / Storefront</th>
-                      <th className="py-3.5 px-4 font-bold">Merchant Identity</th>
-                      <th className="py-3.5 px-4 font-bold">Verification &amp; Payouts</th>
+                      <th className="py-3.5 px-4 font-bold">Store</th>
+                      <th className="py-3.5 px-4 font-bold">Owner</th>
+                      <th className="py-3.5 px-4 font-bold">Status</th>
                       <th className="py-3.5 px-4 font-bold text-center">Commission</th>
-                      <th className="py-3.5 px-4 font-bold text-center">Catalog Stock</th>
-                      <th className="py-3.5 px-4 font-bold">Date Verified</th>
+                      <th className="py-3.5 px-4 font-bold text-center">Products</th>
+                      <th className="py-3.5 px-4 font-bold">Approved on</th>
                       <th className="py-3.5 px-4 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -513,7 +513,7 @@ export default function AdminVendorsPage() {
                         {/* Storefront Info */}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#800020] to-[#A30029] text-[#FFD814] flex items-center justify-center font-bold text-xs shrink-0 shadow-sm border border-rose-400/30">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#007185] to-[#007185] text-[#FFD814] flex items-center justify-center font-bold text-xs shrink-0 shadow-sm border border-rose-400/30">
                               {vendor.storeName.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
@@ -526,10 +526,10 @@ export default function AdminVendorsPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[11px] font-mono text-[#565959]">
+                                <span className="text-[11px] tabular-nums text-[#565959]">
                                   /{vendor.storeSlug}
                                 </span>
-                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300">
+                                <span className="text-[10px] tabular-nums font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300">
                                   {vendor.merchantId || `VYN-SELLER-${vendor.id.slice(-5).toUpperCase()}`}
                                 </span>
                               </div>
@@ -545,16 +545,16 @@ export default function AdminVendorsPage() {
                         {/* Owner Info */}
                         <td className="py-4 px-4">
                           <div className="font-semibold text-[#0F1111]">{vendor.owner.name}</div>
-                          <div className="text-[11px] text-[#565959] font-mono">{vendor.owner.email}</div>
+                          <div className="text-[11px] text-[#565959] tabular-nums">{vendor.owner.email}</div>
                           {vendor.owner.phone && vendor.owner.phone !== 'N/A' && (
-                            <div className="text-[10px] text-outline font-mono mt-0.5">{vendor.owner.phone}</div>
+                            <div className="text-[10px] text-outline tabular-nums mt-0.5">{vendor.owner.phone}</div>
                           )}
                         </td>
 
                         {/* Status & Payouts */}
                         <td className="py-4 px-4 space-y-1">
                           <div>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                               <CheckCircle2 className="h-3 w-3 text-emerald-700" />
                               <span>{vendor.status}</span>
                             </span>
@@ -574,7 +574,7 @@ export default function AdminVendorsPage() {
 
                         {/* Commission Rate */}
                         <td className="py-4 px-4 text-center">
-                          <span className="font-mono font-bold text-sm text-[#0F1111]">
+                          <span className="tabular-nums font-bold text-sm text-[#0F1111]">
                             {vendor.commissionRate}%
                           </span>
                         </td>
@@ -603,16 +603,16 @@ export default function AdminVendorsPage() {
                           <div className="flex items-center justify-end gap-2">
                             <Link
                               href={`/admin/vendors/${vendor.id}`}
-                              className="px-3 py-1.5 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all inline-flex items-center gap-1.5"
+                              className="px-3 py-1.5 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all inline-flex items-center gap-1.5 whitespace-nowrap"
                               title="Seller details"
                             >
                               <FileText className="h-3.5 w-3.5" />
-                              <span>View Details</span>
+                              <span>Details</span>
                             </Link>
 
                             <Link
                               href={`/admin/products?vendor=${encodeURIComponent(vendor.id)}`}
-                              className="px-3 py-1.5 rounded-lg bg-[#F7F8F8] hover:bg-[#EAEDED] text-[#007185] border border-[#D5D9D9] text-xs font-bold transition-all inline-flex items-center gap-1"
+                              className="px-3 py-1.5 rounded-lg bg-[#F7F8F8] hover:bg-[#EAEDED] text-[#007185] border border-[#D5D9D9] text-xs font-bold transition-all inline-flex items-center gap-1 whitespace-nowrap"
                               title="Manage Vendor Catalog"
                             >
                               <Package className="h-3.5 w-3.5" />
@@ -627,7 +627,7 @@ export default function AdminVendorsPage() {
                                 className="px-2 py-1 rounded bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold"
                                 title="Root Marketplace Administrator Store (Protected)"
                               >
-                                Root Admin
+                                Platform store
                               </span>
                             ) : (
                               <button
@@ -637,11 +637,11 @@ export default function AdminVendorsPage() {
                                   setRevokeReason('');
                                   setRevokeModalOpen(true);
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold transition-all inline-flex items-center gap-1"
+                                className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold transition-all inline-flex items-center gap-1 whitespace-nowrap"
                                 title="Revoke Vendor Selling License & Delist Catalog"
                               >
                                 <XCircle className="h-3.5 w-3.5 text-rose-600" />
-                                <span>Revoke License</span>
+                                <span>Suspend</span>
                               </button>
                             )}
                           </div>
@@ -662,7 +662,7 @@ export default function AdminVendorsPage() {
       {activeTab === 'applications' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           {/* Status Filter Tabs & Search Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-[#D5D9D9] shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
             {/* Status Filter Tabs */}
             <div className="flex flex-wrap items-center gap-2">
               {[
@@ -704,7 +704,7 @@ export default function AdminVendorsPage() {
               </div>
               <button
                 type="submit"
-                className="px-3 py-1.5 rounded-lg bg-[#007185] text-white text-xs font-bold hover:bg-[#004B57] transition-all"
+                className="px-3 py-1.5 rounded-lg bg-[#007185] text-white text-xs font-bold hover:bg-[#004B57] transition-all whitespace-nowrap"
               >
                 Filter
               </button>
@@ -712,7 +712,7 @@ export default function AdminVendorsPage() {
           </div>
 
           {/* Applications Table */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
             {isLoadingApps ? (
               <div className="p-8 space-y-4">
                 {[1, 2, 3, 4].map((i) => (
@@ -745,7 +745,7 @@ export default function AdminVendorsPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] text-[10px]">
                     <tr>
                       <th className="py-3 px-4 font-bold">Store / Boutique</th>
                       <th className="py-3 px-4 font-bold">Applicant Details</th>
@@ -761,9 +761,9 @@ export default function AdminVendorsPage() {
                         <td className="py-4 px-4">
                           <div className="font-bold text-[#0F1111]">{app.storeName}</div>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-[11px] text-[#565959] font-mono">/{app.storeSlug}</span>
+                            <span className="text-[11px] text-[#565959] tabular-nums">/{app.storeSlug}</span>
                             {app.documents?.applicationRef && (
-                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-800 border border-blue-200">
+                              <span className="text-[10px] tabular-nums font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-800 border border-blue-200">
                                 {app.documents.applicationRef}
                               </span>
                             )}
@@ -785,8 +785,8 @@ export default function AdminVendorsPage() {
                         </td>
 
                         <td className="py-4 px-4 text-[#565959] text-[11px]">
-                          <div className="font-mono">GST: <span className="font-semibold text-[#0F1111]">{app.gstNumber || 'Not provided'}</span></div>
-                          <div className="font-mono">PAN: <span className="font-semibold text-[#0F1111]">{app.panNumber || 'Not provided'}</span></div>
+                          <div className="tabular-nums">GST: <span className="font-semibold text-[#0F1111]">{app.gstNumber || 'Not provided'}</span></div>
+                          <div className="tabular-nums">PAN: <span className="font-semibold text-[#0F1111]">{app.panNumber || 'Not provided'}</span></div>
                           {app.documents?.bank?.bankName && (
                             <div className="text-[10px] text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
                               <CreditCard className="h-2.5 w-2.5" />
@@ -797,7 +797,7 @@ export default function AdminVendorsPage() {
 
                         <td className="py-4 px-4">
                           <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
                               app.status === 'APPROVED'
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : app.status === 'REJECTED'
@@ -840,7 +840,7 @@ export default function AdminVendorsPage() {
                                 setSelectedApp(app);
                                 setDetailModalOpen(true);
                               }}
-                              className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-[#007185] text-xs font-bold transition-all shadow-sm"
+                              className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-[#007185] text-xs font-bold transition-all shadow-sm whitespace-nowrap"
                             >
                               Details
                             </button>
@@ -850,7 +850,7 @@ export default function AdminVendorsPage() {
                                 type="button"
                                 onClick={() => openApproveModal(app)}
                                 disabled={isSubmittingAction}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1 whitespace-nowrap"
                               >
                                 <Check className="h-3 w-3 stroke-[3]" />
                                 <span>Approve</span>
@@ -866,7 +866,7 @@ export default function AdminVendorsPage() {
                                   setRejectModalOpen(true);
                                 }}
                                 disabled={isSubmittingAction}
-                                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1 whitespace-nowrap"
                               >
                                 <X className="h-3 w-3 stroke-[3]" />
                                 <span>Reject</span>
@@ -912,15 +912,15 @@ export default function AdminVendorsPage() {
       {/* MODAL 1: APPLICATION DETAILS MODAL */}
       {detailModalOpen && selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185]">
+                  <span className="text-[10px] font-bold text-[#007185]">
                     Vendor Onboarding Application
                   </span>
                   {selectedApp.documents?.applicationRef && (
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                    <span className="text-[10px] tabular-nums font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-900 border border-blue-300">
                       {selectedApp.documents.applicationRef}
                     </span>
                   )}
@@ -939,7 +939,7 @@ export default function AdminVendorsPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <span className="text-[11px] font-bold uppercase text-[#565959] block mb-1">
+                <span className="text-[11px] font-bold text-[#565959] block mb-1">
                   Boutique Description
                 </span>
                 <p className="bg-[#F7F8F8] p-3 rounded-xl border border-[#D5D9D9] text-[#0F1111] leading-relaxed">
@@ -950,7 +950,7 @@ export default function AdminVendorsPage() {
               {/* Contact Information */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Business Email
                   </span>
                   <span className="font-semibold text-[#0F1111] break-all">
@@ -958,7 +958,7 @@ export default function AdminVendorsPage() {
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Business Phone
                   </span>
                   <span className="font-semibold text-[#0F1111]">
@@ -968,9 +968,9 @@ export default function AdminVendorsPage() {
               </div>
 
               {/* Tax Information */}
-              <div className="grid grid-cols-2 gap-3 font-mono">
+              <div className="grid grid-cols-2 gap-3 tabular-nums">
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block font-sans">
+                  <span className="text-[10px] font-bold text-[#565959] block font-sans">
                     GSTIN
                   </span>
                   <span className="font-bold text-[#0F1111]">
@@ -978,7 +978,7 @@ export default function AdminVendorsPage() {
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block font-sans">
+                  <span className="text-[10px] font-bold text-[#565959] block font-sans">
                     PAN Identifier
                   </span>
                   <span className="font-bold text-[#0F1111]">
@@ -989,7 +989,7 @@ export default function AdminVendorsPage() {
 
               {/* Active Bank Account Details */}
               <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2">
-                <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px] uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px]">
                   <CreditCard className="h-3.5 w-3.5 text-amber-700" />
                   <span>Settlement Bank Account</span>
                 </div>
@@ -1008,7 +1008,7 @@ export default function AdminVendorsPage() {
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Account Number:</span>
-                    <span className="font-mono font-bold text-[#0F1111]">
+                    <span className="tabular-nums font-bold text-[#0F1111]">
                       {selectedApp.documents?.bank?.accountNumber
                         ? selectedApp.documents.bank.accountNumber
                         : selectedApp.documents?.bank?.accountLast4
@@ -1018,7 +1018,7 @@ export default function AdminVendorsPage() {
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">IFSC Code:</span>
-                    <span className="font-mono font-bold text-[#0F1111]">
+                    <span className="tabular-nums font-bold text-[#0F1111]">
                       {selectedApp.documents?.bank?.ifsc || 'Not provided'}
                     </span>
                   </div>
@@ -1028,14 +1028,14 @@ export default function AdminVendorsPage() {
               {/* Pickup & Dispatch Address */}
               {selectedApp.documents?.address && (
                 <div className="p-3.5 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] space-y-1">
-                  <div className="flex items-center gap-1.5 text-[#0F1111] font-bold text-[11px] uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-[#0F1111] font-bold text-[11px]">
                     <MapPin className="h-3.5 w-3.5 text-[#007185]" />
                     <span>Pickup &amp; Warehouse Location</span>
                   </div>
                   <p className="text-[11px] text-[#565959]">
                     {selectedApp.documents.address.street && `${selectedApp.documents.address.street}, `}
                     {selectedApp.documents.address.city}, {selectedApp.documents.address.state} -{' '}
-                    <span className="font-mono font-semibold">{selectedApp.documents.address.pincode}</span>
+                    <span className="tabular-nums font-semibold">{selectedApp.documents.address.pincode}</span>
                   </p>
                 </div>
               )}
@@ -1044,13 +1044,13 @@ export default function AdminVendorsPage() {
               <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
                 <span className="font-bold block text-[11px]">Approval Milestone</span>
                 <p className="text-[11px] mt-0.5 text-blue-800">
-                  Approving this submission generates an official <strong>Unique Merchant ID</strong> (e.g. <span className="font-mono font-bold">VYN-SELLER-XXXXX</span>), activates seller privileges, and enables automated payout settlement.
+                  Approving this submission generates an official <strong>Unique Merchant ID</strong> (e.g. <span className="tabular-nums font-bold">VYN-SELLER-XXXXX</span>), activates seller privileges, and enables automated payout settlement.
                 </p>
               </div>
 
               {selectedApp.previousApplication && (
                 <div className="p-3 rounded-xl bg-purple-50 border border-purple-200">
-                  <span className="text-[10px] uppercase font-bold text-purple-800 block">
+                  <span className="text-[10px] font-bold text-purple-800 block">
                     Resubmission History
                   </span>
                   <p className="text-purple-900 mt-0.5">
@@ -1070,7 +1070,7 @@ export default function AdminVendorsPage() {
               <button
                 type="button"
                 onClick={() => setDetailModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED]"
+                className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED] whitespace-nowrap"
               >
                 Close
               </button>
@@ -1080,7 +1080,7 @@ export default function AdminVendorsPage() {
                   type="button"
                   onClick={() => openApproveModal(selectedApp)}
                   disabled={isSubmittingAction}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm whitespace-nowrap"
                 >
                   Approve &amp; Assign ID
                 </button>
@@ -1095,7 +1095,7 @@ export default function AdminVendorsPage() {
                     setRejectModalOpen(true);
                   }}
                   disabled={isSubmittingAction}
-                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm whitespace-nowrap"
                 >
                   Reject Application
                 </button>
@@ -1108,7 +1108,7 @@ export default function AdminVendorsPage() {
       {/* MODAL 2: REJECTION REASON MODAL */}
       {rejectModalOpen && selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2 text-rose-700">
                 <XCircle className="h-5 w-5" />
@@ -1142,14 +1142,14 @@ export default function AdminVendorsPage() {
                 <button
                   type="button"
                   onClick={() => setRejectModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED]"
+                  className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED] whitespace-nowrap"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingAction || !rejectionReason.trim()}
-                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm"
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm whitespace-nowrap"
                 >
                   {isSubmittingAction ? 'Recording...' : 'Confirm Rejection'}
                 </button>
@@ -1162,16 +1162,16 @@ export default function AdminVendorsPage() {
       {/* MODAL 3: VERIFIED VENDOR DOSSIER MODAL */}
       {selectedVendorDossier && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#D5D9D9]">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185] flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-[#007185] flex items-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                     Seller details
                   </span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                     {selectedVendorDossier.status}
                   </span>
                 </div>
@@ -1179,11 +1179,11 @@ export default function AdminVendorsPage() {
                   {selectedVendorDossier.storeName}
                 </h3>
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[11px] font-mono text-[#565959]">
+                  <span className="text-[11px] tabular-nums text-[#565959]">
                     /{selectedVendorDossier.storeSlug}
                   </span>
                   {/* Unique Merchant ID with Copy */}
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300 font-mono text-[11px] font-bold">
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-300 tabular-nums text-[11px] font-bold">
                     <span>{selectedVendorDossier.merchantId || `VYN-SELLER-${selectedVendorDossier.id.slice(-5).toUpperCase()}`}</span>
                     <button
                       type="button"
@@ -1215,7 +1215,7 @@ export default function AdminVendorsPage() {
               {/* Boutique Description */}
               {selectedVendorDossier.storeDescription && (
                 <div>
-                  <span className="text-[10px] font-bold uppercase text-[#565959] block mb-1">
+                  <span className="text-[10px] font-bold text-[#565959] block mb-1">
                     Store Description
                   </span>
                   <p className="bg-[#F7F8F8] p-3 rounded-xl border border-[#D5D9D9] text-[#0F1111] leading-relaxed">
@@ -1226,7 +1226,7 @@ export default function AdminVendorsPage() {
 
               {/* Owner & Legal Identity */}
               <div className="p-3.5 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] space-y-2">
-                <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                <span className="text-[10px] font-bold text-[#565959] block">
                   Owner &amp; Authorised Contact
                 </span>
                 <div className="grid grid-cols-2 gap-3">
@@ -1244,13 +1244,13 @@ export default function AdminVendorsPage() {
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Registered Email:</span>
-                    <span className="font-mono font-semibold text-[#0F1111] break-all">
+                    <span className="tabular-nums font-semibold text-[#0F1111] break-all">
                       {selectedVendorDossier.owner.email}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Phone Number:</span>
-                    <span className="font-mono font-semibold text-[#0F1111]">
+                    <span className="tabular-nums font-semibold text-[#0F1111]">
                       {selectedVendorDossier.owner.phone || 'N/A'}
                     </span>
                   </div>
@@ -1258,9 +1258,9 @@ export default function AdminVendorsPage() {
               </div>
 
               {/* Tax & Compliance Identifiers */}
-              <div className="grid grid-cols-2 gap-3 font-mono">
+              <div className="grid grid-cols-2 gap-3 tabular-nums">
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block font-sans">
+                  <span className="text-[10px] font-bold text-[#565959] block font-sans">
                     GSTIN
                   </span>
                   <span className="font-bold text-[#0F1111]">
@@ -1268,7 +1268,7 @@ export default function AdminVendorsPage() {
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block font-sans">
+                  <span className="text-[10px] font-bold text-[#565959] block font-sans">
                     PAN Card
                   </span>
                   <span className="font-bold text-[#0F1111]">
@@ -1280,7 +1280,7 @@ export default function AdminVendorsPage() {
               {/* Bank Settlement & Payout Info */}
               <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px] uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px]">
                     <CreditCard className="h-3.5 w-3.5 text-amber-700" />
                     <span>Payout &amp; Settlement Account</span>
                   </div>
@@ -1297,13 +1297,13 @@ export default function AdminVendorsPage() {
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">IFSC Code:</span>
-                    <span className="font-mono font-bold text-[#0F1111]">
+                    <span className="tabular-nums font-bold text-[#0F1111]">
                       {selectedVendorDossier.ifscCode || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[#565959] block text-[10px]">Account Number:</span>
-                    <span className="font-mono font-bold text-[#0F1111]">
+                    <span className="tabular-nums font-bold text-[#0F1111]">
                       {selectedVendorDossier.bankAccountLast4 ? `•••• •••• ${selectedVendorDossier.bankAccountLast4}` : 'Not provided'}
                     </span>
                   </div>
@@ -1319,26 +1319,26 @@ export default function AdminVendorsPage() {
               {/* Commercial Metrics */}
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Commission
                   </span>
-                  <span className="font-mono font-bold text-base text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-base text-[#0F1111]">
                     {selectedVendorDossier.commissionRate}%
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Active Catalog
                   </span>
-                  <span className="font-mono font-bold text-base text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-base text-[#0F1111]">
                     {selectedVendorDossier.productsCount} items
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9]">
-                  <span className="text-[10px] uppercase font-bold text-[#565959] block">
+                  <span className="text-[10px] font-bold text-[#565959] block">
                     Total Orders
                   </span>
-                  <span className="font-mono font-bold text-base text-[#0F1111]">
+                  <span className="tabular-nums font-bold text-base text-[#0F1111]">
                     {selectedVendorDossier.ordersCount}
                   </span>
                 </div>
@@ -1359,7 +1359,7 @@ export default function AdminVendorsPage() {
               <div className="flex items-center gap-2">
                 <Link
                   href={`/admin/products?vendor=${encodeURIComponent(selectedVendorDossier.id)}`}
-                  className="px-3.5 py-2 rounded-lg bg-[#F7F8F8] hover:bg-[#EAEDED] text-[#007185] border border-[#D5D9D9] text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-lg bg-[#F7F8F8] hover:bg-[#EAEDED] text-[#007185] border border-[#D5D9D9] text-xs font-bold transition-all inline-flex items-center gap-1.5 whitespace-nowrap"
                 >
                   <Package className="h-3.5 w-3.5" />
                   <span>Manage Catalog</span>
@@ -1368,7 +1368,7 @@ export default function AdminVendorsPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedVendorDossier(null)}
-                  className="px-4 py-2 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all"
+                  className="px-4 py-2 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap"
                 >
                   Done
                 </button>
@@ -1381,15 +1381,15 @@ export default function AdminVendorsPage() {
       {/* MODAL 4: VYNTRA CUSTOM APPROVAL CONFIRMATION MODAL */}
       {approveModalOpen && appToApprove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 animate-in zoom-in-95 duration-150">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shrink-0 shadow-inner">
+                <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 shrink-0 shadow-inner">
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                  <span className="text-[10px] font-bold text-emerald-700">
                     Administrator Authorization
                   </span>
                   <h3 className="font-headline font-bold text-lg text-[#0F1111]">
@@ -1420,13 +1420,13 @@ export default function AdminVendorsPage() {
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-[#EAEDED]">
                 <span className="text-[#565959] font-medium">Application Ref ID:</span>
-                <span className="font-mono font-bold text-[#007185] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                <span className="tabular-nums font-bold text-[#007185] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                   {appToApprove.documents?.applicationRef || appToApprove.id.slice(-8).toUpperCase()}
                 </span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-[#EAEDED]">
                 <span className="text-[#565959] font-medium">GSTIN &amp; PAN:</span>
-                <span className="font-mono font-semibold text-[#0F1111]">
+                <span className="tabular-nums font-semibold text-[#0F1111]">
                   GST: {appToApprove.gstNumber || 'N/A'} • PAN: {appToApprove.panNumber || 'N/A'}
                 </span>
               </div>
@@ -1445,7 +1445,7 @@ export default function AdminVendorsPage() {
                 <span>Actions Executed Upon Approval:</span>
               </div>
               <ul className="list-disc list-inside space-y-0.5 text-[11px] text-emerald-800 pt-0.5">
-                <li>Official <strong>Unique Merchant ID</strong> (e.g. <span className="font-mono font-bold">VYN-SELLER-XXXXX</span>) will be generated.</li>
+                <li>Official <strong>Unique Merchant ID</strong> (e.g. <span className="tabular-nums font-bold">VYN-SELLER-XXXXX</span>) will be generated.</li>
                 <li>Seller status will transition to <strong>APPROVED &amp; ACTIVE</strong>.</li>
                 <li>Storefront product listing &amp; catalog publishing privileges unlock immediately.</li>
                 <li>Automated weekly payout settlements will be enabled.</li>
@@ -1491,14 +1491,14 @@ export default function AdminVendorsPage() {
       {/* MODAL 5: REVOKE VENDOR LICENSE MODAL */}
       {revokeModalOpen && vendorToRevoke && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-300 space-y-4 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-rose-300 space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between pb-2 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2.5 text-rose-700">
                 <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200 shrink-0">
                   <XCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-800">
+                  <span className="text-[10px] font-bold text-rose-800">
                     Admin action
                   </span>
                   <h3 className="font-headline font-bold text-base text-[#0F1111]">
@@ -1552,14 +1552,14 @@ export default function AdminVendorsPage() {
                     setVendorToRevoke(null);
                   }}
                   disabled={isSubmittingAction}
-                  className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED]"
+                  className="px-4 py-2 rounded-lg bg-[#F7F8F8] text-[#565959] text-xs font-bold hover:bg-[#EAEDED] whitespace-nowrap"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingAction || !revokeReason.trim()}
-                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all"
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all whitespace-nowrap"
                 >
                   {isSubmittingAction ? 'Revoking License...' : 'Confirm Revocation & Delist Catalog'}
                 </button>

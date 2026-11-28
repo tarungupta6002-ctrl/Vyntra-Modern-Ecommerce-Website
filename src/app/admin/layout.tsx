@@ -31,7 +31,7 @@ export default async function AdminLayout({
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-[#F7F8F8] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-[#D5D9D9] p-8 text-center space-y-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-xl border border-[#D5D9D9] p-8 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
             <ShieldAlert className="h-8 w-8" />
           </div>
@@ -41,7 +41,7 @@ export default async function AdminLayout({
           <p className="text-xs text-[#565959] leading-relaxed">
             Access to Vyntra Admin Central is strictly restricted to verified platform administrators.
             Your current authenticated account role is{' '}
-            <strong className="text-rose-700 uppercase font-mono">{auth.role}</strong>.
+            <strong className="text-rose-700 tabular-nums">{auth.role}</strong>.
           </p>
           <div className="pt-2 flex flex-col gap-2">
             <Link

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
-import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
+import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
 interface AdminOrder {
   id: string;
@@ -184,7 +184,7 @@ export default function AdminOrdersManagementPage() {
       />
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-[#D5D9D9] space-y-4">
+      <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-[#D5D9D9] space-y-4">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
             <Search className="h-4 w-4 text-[#565959] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -213,7 +213,7 @@ export default function AdminOrdersManagementPage() {
                     : 'bg-[#F7F8F8] text-[#0F1111] border border-[#D5D9D9] hover:bg-white'
                 }`}
               >
-                {st.replace(/_/g, ' ')}
+                {st === 'ALL' ? 'All' : humanize(st)}
               </button>
             ))}
           </div>
@@ -221,7 +221,7 @@ export default function AdminOrdersManagementPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#D5D9D9] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center text-xs text-[#565959]">
             <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-[#007185]" />
@@ -234,14 +234,14 @@ export default function AdminOrdersManagementPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="p-12 text-center text-xs text-[#565959] space-y-2">
-            <Package className="h-8 w-8 text-neutral-300 mx-auto" />
+            <Package className="h-8 w-8 text-[#D5D9D9] mx-auto" />
             <p className="font-bold text-sm text-[#0F1111]">No orders found matching the filter criteria.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold uppercase tracking-wider">
+                <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] font-bold">
                   <th className="py-3.5 px-4">Order # &amp; Date</th>
                   <th className="py-3.5 px-4">Customer</th>
                   <th className="py-3.5 px-4">Vendor Items</th>
@@ -256,7 +256,7 @@ export default function AdminOrdersManagementPage() {
                   const trackingUrl = getCourierTrackingUrl(ord.courierPartner, ord.trackingNumber);
                   return (
                     <tr key={ord.id} className="hover:bg-[#F9FAFA] transition-colors">
-                      <td className="py-4 px-4 font-mono">
+                      <td className="py-4 px-4 tabular-nums">
                         <span className="font-bold text-[#0F1111] block">#{ord.orderNumber}</span>
                         <span className="text-[11px] text-[#565959]">
                           {new Date(ord.createdAt).toLocaleDateString('en-IN', {
@@ -303,7 +303,7 @@ export default function AdminOrdersManagementPage() {
 
                       <td className="py-4 px-4">
                         <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold uppercase ${
+                          className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
                             ord.status === 'DELIVERED'
                               ? 'bg-emerald-100 text-emerald-800'
                               : ord.status === 'SHIPPED' || ord.status === 'OUT_FOR_DELIVERY'
@@ -313,7 +313,7 @@ export default function AdminOrdersManagementPage() {
                               : 'bg-amber-100 text-amber-900'
                           }`}
                         >
-                          {ord.status.replace(/_/g, ' ')}
+                          {humanize(ord.status)}
                         </span>
                       </td>
 
@@ -323,7 +323,7 @@ export default function AdminOrdersManagementPage() {
                             <span className="font-bold text-[#0F1111] block">{ord.courierPartner}</span>
                             {ord.trackingNumber && (
                               <div className="flex items-center gap-1">
-                                <span className="font-mono text-[11px] text-[#565959]">{ord.trackingNumber}</span>
+                                <span className="tabular-nums text-[11px] text-[#565959]">{ord.trackingNumber}</span>
                                 {trackingUrl && (
                                   <a
                                     href={trackingUrl}
@@ -348,7 +348,7 @@ export default function AdminOrdersManagementPage() {
                           {formatINR(Number(ord.totalAmount))}
                         </span>
                         <div className="flex flex-col items-end gap-0.5 mt-0.5">
-                          <span className="text-[10px] text-[#565959] uppercase font-semibold">
+                          <span className="text-[10px] text-[#565959] font-semibold">
                             {ord.paymentMethod} •{' '}
                             <span
                               className={
@@ -357,7 +357,7 @@ export default function AdminOrdersManagementPage() {
                                   : 'text-amber-700 font-bold'
                               }
                             >
-                              {ord.paymentStatus}
+                              {humanize(ord.paymentStatus)}
                             </span>
                           </span>
 
@@ -369,7 +369,7 @@ export default function AdminOrdersManagementPage() {
 
                           {ord.paymentMethod === 'COD' && ord.paymentStatus === 'PAID' && ord.remittanceReference && (
                             <span
-                              className="text-[10px] text-[#007185] font-mono truncate max-w-[150px]"
+                              className="text-[10px] text-[#007185] tabular-nums truncate max-w-[150px]"
                               title={`UTR: ${ord.remittanceReference}`}
                             >
                               UTR: {ord.remittanceReference}
@@ -438,10 +438,10 @@ export default function AdminOrdersManagementPage() {
       {/* COD Remittance Confirmation Modal */}
       {remittanceOrder && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                <span className="text-[10px] font-bold text-emerald-700">
                   Financial Settlement
                 </span>
                 <h3 className="font-bold text-base text-[#0F1111]">
@@ -467,7 +467,7 @@ export default function AdminOrdersManagementPage() {
             <div className="bg-[#F7F8F8] p-3.5 rounded-xl border border-[#D5D9D9] text-xs space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[#565959]">Order Number:</span>
-                <span className="font-bold font-mono text-[#0F1111]">#{remittanceOrder.orderNumber}</span>
+                <span className="font-bold tabular-nums text-[#0F1111]">#{remittanceOrder.orderNumber}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#565959]">Total Cash Amount:</span>
@@ -480,7 +480,7 @@ export default function AdminOrdersManagementPage() {
               {remittanceOrder.trackingNumber && (
                 <div className="flex items-center justify-between">
                   <span className="text-[#565959]">Tracking AWB:</span>
-                  <span className="font-mono text-[#565959]">{remittanceOrder.trackingNumber}</span>
+                  <span className="tabular-nums text-[#565959]">{remittanceOrder.trackingNumber}</span>
                 </div>
               )}
             </div>
@@ -496,7 +496,7 @@ export default function AdminOrdersManagementPage() {
                   value={remittanceRefInput}
                   onChange={(e) => setRemittanceRefInput(e.target.value)}
                   placeholder="e.g. DEL-REMIT-991823 or UTR-SBIN-88912"
-                  className="w-full py-2.5 px-3 rounded-lg border border-[#D5D9D9] text-[#0F1111] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full py-2.5 px-3 rounded-lg border border-[#D5D9D9] text-[#0F1111] tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
                 <p className="text-[11px] text-[#565959] mt-1">
                   Enter the bank deposit UTR or courier remittance batch voucher confirming cash has cleared.

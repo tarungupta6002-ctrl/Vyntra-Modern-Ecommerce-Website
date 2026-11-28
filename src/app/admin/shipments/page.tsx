@@ -294,7 +294,7 @@ export default function AdminShipmentsPage() {
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${
                 statusFilter === st
                   ? 'bg-[#007185] text-white'
-                  : 'bg-[#F7F8F8] text-[#565959] hover:bg-gray-200 hover:text-[#0F1111]'
+                  : 'bg-[#F7F8F8] text-[#565959] hover:bg-[#E3E6E6] hover:text-[#0F1111]'
               }`}
             >
               {st}
@@ -323,7 +323,7 @@ export default function AdminShipmentsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center space-y-2">
-            <Truck className="w-10 h-10 text-gray-300 mx-auto" />
+            <Truck className="w-10 h-10 text-[#D5D9D9] mx-auto" />
             <p className="text-sm font-bold text-[#0F1111]">No shipments found</p>
             <p className="text-xs text-[#565959]">No multi-vendor shipments match your current criteria.</p>
           </div>
@@ -344,7 +344,7 @@ export default function AdminShipmentsPage() {
               </thead>
               <tbody className="divide-y divide-[#D5D9D9]">
                 {filtered.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50/80 transition-colors">
+                  <tr key={s.id} className="hover:bg-[#F7F8F8]/80 transition-colors">
                     {/* Order */}
                     <td className="py-3 px-4">
                       <Link
@@ -355,7 +355,7 @@ export default function AdminShipmentsPage() {
                         <span>{s.orderNumber}</span>
                         <Eye className="w-3 h-3 text-[#565959] group-hover:text-[#007185]" />
                       </Link>
-                      <p className="text-[10px] text-[#565959] font-mono">{s.id}</p>
+                      <p className="text-[10px] text-[#565959] tabular-nums">{s.id}</p>
                       <p className="text-[10px] text-[#565959] mt-0.5">{s.itemsCount} item(s)</p>
                     </td>
 
@@ -375,9 +375,9 @@ export default function AdminShipmentsPage() {
                     <td className="py-3 px-4">
                       <p className="font-semibold text-[#0F1111]">{s.carrierName}</p>
                       {s.trackingNumber ? (
-                        <p className="font-mono text-[10px] text-[#007185] font-bold">{s.trackingNumber}</p>
+                        <p className="tabular-nums text-[10px] text-[#007185] font-bold">{s.trackingNumber}</p>
                       ) : (
-                        <span className="text-[10px] text-gray-400">No AWB yet</span>
+                        <span className="text-[10px] text-[#8A8F8F]">No AWB yet</span>
                       )}
                     </td>
 
@@ -399,13 +399,13 @@ export default function AdminShipmentsPage() {
                     {/* Status */}
                     <td className="py-3 px-4">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                           s.status === 'DELIVERED'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : s.status === 'SHIPPED'
                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
                             : s.status === 'CANCELLED'
-                            ? 'bg-gray-100 text-gray-700 border border-gray-300'
+                            ? 'bg-[#F0F2F2] text-[#333333] border border-[#D5D9D9]'
                             : 'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}
                       >
@@ -421,7 +421,7 @@ export default function AdminShipmentsPage() {
                           <span>Delivered</span>
                         </span>
                       ) : s.status === 'CANCELLED' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-neutral-300 bg-neutral-100 text-neutral-600 shadow-2xs">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-[#D5D9D9] bg-[#F0F2F2] text-[#565959] shadow-2xs">
                           <span>Cancelled</span>
                         </span>
                       ) : (
@@ -485,8 +485,8 @@ export default function AdminShipmentsPage() {
       {/* Issue SLA / Compliance Notice Modal */}
       {noticeShipment && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-start justify-between pb-4 border-b border-gray-100">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between pb-4 border-b border-[#F0F2F2]">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-600">
                   <ShieldAlert className="w-5 h-5" />
@@ -494,13 +494,13 @@ export default function AdminShipmentsPage() {
                 <div>
                   <h3 className="font-bold text-sm text-[#0F1111]">Issue Official Notice</h3>
                   <p className="text-xs text-[#565959]">
-                    To: <span className="font-semibold text-gray-900">{noticeShipment.vendorStoreName}</span> (Order #{noticeShipment.orderNumber})
+                    To: <span className="font-semibold text-[#0F1111]">{noticeShipment.vendorStoreName}</span> (Order #{noticeShipment.orderNumber})
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setNoticeShipment(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
+                className="text-[#8A8F8F] hover:text-[#565959] p-1 rounded-lg hover:bg-[#F0F2F2]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -512,13 +512,13 @@ export default function AdminShipmentsPage() {
                   <Check className="w-5 h-5" />
                 </div>
                 <p className="text-sm font-bold text-emerald-800">{noticeSuccess}</p>
-                <p className="text-xs text-gray-500">Notice has been delivered to seller dashboard banner.</p>
+                <p className="text-xs text-[#565959]">Notice has been delivered to seller dashboard banner.</p>
               </div>
             ) : (
               <form onSubmit={handleSendNotice} className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-[#565959] mb-1">
                       Notice Category
                     </label>
                     <select
@@ -534,7 +534,7 @@ export default function AdminShipmentsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                    <label className="block text-[11px] font-bold text-[#565959] mb-1">
                       Severity Level
                     </label>
                     <select
@@ -549,7 +549,7 @@ export default function AdminShipmentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-bold text-[#565959] mb-1">
                     Action Deadline Window
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -561,7 +561,7 @@ export default function AdminShipmentsPage() {
                         className={`py-1.5 text-xs font-bold rounded-lg border text-center transition-colors ${
                           noticeDeadline === hours
                             ? 'bg-[#007185] text-white border-[#007185]'
-                            : 'bg-white border-[#D5D9D9] text-[#565959] hover:bg-gray-50'
+                            : 'bg-white border-[#D5D9D9] text-[#565959] hover:bg-[#F7F8F8]'
                         }`}
                       >
                         {hours} Hours
@@ -571,7 +571,7 @@ export default function AdminShipmentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-[#565959] uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-bold text-[#565959] mb-1">
                     Official Notice Message
                   </label>
                   <textarea
@@ -587,11 +587,11 @@ export default function AdminShipmentsPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#F0F2F2]">
                   <button
                     type="button"
                     onClick={() => setNoticeShipment(null)}
-                    className="px-3.5 py-2 text-xs font-semibold text-gray-600 hover:text-gray-800"
+                    className="px-3.5 py-2 text-xs font-semibold text-[#565959] hover:text-[#0F1111]"
                   >
                     Cancel
                   </button>
@@ -622,10 +622,10 @@ export default function AdminShipmentsPage() {
       {/* Status & Shipment Management Modal */}
       {editingShipment && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185]">
+                <span className="text-[10px] font-bold text-[#007185]">
                   Logistics &amp; Consignment Control
                 </span>
                 <h3 className="font-bold text-base text-[#0F1111]">
@@ -705,7 +705,7 @@ export default function AdminShipmentsPage() {
                   value={trackingNumberInput}
                   onChange={(e) => setTrackingNumberInput(e.target.value)}
                   placeholder="e.g. DEL-7729183921"
-                  className="w-full py-2.5 px-3 rounded-lg border border-[#D5D9D9] text-[#0F1111] font-mono focus:outline-none focus:ring-2 focus:ring-[#FF9900]/30"
+                  className="w-full py-2.5 px-3 rounded-lg border border-[#D5D9D9] text-[#0F1111] tabular-nums focus:outline-none focus:ring-2 focus:ring-[#FF9900]/30"
                 />
               </div>
 

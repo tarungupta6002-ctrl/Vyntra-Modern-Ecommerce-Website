@@ -144,7 +144,7 @@ export default function AdminOffersPage() {
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${
                 statusFilter === status
                   ? 'bg-[#007185] text-white'
-                  : 'bg-[#F7F8F8] text-[#565959] hover:bg-gray-200 hover:text-[#0F1111]'
+                  : 'bg-[#F7F8F8] text-[#565959] hover:bg-[#E3E6E6] hover:text-[#0F1111]'
               }`}
             >
               {status}
@@ -173,7 +173,7 @@ export default function AdminOffersPage() {
           </div>
         ) : filteredOffers.length === 0 ? (
           <div className="py-20 text-center space-y-2">
-            <Tag className="w-10 h-10 text-gray-300 mx-auto" />
+            <Tag className="w-10 h-10 text-[#D5D9D9] mx-auto" />
             <p className="text-sm font-bold text-[#0F1111]">No seller offers found</p>
             <p className="text-xs text-[#565959]">No offers match your current filter criteria.</p>
           </div>
@@ -195,7 +195,7 @@ export default function AdminOffersPage() {
                 {filteredOffers.map((off) => {
                   const isUpdating = updatingId === off.id;
                   return (
-                    <tr key={off.id} className="hover:bg-gray-50/80 transition-colors">
+                    <tr key={off.id} className="hover:bg-[#F7F8F8]/80 transition-colors">
                       {/* Product */}
                       <td className="py-3 px-4">
                         <Link
@@ -208,7 +208,7 @@ export default function AdminOffersPage() {
                           </span>
                           <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </Link>
-                        <p className="text-[10px] text-[#565959] font-mono mt-0.5">{off.id}</p>
+                        <p className="text-[10px] text-[#565959] tabular-nums mt-0.5">{off.id}</p>
                       </td>
 
                       {/* Vendor */}
@@ -225,7 +225,7 @@ export default function AdminOffersPage() {
                       </td>
 
                       {/* Price */}
-                      <td className="py-3 px-4 font-mono">
+                      <td className="py-3 px-4 tabular-nums">
                         <p className="font-bold text-[#0F1111]">{formatINR(off.sellingPrice)}</p>
                         {off.mrpPrice && off.mrpPrice > off.sellingPrice && (
                           <p className="text-[10px] text-[#565959] line-through">{formatINR(off.mrpPrice)}</p>
@@ -255,12 +255,12 @@ export default function AdminOffersPage() {
                       {/* Status */}
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                             off.status === 'ACTIVE'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : off.status === 'SUSPENDED'
                               ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : 'bg-gray-100 text-gray-700 border border-gray-300'
+                              : 'bg-[#F0F2F2] text-[#333333] border border-[#D5D9D9]'
                           }`}
                         >
                           {off.status}

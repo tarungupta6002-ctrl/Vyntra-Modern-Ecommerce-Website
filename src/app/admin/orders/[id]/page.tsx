@@ -235,7 +235,7 @@ export default function AdminOrderDetailPage() {
             <ChevronLeft className="h-4 w-4" /> Back to orders
           </Link>
         </div>
-        <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
+        <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
           <RefreshCw className="h-8 w-8 text-[#007185] animate-spin mx-auto" />
           <h2 className="text-base font-bold text-[#0F1111]">Loading Order Details...</h2>
           <p className="text-xs text-[#565959]">Retrieving customer, vendor consignment, and logistics records.</p>
@@ -256,7 +256,7 @@ export default function AdminOrderDetailPage() {
             <ChevronLeft className="h-4 w-4" /> Back to orders
           </Link>
         </div>
-        <div className="bg-white rounded-2xl border border-rose-200 p-8 text-center space-y-3 shadow-xs">
+        <div className="bg-white rounded-xl border border-rose-200 p-8 text-center space-y-3 shadow-xs">
           <AlertCircle className="h-8 w-8 text-rose-600 mx-auto" />
           <p className="text-base font-bold text-rose-700">Order Not Found</p>
           <p className="text-xs text-[#565959]">{error || 'Unable to load the requested order.'}</p>
@@ -325,7 +325,7 @@ export default function AdminOrderDetailPage() {
       </div>
 
       {/* 2. Order Header Dossier Banner */}
-      <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
+      <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#F0F0F0] pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -343,7 +343,7 @@ export default function AdminOrderDetailPage() {
 
               {/* Status Badge */}
               <span
-                className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 ${
                   order.status === 'DELIVERED'
                     ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                     : order.status === 'SHIPPED' || order.status === 'OUT_FOR_DELIVERY'
@@ -364,7 +364,7 @@ export default function AdminOrderDetailPage() {
                 {order.isCOD ? 'Cash on Delivery (COD)' : 'Prepaid (Online)'}
               </span>
 
-              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${TONE_CLASS[paymentView.tone]}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${TONE_CLASS[paymentView.tone]}`}>
                 Payment: {paymentView.label}
               </span>
             </div>
@@ -377,8 +377,8 @@ export default function AdminOrderDetailPage() {
             </p>
           </div>
 
-          <div className="text-left md:text-right font-mono">
-            <span className="text-[11px] uppercase font-bold text-[#565959] block">Total Consignment Value</span>
+          <div className="text-left md:text-right tabular-nums">
+            <span className="text-[11px] font-bold text-[#565959] block">Total Consignment Value</span>
             <span className="text-2xl sm:text-3xl font-extrabold text-[#0F1111]">
               {formatINR(order.financials.totalAmount)}
             </span>
@@ -388,28 +388,28 @@ export default function AdminOrderDetailPage() {
         {/* Quick Highlights Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1 text-xs">
           <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Customer</span>
+            <span className="text-[10px] font-bold text-[#565959] block">Customer</span>
             <span className="font-bold text-[#0F1111] block truncate">{order.customer.name}</span>
             <span className="text-[11px] text-[#565959] block truncate">{order.customer.email}</span>
           </div>
 
           <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Destination City</span>
+            <span className="text-[10px] font-bold text-[#565959] block">Destination City</span>
             <span className="font-bold text-[#0F1111] block truncate">
               {order.shippingAddress ? `${order.shippingAddress.city}, ${order.shippingAddress.state}` : 'N/A'}
             </span>
-            <span className="text-[11px] text-[#565959] block font-mono">
+            <span className="text-[11px] text-[#565959] block tabular-nums">
               PIN: {order.shippingAddress?.postalCode || 'N/A'}
             </span>
           </div>
 
           <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Logistics Partner</span>
+            <span className="text-[10px] font-bold text-[#565959] block">Logistics Partner</span>
             <span className="font-bold text-[#0F1111] block truncate">
               {order.courierPartner || 'Unassigned / Pending Dispatch'}
             </span>
             {order.trackingNumber ? (
-              <span className="text-[11px] text-[#007185] font-mono font-bold block truncate">
+              <span className="text-[11px] text-[#007185] tabular-nums font-bold block truncate">
                 AWB: {order.trackingNumber}
               </span>
             ) : (
@@ -418,11 +418,11 @@ export default function AdminOrderDetailPage() {
           </div>
 
           <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Remittance &amp; Settlement</span>
+            <span className="text-[10px] font-bold text-[#565959] block">Remittance &amp; Settlement</span>
             <span className="font-bold text-[#0F1111] block truncate">
               {order.settledAt ? 'Remitted & Settled' : 'Pending Settlement'}
             </span>
-            <span className="text-[11px] text-[#565959] block font-mono truncate">
+            <span className="text-[11px] text-[#565959] block tabular-nums truncate">
               {order.remittanceReference
                 ? `${order.isCOD ? 'UTR' : 'Payment ID'}: ${order.remittanceReference}`
                 : order.isCOD
@@ -438,7 +438,7 @@ export default function AdminOrderDetailPage() {
         {/* LEFT COLUMN: Products & Logistics (8 cols) */}
         <div className="lg:col-span-8 space-y-6">
           {/* Card A: Ordered Products */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <Package className="h-4 w-4 text-[#007185]" />
@@ -462,7 +462,7 @@ export default function AdminOrderDetailPage() {
 
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 text-[10px] font-bold uppercase tracking-wider">
+                        <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-800 text-[10px] font-bold">
                           {item.brand}
                         </span>
 
@@ -491,11 +491,11 @@ export default function AdminOrderDetailPage() {
                         <span>•</span>
                         <span>Color: <strong className="text-[#0F1111] font-semibold">{item.color}</strong></span>
                         <span>•</span>
-                        <span className="font-mono text-[11px]">SKU: {item.sku}</span>
+                        <span className="tabular-nums text-[11px]">SKU: {item.sku}</span>
                       </div>
 
                       <div className="pt-1 flex items-baseline gap-2">
-                        <span className="text-sm font-extrabold font-mono text-[#0F1111]">
+                        <span className="text-sm font-extrabold tabular-nums text-[#0F1111]">
                           {formatINR(item.unitPrice)}
                         </span>
                         <span className="text-xs text-[#565959]">× {item.quantity} Qty</span>
@@ -508,8 +508,8 @@ export default function AdminOrderDetailPage() {
                     </div>
                   </div>
 
-                  <div className="text-right sm:self-center shrink-0 font-mono">
-                    <span className="text-[10px] uppercase font-bold text-[#565959] block">Item Total</span>
+                  <div className="text-right sm:self-center shrink-0 tabular-nums">
+                    <span className="text-[10px] font-bold text-[#565959] block">Item Total</span>
                     <span className="text-base font-bold text-[#0F1111]">
                       {formatINR(item.totalPrice)}
                     </span>
@@ -520,7 +520,7 @@ export default function AdminOrderDetailPage() {
           </div>
 
           {/* Card B: Logistics, Courier & Shipments */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <Truck className="h-4 w-4 text-[#007185]" />
@@ -538,12 +538,12 @@ export default function AdminOrderDetailPage() {
 
             <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Primary Carrier</span>
+                <span className="text-[10px] font-bold text-[#565959] block">Primary Carrier</span>
                 <span className="text-base font-extrabold text-[#0F1111] block">
                   {order.courierPartner || 'Carrier Not Assigned Yet'}
                 </span>
                 {order.trackingNumber ? (
-                  <span className="text-xs font-mono font-bold text-[#007185] block">
+                  <span className="text-xs tabular-nums font-bold text-[#007185] block">
                     AWB Tracking ID: {order.trackingNumber}
                   </span>
                 ) : (
@@ -566,7 +566,7 @@ export default function AdminOrderDetailPage() {
             {/* Multi-Vendor Shipment Packages */}
             {order.vendorShipments && order.vendorShipments.length > 0 && (
               <div className="space-y-3 pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959] block">
+                <span className="text-[11px] font-bold text-[#565959] block">
                   Dispatched Vendor Consignments ({order.vendorShipments.length} Package{order.vendorShipments.length > 1 ? 's' : ''})
                 </span>
 
@@ -584,7 +584,7 @@ export default function AdminOrderDetailPage() {
                           <span className="font-bold text-[#0F1111] truncate">
                             {vs.shipmentNumber}
                           </span>
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-700">
                             {vs.status}
                           </span>
                         </div>
@@ -595,7 +595,7 @@ export default function AdminOrderDetailPage() {
                         </p>
                       </div>
 
-                      <div className="pl-7 sm:pl-0 sm:text-right font-mono">
+                      <div className="pl-7 sm:pl-0 sm:text-right tabular-nums">
                         <span className="text-[10px] text-[#565959] block">Courier &amp; AWB</span>
                         <span className="text-xs font-bold text-[#0F1111] block">
                           {vs.courierPartner || 'In Process'} • {vs.trackingNumber || 'Pending'}
@@ -609,7 +609,7 @@ export default function AdminOrderDetailPage() {
           </div>
 
           {/* Card C: Shipping Destination & Customer Dossier */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-[#007185]" />
@@ -620,7 +620,7 @@ export default function AdminOrderDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
               {/* Shipping Address Details */}
               <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">
+                <span className="text-[10px] font-bold text-[#565959] block">
                   Delivery Destination ({order.shippingAddress?.addressType || 'RESIDENTIAL'})
                 </span>
 
@@ -635,7 +635,7 @@ export default function AdminOrderDetailPage() {
                     <p className="font-semibold pt-1">
                       {order.shippingAddress.city}, {order.shippingAddress.state} — {order.shippingAddress.postalCode}
                     </p>
-                    <p className="text-[#565959] font-mono pt-1 flex items-center gap-1">
+                    <p className="text-[#565959] tabular-nums pt-1 flex items-center gap-1">
                       <Phone className="h-3 w-3" /> {order.shippingAddress.phone}
                     </p>
                   </div>
@@ -646,7 +646,7 @@ export default function AdminOrderDetailPage() {
 
               {/* Customer User Account Details */}
               <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">
+                <span className="text-[10px] font-bold text-[#565959] block">
                   Customer
                 </span>
 
@@ -655,7 +655,7 @@ export default function AdminOrderDetailPage() {
                     <User className="h-4 w-4 text-[#007185] shrink-0" />
                     <div>
                       <span className="font-bold block">{order.customer.name}</span>
-                      <span className="text-[11px] text-[#565959] font-mono">User ID: {order.customer.id || 'N/A'}</span>
+                      <span className="text-[11px] text-[#565959] tabular-nums">User ID: {order.customer.id || 'N/A'}</span>
                     </div>
                   </div>
 
@@ -666,7 +666,7 @@ export default function AdminOrderDetailPage() {
 
                   <div className="flex items-center gap-2 pt-1 border-t border-stone-200/60">
                     <Phone className="h-3.5 w-3.5 text-[#565959] shrink-0" />
-                    <span className="text-[#565959] font-mono">{order.customer.phone}</span>
+                    <span className="text-[#565959] tabular-nums">{order.customer.phone}</span>
                   </div>
                 </div>
               </div>
@@ -677,7 +677,7 @@ export default function AdminOrderDetailPage() {
         {/* RIGHT COLUMN: Financial Summary & Admin actions (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Card 1: Complete Financial Price Breakdown */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <h2 className="text-base font-bold font-headline text-[#0F1111] flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-[#007185]" />
@@ -688,7 +688,7 @@ export default function AdminOrderDetailPage() {
             <div className="space-y-3 text-xs">
               <div className="flex justify-between items-center text-[#565959]">
                 <span>Items Subtotal ({order.items.length} items)</span>
-                <span className="font-mono font-bold text-[#0F1111]">
+                <span className="tabular-nums font-bold text-[#0F1111]">
                   {formatINR(order.financials.subtotal)}
                 </span>
               </div>
@@ -696,13 +696,13 @@ export default function AdminOrderDetailPage() {
               {order.financials.discount > 0 && (
                 <div className="flex justify-between items-center text-emerald-700 font-semibold">
                   <span>Coupon &amp; Promo Savings</span>
-                  <span className="font-mono">- {formatINR(order.financials.discount)}</span>
+                  <span className="tabular-nums">- {formatINR(order.financials.discount)}</span>
                 </div>
               )}
 
               <div className="flex justify-between items-center text-[#565959]">
                 <span>Shipping</span>
-                <span className="font-bold text-emerald-700 uppercase">
+                <span className="font-bold text-emerald-700">
                   {order.financials.shippingFee === 0 ? 'FREE' : formatINR(order.financials.shippingFee)}
                 </span>
               </div>
@@ -710,7 +710,7 @@ export default function AdminOrderDetailPage() {
               {order.financials.packagingFee > 0 && (
                 <div className="flex justify-between items-center text-[#565959]">
                   <span>Packaging fee</span>
-                  <span className="font-mono text-[#0F1111] font-semibold">
+                  <span className="tabular-nums text-[#0F1111] font-semibold">
                     {formatINR(order.financials.packagingFee)}
                   </span>
                 </div>
@@ -719,7 +719,7 @@ export default function AdminOrderDetailPage() {
               {order.financials.codFee > 0 && (
                 <div className="flex justify-between items-center text-[#565959]">
                   <span>Cash on Delivery Verification</span>
-                  <span className="font-mono text-[#0F1111] font-semibold">
+                  <span className="tabular-nums text-[#0F1111] font-semibold">
                     {formatINR(order.financials.codFee)}
                   </span>
                 </div>
@@ -730,7 +730,7 @@ export default function AdminOrderDetailPage() {
                   <span className="font-headline font-black text-sm text-[#0F1111] block">Total Amount</span>
                   <span className="text-[10px] text-[#565959]">Inclusive of all GST &amp; marketplace fees</span>
                 </div>
-                <span className="font-headline font-black text-xl text-[#0F1111] font-mono">
+                <span className="font-headline font-black text-xl text-[#0F1111] tabular-nums">
                   {formatINR(order.financials.totalAmount)}
                 </span>
               </div>
@@ -738,7 +738,7 @@ export default function AdminOrderDetailPage() {
 
             {/* Payment Method Details */}
             <div className="pt-3 border-t border-stone-200/80 space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Payment Gateway &amp; Mode</span>
+              <span className="text-[10px] font-bold text-[#565959] block">Payment Gateway &amp; Mode</span>
               <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[#565959]">Method:</span>
@@ -746,14 +746,14 @@ export default function AdminOrderDetailPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#565959]">Payment Status:</span>
-                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${TONE_CLASS[paymentView.tone]}`}>
+                  <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${TONE_CLASS[paymentView.tone]}`}>
                     {paymentView.label}
                   </span>
                 </div>
                 {order.remittanceReference && (
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-stone-200 text-[11px]">
                     <span className="text-[#565959] shrink-0">{order.isCOD ? 'Remittance UTR:' : 'Razorpay Payment ID:'}</span>
-                    <span className="font-mono font-bold text-[#007185] truncate">{order.remittanceReference}</span>
+                    <span className="tabular-nums font-bold text-[#007185] truncate">{order.remittanceReference}</span>
                   </div>
                 )}
               </div>
@@ -764,15 +764,15 @@ export default function AdminOrderDetailPage() {
                     refundNeedsRetry(refund) ? 'bg-rose-50 border-rose-200' : 'bg-sky-50/60 border-sky-200'
                   }`}
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#565959] block">Cancellation Refund</span>
+                  <span className="text-[10px] font-bold text-[#565959] block">Cancellation Refund</span>
                   <div className="flex items-center justify-between">
                     <span className="text-[#565959]">Amount:</span>
-                    <strong className="text-[#0F1111] font-mono">{formatINR(refund.amount)}</strong>
+                    <strong className="text-[#0F1111] tabular-nums">{formatINR(refund.amount)}</strong>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#565959]">Status:</span>
                     <span
-                      className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${
+                      className={`font-bold px-2 py-0.5 rounded text-[10px] ${
                         refund.status === 'CONFIRMED'
                           ? TONE_CLASS.emerald
                           : refundNeedsRetry(refund)
@@ -787,7 +787,7 @@ export default function AdminOrderDetailPage() {
                     <div className="flex items-center justify-between gap-2 text-[11px]">
                       <span className="text-[#565959] shrink-0">Refund ID:</span>
                       <span className="flex items-center gap-1 min-w-0">
-                        <span className="font-mono font-bold text-[#007185] truncate">{refund.razorpayRefundId}</span>
+                        <span className="tabular-nums font-bold text-[#007185] truncate">{refund.razorpayRefundId}</span>
                         <button
                           type="button"
                           onClick={() => copyRefundId(refund.razorpayRefundId!)}
@@ -839,8 +839,8 @@ export default function AdminOrderDetailPage() {
           </div>
 
           {/* Card 2: Admin Quick Actions */}
-          <div className="bg-white rounded-2xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-3">
-            <h3 className="text-sm font-bold font-headline text-[#0F1111] uppercase tracking-wider">
+          <div className="bg-white rounded-xl border border-[#D5D9D9] p-5 sm:p-6 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold font-headline text-[#0F1111]">
               Admin actions
             </h3>
 
