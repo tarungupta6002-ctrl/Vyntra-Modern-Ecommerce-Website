@@ -65,7 +65,20 @@ export async function GET() {
       const isPaid = it.order.paymentStatus === PaymentStatus.PAID;
       const isEligibleNow = isDelivered && isPaid && it.payoutStatus === PayoutStatus.PENDING && !it.vendorPayoutId;
 
-      if (it.payoutStatus === PayoutStatus.COMPLETED) {
+      // A cancelled or returned item earns the seller nothing. (If it was already paid out, the
+      // money is recovered through a vendor adjustment instead, so a settled item stays as is.)
+      const voidReason: 'CANCELLED' | 'RETURNED' | null =
+        it.payoutStatus === PayoutStatus.COMPLETED
+          ? null
+          : it.status === OrderItemStatus.CANCELLED || it.order.status === OrderStatus.CANCELLED || it.payoutStatus === PayoutStatus.CANCELLED
+          ? 'CANCELLED'
+          : it.status === OrderItemStatus.RETURNED || it.order.status === OrderStatus.RETURNED
+          ? 'RETURNED'
+          : null;
+
+      if (voidReason) {
+        // Not counted in any total.
+      } else if (it.payoutStatus === PayoutStatus.COMPLETED) {
         totalLifetimeNetEarnings += net;
       } else if (isEligibleNow) {
         pendingBalance += net;
@@ -93,11 +106,12 @@ export async function GET() {
         unitPrice: Number(it.unitPrice),
         totalPrice: gross,
         commissionRate: isLegacy ? null : rate,
-        commissionAmount: isLegacy ? null : commAmt,
+        commissionAmount: isLegacy || voidReason ? null : commAmt,
         commissionTax: it.commissionTax !== null ? Number(it.commissionTax) : null,
-        netEarnings: isLegacy ? null : net,
+        netEarnings: isLegacy ? null : voidReason ? 0 : net,
         payoutStatus: it.payoutStatus,
-        isEligibleForPayout: isEligibleNow,
+        isEligibleForPayout: isEligibleNow && !voidReason,
+        voidReason,
         isLegacy,
         payoutReference: it.vendorPayout?.referenceNumber || null,
         paidAt: it.vendorPayout?.paidAt || null,
