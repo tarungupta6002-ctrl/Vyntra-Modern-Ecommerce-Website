@@ -76,7 +76,7 @@ export function VendorNoticeBanner() {
   if (loading || openNotices.length === 0) return null;
 
   return (
-    <div className="mb-6 space-y-3">
+    <div className="space-y-3">
       {openNotices.map((notice) => {
         const isCritical = notice.severity === 'CRITICAL';
         return (

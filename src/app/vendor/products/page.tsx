@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   ShieldAlert,
 } from 'lucide-react';
+import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
 interface VendorProduct {
   id: string;
@@ -686,60 +687,31 @@ function VendorProductsContent() {
         </div>
       )}
 
-      {/* Page Title & Store Identity Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#D5D9D9]">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F1111]">
-              {session.vendorProfile.storeName} — Seller Central
-            </h1>
-            <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Approved Partner
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-[#565959] mt-0.5">
-            Artisanal Catalog &amp; Inventory &bull; Signed in as: <strong className="text-[#0F1111]">{session.email}</strong> ({session.vendorProfile.storeSlug})
-          </p>
-        </div>
+      <VendorPageHeader
+        title="Products"
+        description="Your listings, their stock and whether customers can see them."
+        actions={
+          <>
+            <Link href="/vendor/products/new?mode=sell-existing" className={vendorButton.secondary}>
+              <Search className="h-4 w-4 text-[#007185]" />
+              Sell an existing product
+            </Link>
+            <Link href="/vendor/products/new?mode=request-new" className={vendorButton.primary}>
+              <Plus className="h-4 w-4" />
+              Add a new product
+            </Link>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-          <Link
-            href="/vendor/products/new?mode=sell-existing"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-[#F7F8F8] text-[#0F1111] font-bold text-xs border border-[#D5D9D9] shadow-sm transition-all"
-          >
-            <Search className="h-3.5 w-3.5 text-[#007185]" />
-            <span>Sell Existing Product</span>
-          </Link>
-          <Link
-            href="/vendor/products/new?mode=request-new"
-            className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-full bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] font-bold text-xs shadow-sm transition-all border border-[#FCD200]"
-          >
-            <Plus className="h-3.5 w-3.5 stroke-[3]" />
-            <span>Request New Listing</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
-          <span className="text-xs text-[#565959] font-medium">Total Listings</span>
-          <p className="text-2xl font-bold text-[#0F1111] mt-1">{totalListings}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
-          <span className="text-xs text-[#067D62] font-medium">Published Live</span>
-          <p className="text-2xl font-bold text-[#067D62] mt-1">{publishedCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
-          <span className="text-xs text-amber-700 font-medium">Drafts (Offline)</span>
-          <p className="text-2xl font-bold text-amber-700 mt-1">{draftCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm">
-          <span className="text-xs text-[#565959] font-medium">Total Warehouse Units</span>
-          <p className="text-2xl font-bold text-[#0F1111] mt-1">{totalStockUnits}</p>
-        </div>
-      </div>
+      <VendorStats
+        items={[
+          { label: 'Listings', value: totalListings },
+          { label: 'Live', value: publishedCount, tone: 'good' },
+          { label: 'Drafts', value: draftCount, tone: draftCount > 0 ? 'warn' : 'neutral' },
+          { label: 'Units in stock', value: totalStockUnits },
+        ]}
+      />
 
       {/* Search & Filter Toolbar */}
       <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -837,10 +809,10 @@ function VendorProductsContent() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full min-w-[760px] text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-[#F0F2F2] text-[#0F1111] font-bold border-b border-[#D5D9D9]">
-                  <th className="py-3 px-4">Product Details</th>
+                <tr className="bg-[#F7F8F8] text-[#565959] font-semibold border-b border-[#D5D9D9]">
+                  <th className="py-3 px-4">Product</th>
                   <th className="py-3 px-4">Category</th>
                   <th className="py-3 px-4">Price</th>
                   <th className="py-3 px-4">Stock</th>
@@ -875,17 +847,12 @@ function VendorProductsContent() {
                           </Link>
                           <div className="flex items-center gap-2 text-[11px] text-[#565959] mt-0.5 flex-wrap">
                             <span>{prod.brand}</span>
-                            <span>•</span>
-                            <span className="font-mono text-[10px]">slug: {prod.slug}</span>
-                            {prod.isOriginalCreator ? (
-                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                Original Creator
-                              </span>
-                            ) : (
-                              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                                Multi-Seller Offer
-                              </span>
-                            )}
+                            <span
+                              className="rounded border border-[#D5D9D9] px-1.5 text-[10px] font-semibold text-[#565959]"
+                              title={prod.isOriginalCreator ? 'You created this product page' : 'You sell on a product page another seller created'}
+                            >
+                              {prod.isOriginalCreator ? 'Your listing' : 'Your offer'}
+                            </span>
                             {prod.isBuyBoxWinner && (
                               <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-rose-50 text-[#800020] border border-rose-200 flex items-center gap-0.5">
                                 <Sparkles className="h-2.5 w-2.5 text-[#FF9900]" />
@@ -898,11 +865,7 @@ function VendorProductsContent() {
                     </td>
 
                     {/* Category Column */}
-                    <td className="py-3 px-4 font-medium text-[#0F1111]">
-                      <span className="px-2 py-0.5 rounded bg-[#F0F2F2] border border-[#D5D9D9] text-[11px]">
-                        {prod.category?.name || 'Artisanal'}
-                      </span>
-                    </td>
+                    <td className="py-3 px-4 text-[12px] text-[#565959] max-w-[160px]">{prod.category?.name || '—'}</td>
 
                     {/* Price Column */}
                     <td className="py-3 px-4">
@@ -919,7 +882,7 @@ function VendorProductsContent() {
                     {/* Stock Column */}
                     <td className="py-3 px-4">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                        className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-[11px] font-bold ${
                           prod.totalStock > 10
                             ? 'bg-emerald-50 text-[#067D62]'
                             : prod.totalStock > 0

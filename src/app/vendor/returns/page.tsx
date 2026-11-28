@@ -26,6 +26,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
 interface ReturnRequestItem {
   id: string;
@@ -82,7 +83,7 @@ interface ReturnRequestItem {
 
 export default function VendorReturnsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading Merchant Returns Center...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-sm text-[#565959]">Loading Merchant Returns Center...</div>}>
       <VendorReturnsContent />
     </Suspense>
   );
@@ -341,49 +342,29 @@ function VendorReturnsContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">Returns &amp; Replacements</h1>
-            <span className="bg-gray-100 text-gray-800 text-xs font-bold px-2 py-0.5 rounded-full">
-              Phase 12
-            </span>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Review customer doorstep return/exchange requests, assign reverse couriers, and track inbound shipments.
-          </p>
-        </div>
+      <VendorPageHeader
+        title="Returns"
+        description="Review return and exchange requests, then inspect items when they come back."
+      />
 
-        {/* Quick Stats Badges */}
-        <div className="flex items-center gap-3">
-          <div className="px-3.5 py-2 bg-amber-50 border border-amber-200 rounded-lg text-center">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-700">Pending Review</span>
-            <span className="text-base font-extrabold text-amber-900">{countsByStatus['REQUESTED'] || 0}</span>
-          </div>
-          <div className="px-3.5 py-2 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-blue-700">In Transit</span>
-            <span className="text-base font-extrabold text-blue-900">
-              {(countsByStatus['APPROVED'] || 0) + (countsByStatus['PICKED_UP'] || 0)}
-            </span>
-          </div>
-          <div className="px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-center">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Received at WH</span>
-            <span className="text-base font-extrabold text-emerald-900">{countsByStatus['RECEIVED_AT_WH'] || 0}</span>
-          </div>
-        </div>
-      </div>
+      <VendorStats
+        items={[
+          { label: 'To review', value: countsByStatus['REQUESTED'] || 0, tone: (countsByStatus['REQUESTED'] || 0) > 0 ? 'warn' : 'neutral' },
+          { label: 'On the way back', value: (countsByStatus['APPROVED'] || 0) + (countsByStatus['PICKED_UP'] || 0), tone: 'info' },
+          { label: 'Received, to inspect', value: countsByStatus['RECEIVED_AT_WH'] || 0 },
+        ]}
+      />
 
       {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <form onSubmit={handleSearchSubmit} className="relative flex-1">
-          <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="h-4 w-4 text-[#6F7373] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by order number, customer name, title, or AWB..."
-            className="w-full text-xs pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="w-full text-xs pl-9 pr-4 py-2 border border-[#D5D9D9] rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-900"
           />
         </form>
 
@@ -395,7 +376,7 @@ function VendorReturnsContent() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-800 font-medium focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="text-xs border border-[#D5D9D9] rounded-lg px-3 py-2 bg-white text-[#0F1111] font-medium focus:outline-none focus:ring-1 focus:ring-gray-900"
           >
             <option value="ALL">All Statuses</option>
             <option value="REQUESTED">Pending Review ({countsByStatus['REQUESTED'] || 0})</option>
@@ -412,7 +393,7 @@ function VendorReturnsContent() {
               setTypeFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-800 font-medium focus:outline-none focus:ring-1 focus:ring-gray-900"
+            className="text-xs border border-[#D5D9D9] rounded-lg px-3 py-2 bg-white text-[#0F1111] font-medium focus:outline-none focus:ring-1 focus:ring-gray-900"
           >
             <option value="ALL">All Types</option>
             <option value="RETURN_REFUND">Returns (Refund)</option>
@@ -422,24 +403,24 @@ function VendorReturnsContent() {
       </div>
 
       {/* Requests Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-xs text-gray-500">
+          <div className="p-12 text-center text-xs text-[#565959]">
             <div className="inline-block animate-spin h-6 w-6 border-2 border-gray-900 border-t-transparent rounded-full mb-2"></div>
             <p>Fetching merchant return requests...</p>
           </div>
         ) : returns.length === 0 ? (
           <div className="p-12 text-center">
             <RotateCcw className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-800">No return requests found</p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm font-semibold text-[#0F1111]">No return requests found</p>
+            <p className="text-xs text-[#565959] mt-1">
               There are currently no return or replacement requests matching your active filters.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider font-semibold border-b border-gray-200">
+              <thead className="bg-[#F7F8F8] text-[#565959] uppercase tracking-wider font-semibold border-b border-[#D5D9D9]">
                 <tr>
                   <th className="py-3 px-4">Request / Date</th>
                   <th className="py-3 px-4">Order / Customer</th>
@@ -449,13 +430,13 @@ function VendorReturnsContent() {
                   <th className="py-3 px-4 text-right">Merchant Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#E3E6E6]">
                 {returns.map((req) => (
-                  <tr key={req.id} className="hover:bg-gray-50/70 transition-colors">
+                  <tr key={req.id} className="hover:bg-[#F7F8F8]/70 transition-colors">
                     {/* Request / Date */}
                     <td className="py-3.5 px-4 align-top">
-                      <p className="font-mono font-bold text-gray-900">#{req.id.slice(-6)}</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">
+                      <p className="font-mono font-bold text-[#0F1111]">#{req.id.slice(-6)}</p>
+                      <p className="text-[11px] text-[#565959] mt-0.5">
                         {new Date(req.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -466,27 +447,27 @@ function VendorReturnsContent() {
 
                     {/* Order / Customer */}
                     <td className="py-3.5 px-4 align-top">
-                      <p className="font-semibold text-gray-900">{req.orderNumber}</p>
-                      <p className="text-[11px] text-gray-600">{req.customer.name}</p>
-                      <p className="text-[10px] text-gray-400 truncate max-w-[140px]">{req.customer.email}</p>
+                      <p className="font-semibold text-[#0F1111]">{req.orderNumber}</p>
+                      <p className="text-[11px] text-[#565959]">{req.customer.name}</p>
+                      <p className="text-[10px] text-[#6F7373] truncate max-w-[140px]">{req.customer.email}</p>
                     </td>
 
                     {/* Item Details */}
                     <td className="py-3.5 px-4 align-top max-w-xs">
                       <div className="flex items-center gap-2.5">
-                        <div className="relative h-11 w-11 rounded bg-gray-100 flex-shrink-0 border border-gray-200 overflow-hidden">
+                        <div className="relative h-11 w-11 rounded bg-[#F0F2F2] flex-shrink-0 border border-[#D5D9D9] overflow-hidden">
                           {req.item.image ? (
                             <Image src={req.item.image} alt={req.item.title} fill className="object-cover" />
                           ) : (
-                            <Package className="h-5 w-5 text-gray-400 m-auto mt-3" />
+                            <Package className="h-5 w-5 text-[#6F7373] m-auto mt-3" />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 truncate">{req.item.title}</p>
-                          <p className="text-[11px] text-gray-500">
+                          <p className="font-semibold text-[#0F1111] truncate">{req.item.title}</p>
+                          <p className="text-[11px] text-[#565959]">
                             Size: {req.item.size} • Color: {req.item.color} • Qty: {req.requestedQuantity}
                           </p>
-                          <p className="text-[11px] font-mono text-gray-700">{formatINR(req.item.totalPrice)}</p>
+                          <p className="text-[11px] font-mono text-[#333]">{formatINR(req.item.totalPrice)}</p>
                         </div>
                       </div>
                     </td>
@@ -503,9 +484,9 @@ function VendorReturnsContent() {
                         {req.type === 'REPLACEMENT' ? <RefreshCw className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
                         <span>{req.type === 'REPLACEMENT' ? 'Replacement' : 'Return Refund'}</span>
                       </span>
-                      <p className="font-medium text-gray-900">{req.reason.replace(/_/g, ' ')}</p>
+                      <p className="font-medium text-[#0F1111]">{req.reason.replace(/_/g, ' ')}</p>
                       {req.detailedReason && (
-                        <p className="text-[11px] text-gray-500 italic mt-0.5 line-clamp-1" title={req.detailedReason}>
+                        <p className="text-[11px] text-[#565959] italic mt-0.5 line-clamp-1" title={req.detailedReason}>
                           &quot;{req.detailedReason}&quot;
                         </p>
                       )}
@@ -530,16 +511,16 @@ function VendorReturnsContent() {
                             ? 'bg-emerald-100 text-emerald-800'
                             : req.status === 'REJECTED'
                             ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
+                            : 'bg-[#F0F2F2] text-[#0F1111]'
                         }`}
                       >
                         {req.status.replace(/_/g, ' ')}
                       </span>
 
                       {req.reverseTrackingNumber ? (
-                        <div className="mt-1 text-[11px] text-gray-600">
-                          <p className="font-medium text-gray-800">{req.reverseCourierPartner || 'Courier'}</p>
-                          <p className="font-mono text-[10px] text-gray-500">{req.reverseTrackingNumber}</p>
+                        <div className="mt-1 text-[11px] text-[#565959]">
+                          <p className="font-medium text-[#0F1111]">{req.reverseCourierPartner || 'Courier'}</p>
+                          <p className="font-mono text-[10px] text-[#565959]">{req.reverseTrackingNumber}</p>
                         </div>
                       ) : req.status === 'APPROVED' ? (
                         <p className="text-[10px] text-amber-600 mt-1">Awaiting AWB assignment</p>
@@ -569,7 +550,7 @@ function VendorReturnsContent() {
                         <button
                           type="button"
                           onClick={() => handleOpenAction(req, 'LOGISTICS')}
-                          className="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded transition-colors"
+                          className="px-3 py-1.5 text-xs font-semibold text-[#0F1111] bg-[#F0F2F2] hover:bg-gray-200 border border-[#D5D9D9] rounded transition-colors"
                         >
                           Update Tracking
                         </button>
@@ -616,7 +597,7 @@ function VendorReturnsContent() {
                           <span>Dispute Active</span>
                         </span>
                       ) : (
-                        <span className="text-gray-400 text-xs italic">No actions</span>
+                        <span className="text-[#6F7373] text-xs italic">No actions</span>
                       )}
                     </td>
                   </tr>
@@ -628,7 +609,7 @@ function VendorReturnsContent() {
 
         {/* Pagination Bar */}
         {totalPages > 1 && (
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600">
+          <div className="px-4 py-3 bg-[#F7F8F8] border-t border-[#D5D9D9] flex items-center justify-between text-xs text-[#565959]">
             <span>
               Showing page {currentPage} of {totalPages} ({totalCount} total)
             </span>
@@ -657,7 +638,7 @@ function VendorReturnsContent() {
       {/* Vendor Action Modal */}
       {actionItem && modalAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden">
+          <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-[#E3E6E6] overflow-hidden">
             {/* Header */}
             <div className="px-6 py-4 bg-gray-900 text-white flex items-center justify-between">
               <h2 className="text-sm font-semibold tracking-wide">
@@ -670,7 +651,7 @@ function VendorReturnsContent() {
               <button
                 type="button"
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-[#6F7373] hover:text-white transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -686,16 +667,16 @@ function VendorReturnsContent() {
               )}
 
               {/* Item Info Box */}
-              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs space-y-1">
-                <p className="font-semibold text-gray-900">{actionItem.item.title}</p>
-                <p className="text-gray-500">
+              <div className="p-3 bg-[#F7F8F8] border border-[#D5D9D9] rounded-lg text-xs space-y-1">
+                <p className="font-semibold text-[#0F1111]">{actionItem.item.title}</p>
+                <p className="text-[#565959]">
                   Order #{actionItem.orderNumber} • Customer: {actionItem.customer.name}
                 </p>
-                <p className="text-gray-700">
+                <p className="text-[#333]">
                   Reason: <span className="font-medium">{actionItem.reason.replace(/_/g, ' ')}</span>
                 </p>
                 {actionItem.customerNotes && (
-                  <p className="text-purple-800 font-semibold pt-1 border-t border-gray-200 mt-1">
+                  <p className="text-purple-800 font-semibold pt-1 border-t border-[#D5D9D9] mt-1">
                     Customer Request: {actionItem.customerNotes}
                   </p>
                 )}
@@ -706,7 +687,7 @@ function VendorReturnsContent() {
                 <>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-[#333] mb-1">
                         Reverse Logistics Courier Partner
                       </label>
                       <input
@@ -714,11 +695,11 @@ function VendorReturnsContent() {
                         value={reverseCourier}
                         onChange={(e) => setReverseCourier(e.target.value)}
                         placeholder="e.g. Delhivery Surface Logistics / BlueDart"
-                        className="w-full text-xs border border-gray-300 rounded px-3 py-2 text-gray-900"
+                        className="w-full text-xs border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-[#333] mb-1">
                         Return AWB / Tracking Number
                       </label>
                       <input
@@ -726,17 +707,17 @@ function VendorReturnsContent() {
                         value={reverseTracking}
                         onChange={(e) => setReverseTracking(e.target.value)}
                         placeholder="e.g. DEL-REV-987654321"
-                        className="w-full text-xs font-mono border border-gray-300 rounded px-3 py-2 text-gray-900"
+                        className="w-full text-xs font-mono border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111]"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Artisan / Warehouse Notes</label>
+                      <label className="block text-xs font-semibold text-[#333] mb-1">Artisan / Warehouse Notes</label>
                       <textarea
                         rows={2}
                         value={vendorNotes}
                         onChange={(e) => setVendorNotes(e.target.value)}
                         placeholder="Optional instructions for warehouse receipt inspection..."
-                        className="w-full text-xs border border-gray-300 rounded p-2 text-gray-900 resize-none"
+                        className="w-full text-xs border border-[#D5D9D9] rounded p-2 text-[#0F1111] resize-none"
                       />
                     </div>
                   </div>
@@ -747,7 +728,7 @@ function VendorReturnsContent() {
               {modalAction === 'REJECT' && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#333] mb-1">
                       Mandatory Rejection Reason <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -756,10 +737,10 @@ function VendorReturnsContent() {
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
                       placeholder="Explain specifically why this return or replacement is declined (e.g. hygiene seal tampered, item altered)..."
-                      className="w-full text-xs border border-gray-300 rounded p-2 text-gray-900 resize-none focus:ring-1 focus:ring-red-500"
+                      className="w-full text-xs border border-[#D5D9D9] rounded p-2 text-[#0F1111] resize-none focus:ring-1 focus:ring-red-500"
                     />
                   </div>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-[#565959]">
                     This rejection reason will be recorded on the customer&apos;s order audit trail.
                   </p>
                 </div>
@@ -769,11 +750,11 @@ function VendorReturnsContent() {
               {modalAction === 'LOGISTICS' && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Advance Shipment Status</label>
+                    <label className="block text-xs font-semibold text-[#333] mb-1">Advance Shipment Status</label>
                     <select
                       value={nextShipmentStatus}
                       onChange={(e) => setNextShipmentStatus(e.target.value)}
-                      className="w-full text-xs border border-gray-300 rounded px-3 py-2 bg-white text-gray-900"
+                      className="w-full text-xs border border-[#D5D9D9] rounded px-3 py-2 bg-white text-[#0F1111]"
                     >
                       <option value={actionItem.status}>Current: {actionItem.status.replace(/_/g, ' ')}</option>
                       {actionItem.status === 'APPROVED' && <option value="PICKED_UP">Mark as Picked Up (In Transit)</option>}
@@ -784,32 +765,32 @@ function VendorReturnsContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Reverse Courier</label>
+                    <label className="block text-xs font-semibold text-[#333] mb-1">Reverse Courier</label>
                     <input
                       type="text"
                       value={reverseCourier}
                       onChange={(e) => setReverseCourier(e.target.value)}
-                      className="w-full text-xs border border-gray-300 rounded px-3 py-2 text-gray-900"
+                      className="w-full text-xs border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">AWB / Tracking Number</label>
+                    <label className="block text-xs font-semibold text-[#333] mb-1">AWB / Tracking Number</label>
                     <input
                       type="text"
                       value={reverseTracking}
                       onChange={(e) => setReverseTracking(e.target.value)}
-                      className="w-full text-xs font-mono border border-gray-300 rounded px-3 py-2 text-gray-900"
+                      className="w-full text-xs font-mono border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Warehouse Notes</label>
+                    <label className="block text-xs font-semibold text-[#333] mb-1">Warehouse Notes</label>
                     <input
                       type="text"
                       value={vendorNotes}
                       onChange={(e) => setVendorNotes(e.target.value)}
-                      className="w-full text-xs border border-gray-300 rounded px-3 py-2 text-gray-900"
+                      className="w-full text-xs border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111]"
                     />
                   </div>
                 </div>
@@ -819,7 +800,7 @@ function VendorReturnsContent() {
               {modalAction === 'QC' && (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-[#333] mb-1.5 uppercase tracking-wider">
                       QC Inspection Decision <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-3">
@@ -829,7 +810,7 @@ function VendorReturnsContent() {
                         className={`py-2 px-3 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all ${
                           qcResult === 'PASS'
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            : 'bg-white text-[#333] border-[#D5D9D9] hover:bg-[#F7F8F8]'
                         }`}
                       >
                         <CheckCircle2 className="h-4 w-4" />
@@ -841,7 +822,7 @@ function VendorReturnsContent() {
                         className={`py-2 px-3 text-xs font-bold rounded-lg border flex items-center justify-center gap-1.5 transition-all ${
                           qcResult === 'FAIL'
                             ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            : 'bg-white text-[#333] border-[#D5D9D9] hover:bg-[#F7F8F8]'
                         }`}
                       >
                         <XCircle className="h-4 w-4" />
@@ -851,7 +832,7 @@ function VendorReturnsContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#333] mb-1">
                       Product Condition &amp; Seal Details <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -860,13 +841,13 @@ function VendorReturnsContent() {
                       value={conditionDetails}
                       onChange={(e) => setConditionDetails(e.target.value)}
                       placeholder="e.g. Fabric weave verified, artisan seal and tags present..."
-                      className="w-full text-xs border border-gray-300 rounded p-2 text-gray-900 resize-none"
+                      className="w-full text-xs border border-[#D5D9D9] rounded p-2 text-[#0F1111] resize-none"
                     />
                   </div>
 
                   {qcResult === 'FAIL' && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-[#333] mb-1">
                         Specific Failure Reason <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -875,13 +856,13 @@ function VendorReturnsContent() {
                         value={failedReason}
                         onChange={(e) => setFailedReason(e.target.value)}
                         placeholder="e.g. Altered hem, missing tags, perfume odor"
-                        className="w-full text-xs border border-red-300 rounded px-3 py-2 text-gray-900 focus:ring-1 focus:ring-red-500"
+                        className="w-full text-xs border border-red-300 rounded px-3 py-2 text-[#0F1111] focus:ring-1 focus:ring-red-500"
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#333] mb-1">
                       Inspection Evidence Photos (URLs, one per line)
                     </label>
                     <textarea
@@ -889,7 +870,7 @@ function VendorReturnsContent() {
                       value={evidencePhotosText}
                       onChange={(e) => setEvidencePhotosText(e.target.value)}
                       placeholder="https://... (Inspection photos)"
-                      className="w-full text-xs font-mono border border-gray-300 rounded p-2 text-gray-900 resize-none"
+                      className="w-full text-xs font-mono border border-[#D5D9D9] rounded p-2 text-[#0F1111] resize-none"
                     />
                   </div>
 
@@ -914,7 +895,7 @@ function VendorReturnsContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#333] mb-1">
                       Courier Partner <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -923,12 +904,12 @@ function VendorReturnsContent() {
                       value={forwardCourier}
                       onChange={(e) => setForwardCourier(e.target.value)}
                       placeholder="e.g. Bluedart, Delhivery, DTDC"
-                      className="w-full text-xs border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-1 focus:ring-purple-500"
+                      className="w-full text-xs border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111] focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#333] mb-1">
                       Forward AWB / Tracking Number <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -937,12 +918,12 @@ function VendorReturnsContent() {
                       value={forwardTracking}
                       onChange={(e) => setForwardTracking(e.target.value)}
                       placeholder="e.g. BLU-99281726"
-                      className="w-full text-xs font-mono border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-1 focus:ring-purple-500"
+                      className="w-full text-xs font-mono border border-[#D5D9D9] rounded px-3 py-2 text-[#0F1111] focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#333] mb-1">
                       Dispatch Notes (Optional)
                     </label>
                     <textarea
@@ -950,7 +931,7 @@ function VendorReturnsContent() {
                       value={vendorNotes}
                       onChange={(e) => setVendorNotes(e.target.value)}
                       placeholder="e.g. Handed over to courier hub..."
-                      className="w-full text-xs border border-gray-300 rounded p-2 text-gray-900 resize-none"
+                      className="w-full text-xs border border-[#D5D9D9] rounded p-2 text-[#0F1111] resize-none"
                     />
                   </div>
                 </div>
@@ -962,7 +943,7 @@ function VendorReturnsContent() {
                   type="button"
                   onClick={handleCloseModal}
                   disabled={isSubmitting}
-                  className="px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                  className="px-3.5 py-1.5 text-xs font-medium text-[#333] hover:bg-[#F0F2F2] rounded transition-colors"
                 >
                   Cancel
                 </button>

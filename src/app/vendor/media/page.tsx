@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
+import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,73 +121,25 @@ export default function VendorMediaPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Banner */}
-      <div className="bg-white border border-[#D5D9D9] rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#565959] mb-1">
-            <Link href="/vendor" className="hover:text-[#007185] hover:underline">
-              Seller Central
-            </Link>
-            <span>/</span>
-            <span className="text-[#0F1111]">Media Library</span>
-          </div>
-          <h1 className="text-xl font-bold text-[#0F1111] tracking-tight">Central Media Asset Manager</h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Store, organize, and reuse verified high-resolution images for catalog listings, color swatches, and A+ content.
-          </p>
-        </div>
+      <VendorPageHeader
+        title="Media library"
+        description="Upload images once and reuse them in listings, colour swatches and A+ content."
+        actions={
+          <button onClick={() => setIsUploadModalOpen(true)} className={vendorButton.primary}>
+            <Upload className="h-4 w-4" />
+            Upload image
+          </button>
+        }
+      />
 
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-black text-xs font-bold rounded-lg shadow-sm transition-colors shrink-0"
-        >
-          <Upload className="w-4 h-4" />
-          <span>Upload New Asset</span>
-        </button>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-[#007185] flex items-center justify-center shrink-0">
-            <ImageIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Total Assets</p>
-            <p className="text-lg font-bold text-[#0F1111]">{totalCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Gallery Photos</p>
-            <p className="text-lg font-bold text-[#0F1111]">{galleryCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-            <Palette className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">Color Swatches</p>
-            <p className="text-lg font-bold text-[#0F1111]">{swatchCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-[#565959] font-medium">A+ Banners</p>
-            <p className="text-lg font-bold text-[#0F1111]">{aplusCount}</p>
-          </div>
-        </div>
-      </div>
+      <VendorStats
+        items={[
+          { label: 'All images', value: totalCount },
+          { label: 'Product gallery', value: galleryCount },
+          { label: 'Colour swatches', value: swatchCount },
+          { label: 'A+ banners', value: aplusCount },
+        ]}
+      />
 
       {/* Filter and Search Bar */}
       <div className="bg-white border border-[#D5D9D9] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">

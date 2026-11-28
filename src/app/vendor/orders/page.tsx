@@ -26,6 +26,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
+import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
 interface VendorOrderItem {
   id: string;
@@ -329,100 +330,26 @@ function VendorOrdersContent() {
         </div>
       )}
 
-      {/* Top Header & Store Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#D5D9D9]">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-extrabold text-[#0F1111] tracking-tight">
-              {session.vendorProfile.storeName} — Seller Central
-            </h1>
-            <span className="bg-[#E7F4F5] text-[#007185] border border-[#007185]/30 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Verified Merchant
-            </span>
-          </div>
-          <p className="text-xs text-[#565959] mt-1">
-            Order Fulfillment Desk &bull; Signed in as: <strong className="text-[#0F1111]">{session.email}</strong>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => fetchOrders(page, statusFilter, searchQuery)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7FAFA] text-xs font-semibold text-[#0F1111] shadow-sm transition-all"
-            title="Refresh Orders"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+      <VendorPageHeader
+        title="Orders & shipments"
+        description="Confirm new orders, pack them and add tracking when they ship."
+        actions={
+          <button type="button" onClick={() => fetchOrders(page, statusFilter, searchQuery)} className={vendorButton.secondary}>
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
-          <Link
-            href="/vendor/products"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all"
-          >
-            <Package className="h-4 w-4" />
-            <span>Manage Inventory</span>
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      {/* KPI Metrics Ribbon */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#565959]">
-            Total Orders
-          </span>
-          <div className="text-2xl font-extrabold text-[#0F1111] mt-2">
-            {metrics ? metrics.totalOrders : '—'}
-          </div>
-          <span className="text-[11px] text-[#565959] mt-1">
-            {metrics ? `${metrics.totalUnitsSold} items ordered` : 'All-time'}
-          </span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
-              Needs Prep
-            </span>
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-          </div>
-          <div className="text-2xl font-extrabold text-amber-700 mt-2">
-            {metrics ? metrics.pendingCount : '—'}
-          </div>
-          <span className="text-[11px] text-[#565959] mt-1">Pending confirmation</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#007185]">
-            In Preparation
-          </span>
-          <div className="text-2xl font-extrabold text-[#007185] mt-2">
-            {metrics ? metrics.processingCount : '—'}
-          </div>
-          <span className="text-[11px] text-[#565959] mt-1">Artisan packaging</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
-            Dispatched
-          </span>
-          <div className="text-2xl font-extrabold text-indigo-700 mt-2">
-            {metrics ? metrics.shippedCount : '—'}
-          </div>
-          <span className="text-[11px] text-[#565959] mt-1">Handed to courier</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm flex flex-col justify-between col-span-2 lg:col-span-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F1111]">
-            Vendor Net Revenue
-          </span>
-          <div className="text-2xl font-extrabold text-[#007185] font-mono mt-2">
-            {metrics ? formatINR(metrics.totalRevenue) : '—'}
-          </div>
-          <span className="text-[11px] text-[#565959] mt-1">Net realized value (Returns deducted)</span>
-        </div>
-      </div>
+      <VendorStats
+        items={[
+          { label: 'Orders', value: metrics ? metrics.totalOrders : '—', hint: metrics ? `${metrics.totalUnitsSold} items ordered` : undefined },
+          { label: 'To confirm', value: metrics ? metrics.pendingCount : '—', tone: metrics && metrics.pendingCount > 0 ? 'warn' : 'neutral' },
+          { label: 'Packing', value: metrics ? metrics.processingCount : '—', tone: 'info' },
+          { label: 'Shipped', value: metrics ? metrics.shippedCount : '—' },
+          { label: 'Net revenue', value: metrics ? formatINR(metrics.totalRevenue) : '—', hint: 'After returns' },
+        ]}
+      />
 
       {/* Filter Tabs & Search Bar */}
       <div className="bg-white p-4 rounded-xl border border-[#D5D9D9] shadow-sm space-y-4">
@@ -430,10 +357,10 @@ function VendorOrdersContent() {
           {/* Status Tabs */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { id: 'all', label: 'All Orders' },
-              { id: 'pending', label: 'Pending Prep', count: metrics?.pendingCount },
-              { id: 'processing', label: 'In Packing', count: metrics?.processingCount },
-              { id: 'shipped', label: 'Dispatched', count: metrics?.shippedCount },
+              { id: 'all', label: 'All' },
+              { id: 'pending', label: 'To confirm', count: metrics?.pendingCount },
+              { id: 'processing', label: 'Packing', count: metrics?.processingCount },
+              { id: 'shipped', label: 'Shipped', count: metrics?.shippedCount },
               { id: 'delivered', label: 'Delivered', count: metrics?.deliveredCount },
               { id: 'cancelled', label: 'Cancelled', count: metrics?.cancelledCount },
             ].map((tab) => {
@@ -550,47 +477,43 @@ function VendorOrdersContent() {
               className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden"
             >
               {/* Order Card Header */}
-              <div className="bg-[#131921] text-white p-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-white/10">
+              <div className="bg-[#F7F8F8] text-[#0F1111] px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-[#D5D9D9]">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-[#CCCCCC]">Order #</span>
-                    <span className="font-extrabold text-sm text-[#FFD814] font-mono">
+                    <span className="text-xs text-[#565959]">Order</span>
+                    <span className="font-bold text-sm text-[#0F1111]">
                       {order.orderNumber}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleCopyOrderNumber(order.orderNumber)}
-                      className="p-1 hover:bg-white/10 rounded text-white/70 hover:text-white transition-colors"
+                      className="p-1 hover:bg-[#E3E6E6] rounded text-[#565959] hover:text-[#0F1111] transition-colors"
                       title="Copy Order Number"
                     >
                       {copiedOrderId === order.orderNumber ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                        <Check className="h-3.5 w-3.5 text-[#067D62]" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
                     </button>
                   </div>
-                  <span className="text-white/20 hidden sm:inline">•</span>
-                  <div className="flex items-center gap-1 text-xs text-[#CCCCCC]">
+                  <div className="flex items-center gap-1 text-xs text-[#565959]">
                     <Calendar className="h-3.5 w-3.5" />
-                    <span>Placed on {order.datePlaced} at {order.placedTime}</span>
+                    <span>{order.datePlaced}, {order.placedTime}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2.5">
                   <Link
                     href={`/vendor/orders/${order.orderNumber}`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#232F3E] hover:bg-[#37475A] text-xs font-semibold text-[#FFD814] border border-[#FFD814]/30 transition-colors"
+                    className="text-xs font-semibold text-[#007185] hover:underline"
                   >
-                    <span>View Details</span>
-                    <ExternalLink className="h-3 w-3" />
+                    View details
                   </Link>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded bg-white/10 text-[#FFD814] border border-white/20">
-                    {order.paymentMethod === 'COD' ? 'CASH ON DELIVERY (COD)' : 'PREPAID'}
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${order.paymentMethod === 'COD' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-[#D5D9D9] bg-white text-[#565959]'}`}>
+                    {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Paid online'}
                   </span>
-                  <span className="text-xs font-mono font-extrabold text-white">
-                    Subtotal: {formatINR(order.vendorSubtotal)}
-                  </span>
+                  <span className="text-sm font-bold text-[#0F1111]">{formatINR(order.vendorSubtotal)}</span>
                 </div>
               </div>
 
@@ -599,9 +522,9 @@ function VendorOrdersContent() {
                 {/* Left 4 Cols: Fulfillment Shipping Address */}
                 <div className="lg:col-span-4 bg-[#F7F8F8] rounded-xl p-4 border border-[#D5D9D9] flex flex-col justify-between gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#007185]">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#565959]">
                       <MapPin className="h-4 w-4" />
-                      <span>Customer Delivery Details</span>
+                      <span>Deliver to</span>
                     </div>
 
                     {order.shippingAddress ? (
@@ -629,14 +552,14 @@ function VendorOrdersContent() {
                   </div>
 
                   <div className="pt-2 border-t border-[#D5D9D9] flex items-center justify-between text-[11px] text-[#565959]">
-                    <span>Fulfillment Status:</span>
+                    <span>Status</span>
                     <span className="font-bold text-[#0F1111]">
                       {order.items.every((i) => i.status === 'SHIPPED')
-                        ? 'Consignment Dispatched'
+                        ? 'Shipped'
                         : order.items.some((i) => i.status === 'PROCESSING')
-                        ? 'Packing in Progress'
+                        ? 'Packing'
                         : order.items.some((i) => i.status === 'PENDING')
-                        ? 'Action Required (Pending)'
+                        ? 'Needs your confirmation'
                         : 'Completed'}
                     </span>
                   </div>
@@ -645,11 +568,11 @@ function VendorOrdersContent() {
                 {/* Right 8 Cols: Vendor's Own Items in this Order */}
                 <div className="lg:col-span-8 space-y-4">
                   <div className="flex items-center justify-between text-xs pb-1 border-b border-[#EAEDED]">
-                    <span className="font-bold uppercase tracking-wider text-[#565959]">
-                      Your Products in Consignment ({order.items.length})
+                    <span className="font-semibold text-[#565959]">
+                      Your items ({order.items.length})
                     </span>
                     <span className="text-[#565959]">
-                      Total Qty: <strong className="text-[#0F1111]">{order.vendorTotalQuantity}</strong>
+                      Quantity <strong className="text-[#0F1111]">{order.vendorTotalQuantity}</strong>
                     </span>
                   </div>
 
@@ -680,11 +603,13 @@ function VendorOrdersContent() {
                                 {item.title}
                               </h4>
                               <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#565959]">
-                                <span>Size: <strong className="text-[#0F1111]">{item.size}</strong></span>
-                                <span>•</span>
-                                <span>Color: <strong className="text-[#0F1111]">{item.color}</strong></span>
-                                <span>•</span>
-                                <span>SKU: <strong className="font-mono text-[#0F1111]">{item.sku}</strong></span>
+                                {item.size && item.size !== '-' && (
+                                  <span>Size: <strong className="text-[#0F1111]">{item.size}</strong></span>
+                                )}
+                                {item.color && item.color !== '-' && (
+                                  <span>Colour: <strong className="text-[#0F1111]">{item.color}</strong></span>
+                                )}
+                                <span>SKU: <strong className="text-[#0F1111]">{item.sku}</strong></span>
                               </div>
                               <div className="text-xs font-bold text-[#0F1111] pt-1">
                                 Qty {item.quantity} × {formatINR(item.unitPrice)} ={' '}
@@ -700,13 +625,13 @@ function VendorOrdersContent() {
                               {item.status === 'PENDING' && (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                   <Clock className="h-3 w-3" />
-                                  Pending Prep
+                                  To confirm
                                 </span>
                               )}
                               {item.status === 'PROCESSING' && (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
                                   <Package className="h-3 w-3" />
-                                  Packing / Prep
+                                  Packing
                                 </span>
                               )}
                               {item.status === 'SHIPPED' && (
