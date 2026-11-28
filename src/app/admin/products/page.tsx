@@ -487,8 +487,8 @@ export default function AdminProductModerationPage() {
 
       {/* MODAL: TAKE DOWN / MODERATION REASON MODAL */}
       {modalOpen && selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2 text-rose-700">
                 <ShieldAlert className="h-5 w-5" />

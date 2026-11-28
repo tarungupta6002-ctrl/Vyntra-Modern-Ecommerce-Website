@@ -79,7 +79,7 @@ export function AdminReturnDetailsModal({
     eligibility?.isEligible && maxRefundable > 0 && returnRequest?.type !== 'REPLACEMENT';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in duration-150">
       <div className="bg-[#FAFAFA] rounded-xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-[#D5D9D9] overflow-hidden">
         {/* ============================================================= */}
         {/* MODAL HEADER: Amazon-Style Title & Canonical IDs */}

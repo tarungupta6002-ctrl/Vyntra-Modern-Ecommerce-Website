@@ -466,7 +466,7 @@ export default function AdminOverviewPage() {
 
       {/* VERIFIED VENDOR DOSSIER MODAL */}
       {selectedVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
           <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#D5D9D9]">

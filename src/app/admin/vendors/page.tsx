@@ -911,7 +911,7 @@ export default function AdminVendorsPage() {
 
       {/* MODAL 1: APPLICATION DETAILS MODAL */}
       {detailModalOpen && selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <div>
@@ -1107,8 +1107,8 @@ export default function AdminVendorsPage() {
 
       {/* MODAL 2: REJECTION REASON MODAL */}
       {rejectModalOpen && selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2 text-rose-700">
                 <XCircle className="h-5 w-5" />
@@ -1161,7 +1161,7 @@ export default function AdminVendorsPage() {
 
       {/* MODAL 3: VERIFIED VENDOR DOSSIER MODAL */}
       {selectedVendorDossier && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
           <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#D5D9D9]">
@@ -1380,8 +1380,8 @@ export default function AdminVendorsPage() {
 
       {/* MODAL 4: VYNTRA CUSTOM APPROVAL CONFIRMATION MODAL */}
       {approveModalOpen && appToApprove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 animate-in zoom-in-95 duration-150">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-3">
@@ -1490,8 +1490,8 @@ export default function AdminVendorsPage() {
 
       {/* MODAL 5: REVOKE VENDOR LICENSE MODAL */}
       {revokeModalOpen && vendorToRevoke && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-rose-300 space-y-4 animate-in zoom-in-95 duration-150">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-rose-300 space-y-4 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-2 border-b border-[#D5D9D9]">
               <div className="flex items-center gap-2.5 text-rose-700">
                 <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200 shrink-0">

@@ -706,7 +706,7 @@ export default function AdminReturnsManagementPage() {
 
       {/* Admin Refund Settlement Modal */}
       {activeReturn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-in fade-in duration-150">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#D5D9D9] shadow-2xl p-6 space-y-6">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-[#D5D9D9] pb-4">

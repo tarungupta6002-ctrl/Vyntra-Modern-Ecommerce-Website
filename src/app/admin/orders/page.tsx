@@ -437,8 +437,8 @@ export default function AdminOrdersManagementPage() {
 
       {/* COD Remittance Confirmation Modal */}
       {remittanceOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <div>
                 <span className="text-[10px] font-bold text-emerald-700">

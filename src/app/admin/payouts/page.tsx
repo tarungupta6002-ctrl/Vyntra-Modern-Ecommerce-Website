@@ -511,8 +511,8 @@ export default function AdminPayoutsPage() {
 
       {/* Modal 1: Configure Global Commission */}
       {isCommissionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-md w-full p-6 space-y-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
                 <Settings className="h-5 w-5 text-[#007185]" />
@@ -587,8 +587,8 @@ export default function AdminPayoutsPage() {
 
       {/* Modal 2: Process Bank Settlement */}
       {settlementVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-lg w-full p-6 space-y-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-[#007185]" />
@@ -722,7 +722,7 @@ export default function AdminPayoutsPage() {
 
       {/* Modal 3: Vendor Payout & Product Settlement History Modal */}
       {activeHistoryModalVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-4xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED] shrink-0">
               <div>
@@ -861,8 +861,8 @@ export default function AdminPayoutsPage() {
 
       {/* Modal 4: Return Refund Debit Adjustments Modal */}
       {activeAdjustmentsModalVendor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-2xl w-full p-6 space-y-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <div>
                 <h3 className="text-base font-bold text-[#0F1111] flex items-center gap-2">
@@ -958,7 +958,7 @@ export default function AdminPayoutsPage() {
 
       {/* Modal 5: Marketplace All paid items Modal */}
       {allVendorsLedgerOpen && data && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in">
           <div className="bg-white rounded-xl shadow-2xl border border-[#D5D9D9] max-w-5xl w-full p-6 space-y-4 max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED] shrink-0">
               <div>

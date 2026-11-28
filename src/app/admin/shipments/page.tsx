@@ -473,8 +473,8 @@ export default function AdminShipmentsPage() {
 
       {/* Issue SLA / Compliance Notice Modal */}
       {noticeShipment && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] animate-in fade-in zoom-in-95 duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-[#D5D9D9] animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between pb-4 border-b border-[#F0F2F2]">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-rose-50 border border-rose-200 rounded-xl text-rose-600">
@@ -610,8 +610,8 @@ export default function AdminShipmentsPage() {
 
       {/* Status & Shipment Management Modal */}
       {editingShipment && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
               <div>
                 <span className="text-[10px] font-bold text-[#007185]">
