@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import { OrderCancellationView } from '@/components/orders/order-cancellation-view';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export const metadata: Metadata = {
   title: 'Cancel order | Vyntra',
   description:
@@ -22,7 +23,7 @@ export default function OrderCancelQueryRoute({ searchParams }: SearchProps) {
       fallback={
         <div className="w-full min-h-[60vh] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
+            <CometSpinner className="h-12 w-12" />
             <p className="text-xs text-[#565959] font-medium">Loading cancellation audit ledger...</p>
           </div>
         </div>

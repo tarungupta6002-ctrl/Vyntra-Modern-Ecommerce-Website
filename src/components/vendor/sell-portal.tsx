@@ -21,7 +21,6 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
-  Loader2,
   Tag,
   ArrowLeft,
   Check,
@@ -29,6 +28,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { ProductForm } from '@/components/vendor/product-form';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VariantMaster {
   id: string;
   name: string;
@@ -163,8 +163,9 @@ export function SellPortal() {
         productVariantId: v.id,
         sellerSku: v.myOffer?.sellerSku || defaultSku,
         sellingPrice: v.myOffer ? String(v.myOffer.sellingPrice) : String(v.catalogPrice),
-        mrpPrice: v.myOffer?.mrpPrice ? String(v.myOffer.mrpPrice) : v.catalogOriginalPrice ? String(v.catalogOriginalPrice) : String(Math.round(v.catalogPrice * 1.3)),
-        stock: v.myOffer ? String(v.myOffer.stock) : '15',
+        // MRP is what the seller states; never invent one (that would fake a discount).
+        mrpPrice: v.myOffer?.mrpPrice ? String(v.myOffer.mrpPrice) : v.catalogOriginalPrice ? String(v.catalogOriginalPrice) : '',
+        stock: v.myOffer ? String(v.myOffer.stock) : '',
       };
     });
     setVariantInputs(initialInputs);
@@ -240,51 +241,33 @@ export function SellPortal() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-24 animate-in fade-in duration-200">
-      {/* ========================================================================= */}
-      {/* 1. TOP HEADER & MULTI-SELLER TAB SELECTION */}
-      {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#D5D9D9]">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#565959] mb-1">
-            <Link href="/vendor/products" className="hover:text-[#007185] flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Seller Catalog</span>
-            </Link>
-            <span>/</span>
-            <span className="text-[#0F1111]">Add Products &amp; Offers</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-headline font-extrabold text-[#0F1111] flex items-center gap-2.5">
-            <Store className="h-7 w-7 text-[#007185]" />
-            <span>Vyntra Multi-Seller Portal</span>
-          </h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Attach your store offer to an existing catalog listing or request a brand-new master piece for governance review.
-          </p>
-        </div>
-
-        <Link
-          href="/vendor/products"
-          className="px-4 py-2 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-xs font-bold text-[#0F1111] transition-all self-start sm:self-auto"
-        >
-          Back to Listings
+      <div className="border-b border-[#D5D9D9] pb-5">
+        <Link href="/vendor/products" className="inline-flex items-center gap-1 text-sm text-[#565959] hover:text-[#007185]">
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Products
         </Link>
+        <h1 className="mt-1 text-2xl font-bold text-[#0F1111]">Add a product</h1>
+        <p className="mt-1 text-sm text-[#565959]">
+          If the product is already on Vyntra, add your price and stock to it. Otherwise create a new listing.
+        </p>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. MODE SWITCHER TABS: Amazon-Style Choice */}
+      {/* 2. Existing product or new listing */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Tab 1: Sell an Existing Product */}
         <button
           type="button"
+          aria-pressed={activeTab === 'sell-existing'}
           onClick={() => {
             setActiveTab('sell-existing');
             setSelectedProduct(null);
             setOfferSuccess(null);
           }}
-          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+          className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
             activeTab === 'sell-existing'
-              ? 'bg-gradient-to-br from-[#007185]/5 to-transparent border-[#007185] ring-2 ring-[#007185]/20 shadow-sm'
+              ? 'bg-[#007185]/5 border-[#007185] ring-1 ring-[#007185]'
               : 'bg-white border-[#D5D9D9] hover:border-[#007185]/60 hover:bg-[#F7F8F8]'
           }`}
         >
@@ -294,61 +277,42 @@ export function SellPortal() {
                 <div className={`p-2 rounded-xl ${activeTab === 'sell-existing' ? 'bg-[#007185] text-white' : 'bg-[#F7F8F8] text-[#565959]'}`}>
                   <Search className="h-5 w-5" />
                 </div>
-                <h3 className="font-headline font-bold text-base text-[#0F1111]">
-                  Sell an Existing Product
-                </h3>
+                <h2 className="text-base font-semibold text-[#0F1111]">It&apos;s already on Vyntra</h2>
               </div>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider">
-                Fast Track
-              </span>
             </div>
-            <p className="text-xs text-[#565959] leading-relaxed">
-              Find an existing product in Vyntra master catalog by name, brand, or barcode. Attach your competitive price, SKU, and stock in seconds without re-taking photos.
+            <p className="text-sm text-[#565959]">
+              Find the product and add your own price, SKU and stock. The photos and details are already there.
             </p>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[#D5D9D9]/50 flex items-center justify-between text-xs font-bold text-[#007185]">
-            <span>Preserves Master Catalog ID</span>
-            <ChevronRight className="h-4 w-4" />
           </div>
         </button>
 
         {/* Tab 2: Request New Product */}
         <button
           type="button"
+          aria-pressed={activeTab === 'request-new'}
           onClick={() => {
             setActiveTab('request-new');
             setSelectedProduct(null);
             setOfferSuccess(null);
           }}
-          className={`p-5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+          className={`p-5 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
             activeTab === 'request-new'
-              ? 'bg-gradient-to-br from-[#800020]/5 to-transparent border-[#800020] ring-2 ring-[#800020]/20 shadow-sm'
-              : 'bg-white border-[#D5D9D9] hover:border-[#800020]/60 hover:bg-[#F7F8F8]'
+              ? 'bg-[#007185]/5 border-[#007185] ring-1 ring-[#007185]'
+              : 'bg-white border-[#D5D9D9] hover:border-[#007185]/60 hover:bg-[#F7F8F8]'
           }`}
         >
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className={`p-2 rounded-xl ${activeTab === 'request-new' ? 'bg-[#800020] text-white' : 'bg-[#F7F8F8] text-[#565959]'}`}>
+                <div className={`p-2 rounded-xl ${activeTab === 'request-new' ? 'bg-[#007185] text-white' : 'bg-[#F7F8F8] text-[#565959]'}`}>
                   <Plus className="h-5 w-5" />
                 </div>
-                <h3 className="font-headline font-bold text-base text-[#0F1111]">
-                  Request New Master Listing
-                </h3>
+                <h2 className="text-base font-semibold text-[#0F1111]">It&apos;s a new product</h2>
               </div>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">
-                Admin Moderated
-              </span>
             </div>
-            <p className="text-xs text-[#565959] leading-relaxed">
-              If your handcrafted creation does not exist in Vyntra shared catalog, submit a new product request with photos, variants, and A+ rich content for governance approval.
+            <p className="text-sm text-[#565959]">
+              Create the listing yourself: category, photos, variants, size chart and description.
             </p>
-          </div>
-
-          <div className="mt-4 pt-3 border-t border-[#D5D9D9]/50 flex items-center justify-between text-xs font-bold text-[#800020]">
-            <span>Governance Moderation Required</span>
-            <ChevronRight className="h-4 w-4" />
           </div>
         </button>
       </div>
@@ -371,11 +335,11 @@ export function SellPortal() {
                 className="text-xs font-bold text-[#007185] hover:underline flex items-center gap-1.5"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Back to Search Results</span>
+                <span>Back to results</span>
               </button>
 
               {/* Master Product Header Card */}
-              <div className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm flex flex-col md:flex-row items-start gap-6">
+              <div className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm flex flex-col md:flex-row items-start gap-6">
                 <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl border border-[#D5D9D9] overflow-hidden shrink-0 bg-[#F7F8F8] relative">
                   <img
                     src={selectedProduct.image}
@@ -386,30 +350,24 @@ export function SellPortal() {
 
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-md bg-[#007185]/10 text-[#007185] uppercase tracking-wider">
+                    <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-md bg-[#007185]/10 text-[#007185]">
                       {selectedProduct.category.name}
                     </span>
-                    <span className="text-[10px] font-mono text-[#565959] bg-[#F7F8F8] px-2 py-0.5 rounded border border-[#D5D9D9]">
-                      Master ID: {selectedProduct.id}
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3" />
-                      Approved Master Listing
-                    </span>
+
                   </div>
 
                   <h2 className="text-xl font-headline font-bold text-[#0F1111]">
                     {selectedProduct.title}
                   </h2>
                   <p className="text-xs text-[#565959]">
-                    Brand: <strong className="text-[#0F1111]">{selectedProduct.brand}</strong> &bull; Catalog Base Price: <strong className="text-[#0F1111]">{formatINR(selectedProduct.basePrice)}</strong>
+                    Brand: <strong className="text-[#0F1111]">{selectedProduct.brand}</strong>, listed at <strong className="text-[#0F1111]">{formatINR(selectedProduct.basePrice)}</strong>
                   </p>
 
                   <div className="pt-1 flex items-center gap-4 text-xs text-[#565959]">
-                    <span>Active Sellers: <strong className="text-[#0F1111]">{selectedProduct.offersCount}</strong></span>
-                    <span>Lowest Price: <strong className="text-[#B12704]">{formatINR(selectedProduct.lowestMarketPrice)}</strong></span>
+                    <span>Sellers: <strong className="text-[#0F1111]">{selectedProduct.offersCount}</strong></span>
+                    <span>Lowest price: <strong className="text-[#0F1111]">{formatINR(selectedProduct.lowestMarketPrice)}</strong></span>
                     {selectedProduct.buyBoxWinnerStoreName && (
-                      <span>Current Buy Box: <strong className="text-[#007185]">{selectedProduct.buyBoxWinnerStoreName}</strong></span>
+                      <span>Shown first: <strong className="text-[#0F1111]">{selectedProduct.buyBoxWinnerStoreName}</strong></span>
                     )}
                   </div>
                 </div>
@@ -417,18 +375,14 @@ export function SellPortal() {
 
               {/* Success Notification */}
               {offerSuccess && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-[#0F1111] space-y-3 animate-in fade-in">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-[#0F1111] space-y-3 animate-in fade-in">
                   <div className="flex items-center gap-2.5 text-emerald-800 font-bold text-base">
                     <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                    <span>Seller Offer Published Successfully!</span>
+                    <span>Your offer is live</span>
                   </div>
                   <p className="text-xs text-emerald-900 leading-relaxed">
-                    Your offer has been attached to the master catalog listing (Offer ID: <code className="font-mono font-bold">{offerSuccess.offerId}</code>).
-                    {offerSuccess.isBuyBoxWinner && (
-                      <span className="ml-1 font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
-                        Congratulations! Your competitive offer currently holds the Buy Box.
-                      </span>
-                    )}
+                    Shoppers can now buy this product from you.
+                    {offerSuccess.isBuyBoxWinner && ' Your offer is the one shown first on the product page.'}
                   </p>
                   <div className="pt-2 flex items-center gap-3">
                     <Link
@@ -436,7 +390,7 @@ export function SellPortal() {
                       target="_blank"
                       className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm"
                     >
-                      <span>View Live on Storefront</span>
+                      <span>View product page</span>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </Link>
                     <button
@@ -448,7 +402,7 @@ export function SellPortal() {
                       }}
                       className="px-4 py-2 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-100/50 text-xs font-bold text-emerald-900 transition-all"
                     >
-                      Sell Another Product
+                      Sell another product
                     </button>
                   </div>
                 </div>
@@ -456,14 +410,14 @@ export function SellPortal() {
 
               {/* Offer Configuration Form */}
               {!offerSuccess && (
-                <form onSubmit={handleSubmitOffer} className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+                <form onSubmit={handleSubmitOffer} className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
                   <div className="border-b border-[#D5D9D9] pb-4">
                     <h3 className="text-lg font-headline font-bold text-[#0F1111] flex items-center gap-2">
                       <Tag className="h-5 w-5 text-[#007185]" />
-                      <span>Configure Your Seller Offer</span>
+                      <span>Your price and stock</span>
                     </h3>
                     <p className="text-xs text-[#565959] mt-0.5">
-                      Set your independent pricing, seller SKU, and inventory for each variant of this master piece.
+                      For each variant you sell. Leave a variant&apos;s stock at 0 if you don&apos;t have it.
                     </p>
                   </div>
 
@@ -478,66 +432,64 @@ export function SellPortal() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-[#0F1111] mb-1">
-                        Offer Condition
+                        Condition
                       </label>
                       <select
                         value={condition}
                         onChange={(e) => setCondition(e.target.value as any)}
                         className="w-full h-10 px-3 bg-white border border-[#D5D9D9] rounded-lg text-xs font-medium focus:border-[#007185] focus:outline-none"
                       >
-                        <option value="NEW">New (Brand New Piece)</option>
-                        <option value="ARTISAN_RESTORED">Artisan Restored / Heritage</option>
-                        <option value="REFURBISHED">Certified Refurbished</option>
+                        <option value="NEW">New</option>
+                        <option value="REFURBISHED">Refurbished</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-[#0F1111] mb-1">
-                        Fulfillment Channel
+                        Shipping
                       </label>
                       <select
                         value={fulfillmentType}
                         onChange={(e) => setFulfillmentType(e.target.value as any)}
                         className="w-full h-10 px-3 bg-white border border-[#D5D9D9] rounded-lg text-xs font-medium focus:border-[#007185] focus:outline-none"
                       >
-                        <option value="SELLER_FULFILLED">Seller Fulfilled (Ship from Atelier)</option>
-                        <option value="VYNTRA_FULFILLED">Vyntra Fulfilled (Fulfillment Center)</option>
+                        <option value="SELLER_FULFILLED">I ship it from my pickup address</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-[#0F1111] mb-1">
-                        Dispatch Window (Handling SLA)
+                        Ready to ship within
                       </label>
                       <select
                         value={handlingDays}
                         onChange={(e) => setHandlingDays(e.target.value)}
                         className="w-full h-10 px-3 bg-white border border-[#D5D9D9] rounded-lg text-xs font-medium focus:border-[#007185] focus:outline-none"
                       >
-                        <option value="1">1 Business Day (Express Prep)</option>
-                        <option value="2">2 Business Days (Standard)</option>
-                        <option value="3">3 Business Days</option>
-                        <option value="5">5 Business Days (Made-to-Measure)</option>
+                        <option value="1">1 working day</option>
+                        <option value="2">2 working days</option>
+                        <option value="3">3 working days</option>
+                        <option value="5">5 working days</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Variant-wise Offer Inputs */}
                   <div className="space-y-3 pt-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#565959]">
-                      Variant Pricing &amp; Warehouse Inventory ({selectedProduct.variants.length} Variants)
+                    <h4 className="text-xs font-bold text-[#565959]">
+                      Variants ({selectedProduct.variants.length})
                     </h4>
 
                     <div className="border border-[#D5D9D9] rounded-xl overflow-hidden overflow-x-auto">
                       <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
-                            <th className="p-3 font-bold">Catalog Variant</th>
-                            <th className="p-3 font-bold">Catalog Price</th>
-                            <th className="p-3 font-bold min-w-[150px]">Your Seller SKU *</th>
-                            <th className="p-3 font-bold min-w-[130px]">Selling Price (₹) *</th>
-                            <th className="p-3 font-bold min-w-[120px]">MRP Price (₹)</th>
-                            <th className="p-3 font-bold min-w-[100px]">Stock Units *</th>
+                          <tr className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] text-xs">
+                            <th className="p-3 font-semibold">Variant</th>
+                            <th className="p-3 font-semibold">Listed price</th>
+                            <th className="p-3 font-semibold min-w-[150px]">Your SKU *</th>
+                            <th className="p-3 font-semibold min-w-[130px]">Your price (₹) *</th>
+                            <th className="p-3 font-semibold min-w-[120px]">MRP (₹)</th>
+                            <th className="p-3 font-semibold min-w-[100px]">Stock *</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#D5D9D9]">
@@ -547,7 +499,7 @@ export function SellPortal() {
                               sellerSku: '',
                               sellingPrice: '',
                               mrpPrice: '',
-                              stock: '10',
+                              stock: '0',
                             };
 
                             const updateField = (field: keyof VariantOfferInput, value: string) => {
@@ -564,10 +516,10 @@ export function SellPortal() {
                               <tr key={variant.id} className="hover:bg-[#F7F8F8]/50">
                                 <td className="p-3">
                                   <div className="font-bold text-[#0F1111]">
-                                    {variant.name || `${variant.size || 'Std'} / ${variant.color || 'Classic'}`}
+                                    {variant.name || [variant.size, variant.color].filter(Boolean).join(' / ') || 'Standard'}
                                   </div>
-                                  <div className="text-[10px] text-[#565959] font-mono mt-0.5">
-                                    Catalog SKU: {variant.sku}
+                                  <div className="text-xs text-[#565959] tabular-nums mt-0.5">
+                                    SKU {variant.sku}
                                     {variant.barcode && ` • Barcode: ${variant.barcode}`}
                                   </div>
                                 </td>
@@ -582,8 +534,8 @@ export function SellPortal() {
                                     required
                                     value={currentInput.sellerSku}
                                     onChange={(e) => updateField('sellerSku', e.target.value)}
-                                    placeholder="e.g. TARUN-RED-S"
-                                    className="w-full h-9 px-2.5 bg-white border border-[#D5D9D9] rounded-lg text-xs font-mono uppercase focus:border-[#007185] focus:outline-none"
+                                    placeholder="Your own code"
+                                    className="w-full h-9 px-2.5 bg-white border border-[#D5D9D9] rounded-lg text-xs tabular-nums focus:border-[#007185] focus:outline-none"
                                   />
                                 </td>
 
@@ -611,7 +563,7 @@ export function SellPortal() {
                                       step="1"
                                       value={currentInput.mrpPrice}
                                       onChange={(e) => updateField('mrpPrice', e.target.value)}
-                                      placeholder="List Price"
+                                      placeholder="Optional"
                                       className="w-full h-9 pl-6 pr-2.5 bg-white border border-[#D5D9D9] rounded-lg text-xs text-[#565959] focus:border-[#007185] focus:outline-none"
                                     />
                                   </div>
@@ -653,13 +605,13 @@ export function SellPortal() {
                     >
                       {isSubmittingOffer ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin text-[#0F1111]" />
-                          <span>Publishing Offer &amp; Recalculating Buy Box...</span>
+                          <CometSpinner className="h-4 w-4 text-[#0F1111]" decorative />
+                          <span>Publishing…</span>
                         </>
                       ) : (
                         <>
                           <Check className="h-4 w-4 stroke-[3]" />
-                          <span>Publish Seller Offer</span>
+                          <span>Publish my offer</span>
                         </>
                       )}
                     </button>
@@ -671,7 +623,7 @@ export function SellPortal() {
             /* B. Master Catalog Search Bar & Results */
             <div className="space-y-6">
               {/* Search Bar Input */}
-              <form onSubmit={handleSearch} className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-3">
+              <form onSubmit={handleSearch} className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-3">
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                   <div className="relative flex-1 w-full">
                     <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#565959]" />
@@ -679,7 +631,8 @@ export function SellPortal() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search master catalog by product name, brand, category, or barcode..."
+                      placeholder="Search by product name, brand, category or barcode"
+                      aria-label="Search products on Vyntra"
                       className="w-full h-11 pl-10 pr-4 bg-white border border-[#D5D9D9] rounded-xl text-xs sm:text-sm font-medium focus:border-[#007185] focus:ring-2 focus:ring-[#007185]/20 focus:outline-none"
                     />
                   </div>
@@ -690,17 +643,17 @@ export function SellPortal() {
                     className="w-full sm:w-auto h-11 px-6 rounded-xl bg-[#007185] hover:bg-[#005a6a] text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 shrink-0"
                   >
                     {isSearching ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <CometSpinner className="h-4 w-4 text-current" decorative />
                     ) : (
                       <Search className="h-4 w-4" />
                     )}
-                    <span>Search Catalog</span>
+                    <span>Search</span>
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-[#565959] pt-1">
+                <div className="flex items-center gap-2 text-xs text-[#565959] pt-1">
                   <Info className="h-3.5 w-3.5 text-[#007185] shrink-0" />
-                  <span>Tip: You can search directly by SKU or barcode to immediately locate the exact catalog master piece.</span>
+                  <span>Searching by SKU or barcode finds the exact product.</span>
                 </div>
               </form>
 
@@ -715,35 +668,36 @@ export function SellPortal() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-headline font-bold text-sm text-[#0F1111]">
-                    {hasSearched ? `Catalog Results (${searchResults.length})` : 'Popular Master Catalog Listings'}
+                    {hasSearched ? `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}` : 'Recently listed'}
                   </h3>
                   <span className="text-xs text-[#565959]">
-                    Select any piece to attach your independent seller offer
+                    Choose a product to add your offer
                   </span>
                 </div>
 
                 {isSearching ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="h-32 bg-white rounded-2xl border border-[#D5D9D9] p-4 animate-pulse" />
-                    ))}
+                  <div className="flex flex-col items-center justify-center gap-3 py-12" aria-live="polite">
+                    <CometSpinner className="h-12 w-12" decorative />
+                    <p className="text-sm text-[#565959]">Loading…</p>
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <div className="bg-white rounded-2xl border border-dashed border-[#D5D9D9] p-12 text-center space-y-3">
+                  <div className="bg-white rounded-xl border border-dashed border-[#D5D9D9] p-12 text-center space-y-3">
                     <Package className="h-10 w-10 text-[#565959]/40 mx-auto" />
                     <h4 className="font-headline font-bold text-base text-[#0F1111]">
-                      No Matching Master Products Found
+                      Nothing found
                     </h4>
                     <p className="text-xs text-[#565959] max-w-md mx-auto">
-                      Could not find an existing product matching &quot;{searchQuery}&quot;. If your item is not yet in the Vyntra catalog, you can request a new master listing.
+                      {searchQuery.trim()
+                        ? <>No product on Vyntra matches &ldquo;{searchQuery.trim()}&rdquo;. If yours is new, create a listing for it.</>
+                        : 'There are no products on Vyntra yet. Create a listing for yours.'}
                     </p>
                     <button
                       type="button"
                       onClick={() => setActiveTab('request-new')}
-                      className="px-5 py-2.5 rounded-xl bg-[#800020] text-white text-xs font-bold hover:bg-[#600018] shadow-sm transition-all inline-flex items-center gap-2"
+                      className="px-5 py-2.5 rounded-xl bg-[#FFD814] text-[#0F1111] text-xs font-bold hover:bg-[#F7CA00] shadow-sm transition-all inline-flex items-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
-                      <span>Request New Master Listing Instead</span>
+                      <span>Create a new listing</span>
                     </button>
                   </div>
                 ) : (
@@ -751,7 +705,7 @@ export function SellPortal() {
                     {searchResults.map((prod) => (
                       <div
                         key={prod.id}
-                        className="bg-white rounded-2xl border border-[#D5D9D9] hover:border-[#007185] p-4 shadow-sm transition-all flex items-start gap-4"
+                        className="bg-white rounded-xl border border-[#D5D9D9] hover:border-[#007185] p-4 shadow-sm transition-all flex items-start gap-4"
                       >
                         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border border-[#D5D9D9] overflow-hidden shrink-0 bg-[#F7F8F8] relative">
                           <img
@@ -763,10 +717,10 @@ export function SellPortal() {
 
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-[#007185]/10 text-[#007185] uppercase">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-[#007185]/10 text-[#007185]">
                               {prod.category.name}
                             </span>
-                            <span className="text-[10px] text-[#565959] font-medium">
+                            <span className="text-xs text-[#565959] font-medium">
                               {prod.brand}
                             </span>
                           </div>
@@ -780,13 +734,13 @@ export function SellPortal() {
                               From {formatINR(prod.lowestMarketPrice)}
                             </span>
                             {prod.discountPrice && (
-                              <span className="line-through text-[#565959] text-[11px]">
+                              <span className="line-through text-[#565959] text-xs">
                                 {formatINR(prod.basePrice)}
                               </span>
                             )}
                           </div>
 
-                          <div className="text-[11px] text-[#565959] flex items-center gap-3 pt-1">
+                          <div className="text-xs text-[#565959] flex items-center gap-3 pt-1">
                             <span>{prod.offersCount} {prod.offersCount === 1 ? 'seller' : 'sellers'}</span>
                             <span>&bull;</span>
                             <span>{prod.variantsCount} {prod.variantsCount === 1 ? 'variant' : 'variants'}</span>
@@ -800,7 +754,7 @@ export function SellPortal() {
                                 className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 text-xs font-bold transition-all flex items-center gap-1"
                               >
                                 <Check className="h-3 w-3" />
-                                <span>Update My Offer</span>
+                                <span>Update my offer</span>
                               </button>
                             ) : (
                               <button
@@ -809,7 +763,7 @@ export function SellPortal() {
                                 className="px-3.5 py-1.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold transition-all shadow-sm border border-[#FCD200] flex items-center gap-1"
                               >
                                 <Tag className="h-3 w-3" />
-                                <span>Sell This Product</span>
+                                <span>Sell this</span>
                               </button>
                             )}
 
@@ -817,7 +771,8 @@ export function SellPortal() {
                               href={`/products/${prod.slug}`}
                               target="_blank"
                               className="p-1.5 text-[#565959] hover:text-[#007185] transition-colors"
-                              title="Inspect live customer page"
+                              title="Open the product page"
+                              aria-label={`Open ${prod.title}`}
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                             </Link>
@@ -834,26 +789,11 @@ export function SellPortal() {
       )}
 
       {/* ========================================================================= */}
-      {/* 4. TAB 2: REQUEST NEW PRODUCT FLOW (ADMIN MODERATED) */}
+      {/* 4. New product: the full listing form */}
       {/* ========================================================================= */}
       {activeTab === 'request-new' && (
         <div className="space-y-6">
-          {/* Governance Notice Banner */}
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-3.5 text-xs text-amber-900">
-            <Clock className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h4 className="font-headline font-bold text-sm text-[#0F1111]">
-                Marketplace Governance Review Notice
-              </h4>
-              <p className="leading-relaxed">
-                New master catalog pieces require moderation before appearing live on the customer storefront.
-                Once an administrator approves your listing, it will become available for all eligible marketplace sellers to view, and your seller offer will activate automatically.
-              </p>
-            </div>
-          </div>
-
-          {/* Full Product Creation Architecture */}
-          <ProductForm mode="create" />
+          <ProductForm mode="create" embedded />
         </div>
       )}
     </div>

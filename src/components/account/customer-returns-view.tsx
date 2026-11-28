@@ -26,6 +26,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface RefundTx {
   id: string;
   status: string;
@@ -170,7 +171,7 @@ export function CustomerReturnsView() {
           disabled={isLoading}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#F7F8F8] border border-[#D5D9D9] hover:bg-[#EAEDED] text-xs font-bold text-[#0F1111] transition-colors shrink-0 disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 text-[#007185] ${isLoading ? 'animate-spin' : ''}`} />
+          {isLoading ? <CometSpinner className="h-4 w-4 text-[#007185]" decorative /> : <RefreshCw className="h-4 w-4 text-[#007185]" />}
           <span>Refresh Tracking</span>
         </button>
       </div>
@@ -215,7 +216,7 @@ export function CustomerReturnsView() {
       {/* Main Returns List */}
       {isLoading ? (
         <div className="bg-white rounded-2xl border border-[#D5D9D9] p-12 text-center text-xs text-[#565959]">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-3 text-[#007185]" />
+          <CometSpinner className="h-12 w-12 mx-auto mb-3 block text-[#007185]" />
           <p className="font-bold text-sm text-[#0F1111]">Retrieving Return &amp; Refund Records...</p>
           <p className="text-xs text-[#565959] mt-1">Connecting to live courier reverse logistics tracking.</p>
         </div>

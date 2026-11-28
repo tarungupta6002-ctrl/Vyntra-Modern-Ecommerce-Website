@@ -47,9 +47,13 @@ import {
 } from '@/lib/catalog/attributes';
 import { VariantOptionsBuilder, type GeneratedVariant } from '@/components/vendor/variant-options-builder';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
-import { getCategoryMeasurementProfile } from '@/lib/category-measurement';
+import { SIZE_CHART_COLUMNS, footwearFitFor, sizeChartKindFor } from '@/lib/catalog/size-chart';
+import { SizeChartEditor } from '@/components/vendor/size-chart-editor';
+import { HIDDEN_FROM_SELLERS, categoryPageFor } from '@/lib/category-routes';
+import { vendorButton } from '@/components/vendor/vendor-ui';
 import { ProductPricingSection } from '@/components/vendor/product-pricing-section';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export interface CategoryOption {
   id: string;
   name: string;
@@ -76,6 +80,8 @@ export interface ProductFormProps {
   mode: 'create' | 'edit';
   productId?: string;
   initialData?: any;
+  /** Inside a page that has its own heading (Add a product): hide the form's header. */
+  embedded?: boolean;
 }
 
 const DRAFT_STORAGE_KEY = 'vyntra_vendor_product_draft';
@@ -114,7 +120,11 @@ const COMMON_COLORS = [
   { name: 'Blush Terracotta', hex: '#E07A5F' },
 ];
 
-export function ProductForm({ mode, productId, initialData }: ProductFormProps) {
+/** Text inputs across the form. */
+const inputClass =
+  'w-full rounded-lg border border-[#D5D9D9] bg-white px-3 py-2 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]';
+
+export function ProductForm({ mode, productId, initialData, embedded = false }: ProductFormProps) {
   const router = useRouter();
 
   // Basic Information
@@ -167,7 +177,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     initialData?.variants && initialData.variants.length > 1 ? true : false
   );
   const [standardStock, setStandardStock] = useState(
-    initialData?.totalStock ? String(initialData.totalStock) : '15'
+    initialData?.totalStock !== undefined ? String(initialData.totalStock) : ''
   );
   const [variants, setVariants] = useState<ProductVariantItem[]>(
     initialData?.variants && initialData.variants.length > 0
@@ -177,7 +187,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           color: v.color || 'Classic',
           sku: v.sku || '',
           price: v.price ? String(v.price) : '',
-          stock: v.stock !== undefined ? String(v.stock) : '10',
+          stock: v.stock !== undefined ? String(v.stock) : '',
           imageUrl: v.imageUrl || '',
           attributes: v.attributes && Object.keys(v.attributes).length > 0 ? v.attributes : undefined,
         }))
@@ -217,17 +227,16 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     Array.isArray(initialData?.specs) && initialData.specs.length > 0
       ? initialData.specs
       : [
-          { label: 'Country of Origin', value: 'India' },
+          { label: 'Country of Origin', value: '' },
         ]
   );
 
-  // Size Guide
-  const [sizeChart, setSizeChart] = useState<Array<{ size: string; chest: string; waist: string; length: string }>>([
-    { size: 'S', chest: '38 in', waist: '32 in', length: '40 in' },
-    { size: 'M', chest: '40 in', waist: '34 in', length: '41 in' },
-    { size: 'L', chest: '42 in', waist: '36 in', length: '42 in' },
-    { size: 'XL', chest: '44 in', waist: '38 in', length: '43 in' },
-  ]);
+  // Size chart: size -> one value per measurement column (columns depend on the category).
+  const [chartValues, setChartValues] = useState<Record<string, string[]>>(() => {
+    const rows = initialData?.sizeChart?.rows;
+    if (!Array.isArray(rows)) return {};
+    return Object.fromEntries(rows.map((r: any) => [String(r.size), Array.isArray(r.values) ? r.values.map(String) : []]));
+  });
 
   // Amazon A+ Rich Product Description Modules (Optional - defaults to empty)
   const [aplusData, setAplusData] = useState<APlusData>(() => {
@@ -259,7 +268,9 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         const res = await fetch('/api/vendor/categories');
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
-          setCategories(json.data);
+          setCategories(
+            json.data.filter((c: CategoryOption) => !HIDDEN_FROM_SELLERS.has(c.slug) || c.id === initialData?.categoryId)
+          );
         }
       } catch (err) {
         console.warn('Failed to fetch categories:', err);
@@ -404,7 +415,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     if (existingDraft.attributes !== undefined) setAttributes(existingDraft.attributes);
 
     setShowDraftModal(false);
-    setSuccessMessage('Restored your unsaved product draft successfully!');
+    setSuccessMessage('Your unsaved product is back.');
     setTimeout(() => setSuccessMessage(''), 4000);
   };
 
@@ -529,12 +540,16 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     for (const c of categories) {
       const trail = getCategoryAncestry(c.id);
       const pathString = trail.map((t) => t.name).join(' › ');
-      const matchName = c.name.toLowerCase().includes(q);
-      const matchSlug = c.slug.toLowerCase().includes(q);
-      const matchPath = pathString.toLowerCase().includes(q);
+      // Words must start with the query ("tops" finds Tops & Tees, not Laptops).
+      const escaped = q.replace(/[^a-z0-9\s]/gi, (ch) => `\\${ch}`);
+      const startsWord = (text: string) => new RegExp(`(^|[^a-z0-9])${escaped}`, 'i').test(text);
+      const matchName = startsWord(c.name);
+      const matchSlug = startsWord(c.slug.replace(/-/g, ' '));
+      const matchPath = startsWord(pathString);
 
-      if (matchName || matchSlug || matchPath) {
-        const children = childrenMap.get(c.id) || [];
+      const children = childrenMap.get(c.id) || [];
+      // Only final categories can be chosen, so only they are offered.
+      if ((matchName || matchSlug || matchPath) && children.length === 0) {
         results.push({
           category: c,
           trail,
@@ -554,8 +569,6 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     return results.slice(0, 10);
   }, [categorySearchQuery, categories, getCategoryAncestry, childrenMap]);
 
-  // Active Category & Measurement Profile (Intelligently classifies multi-tier categories)
-  const [showChartOverride, setShowChartOverride] = useState<boolean | null>(null);
 
   const activeCategory = React.useMemo(() => {
     if (!categoryId || !byId.has(categoryId)) return null;
@@ -573,7 +586,10 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     };
   }, [categoryId, byId, getCategoryAncestry]);
 
-  // Amazon-style product type template for the chosen category (null when the category has none).
+  /** The chosen category is a final one (no sub-categories), as listing pages require. */
+  const isFinalCategory = Boolean(categoryId) && (childrenMap.get(categoryId) || []).length === 0;
+
+  // Product type template for the chosen category (null when the category has none).
   const attributeTemplate = React.useMemo(
     () => getTemplateForCategoryPath((activeCategory?.trail || []).map((t) => t.slug)),
     [activeCategory]
@@ -586,13 +602,17 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     [hasVariants, attributeTemplate, variants]
   );
 
-  const measurementProfile = React.useMemo(() => {
-    return getCategoryMeasurementProfile(
-      activeCategory?.slug,
-      activeCategory?.parentSlug,
-      activeCategory?.name
-    );
-  }, [activeCategory]);
+  // Which size chart the category takes, and the sizes it has rows for (from the variants).
+  const categorySlugs = React.useMemo(() => (activeCategory?.trail || []).map((t) => t.slug), [activeCategory]);
+  const chartKind = React.useMemo(() => sizeChartKindFor(categorySlugs), [categorySlugs]);
+  const chartFit = React.useMemo(() => footwearFitFor(categorySlugs), [categorySlugs]);
+  const chartSizes = React.useMemo(() => {
+    if (!hasVariants) return [];
+    const seen = new Set<string>();
+    return variants
+      .map((v) => v.size.trim())
+      .filter((size) => size && !/^(standard|free size)$/i.test(size) && !seen.has(size.toLowerCase()) && seen.add(size.toLowerCase()));
+  }, [hasVariants, variants]);
 
   const isFreeSizeCategory = React.useMemo(() => {
     const slug = (activeCategory?.slug || '').toLowerCase();
@@ -1310,13 +1330,6 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     isWomenFootwear,
   ]);
 
-  // Reset manual override whenever category changes so category defaults apply immediately
-  useEffect(() => {
-    setShowChartOverride(null);
-  }, [categoryId]);
-
-  const isMeasurementChartVisible =
-    showChartOverride !== null ? showChartOverride : measurementProfile.showApparelChart;
 
   // Vendor store name
   const [vendorStoreName, setVendorStoreName] = useState<string>('');
@@ -1364,7 +1377,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     try {
       new URL(trimmed);
     } catch {
-      alert('Please enter a valid image URL starting with http:// or https://');
+      setErrorMessage('That photo link is not valid. It should start with https://');
       return;
     }
 
@@ -1411,26 +1424,6 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
     }
   };
 
-  // Preset sample image loader for quick demos
-  const handleLoadSampleImages = () => {
-    setImages([
-      {
-        id: 'sample-1',
-        url: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=1200&q=80',
-        isPrimary: true,
-      },
-      {
-        id: 'sample-2',
-        url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80',
-        isPrimary: false,
-      },
-      {
-        id: 'sample-3',
-        url: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&q=80',
-        isPrimary: false,
-      },
-    ]);
-  };
 
   // Variant actions
   const handleAddVariant = () => {
@@ -1445,7 +1438,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           color: lastColor,
           sku: `${skuPrefix}-${cleanTag}-${prev.length + 1}`,
           price: price || '',
-          stock: '10',
+          stock: '',
           imageUrl: lastImage,
         },
       ];
@@ -1541,7 +1534,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           color,
           sku: `${skuPrefix}-${colorTag ? `${colorTag}-` : ''}${tag}`,
           price: price || '',
-          stock: '10',
+          stock: '',
           imageUrl: images[0]?.url || '',
           attributes: attrs,
         });
@@ -1554,7 +1547,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   const handleGenerateAmazonVariants = () => {
     const rawColor = builderColor.trim();
     if (!rawColor) {
-      alert('Please enter a Color Name (e.g. Green, Royal Blue, Black).');
+      setErrorMessage('Enter a colour first, for example Black.');
       return;
     }
     let effectiveSizes = [...selectedSizes];
@@ -1564,7 +1557,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       } else if (isCameraCategory) {
         effectiveSizes = ['Body Only'];
       } else {
-        alert(isFootwearCategory ? 'Please select at least one UK shoe size.' : 'Please select at least one size.');
+        setErrorMessage(isFootwearCategory ? 'Select at least one shoe size.' : 'Select at least one size.');
         return;
       }
     }
@@ -1574,7 +1567,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       color: rawColor,
       sku: `${skuPrefix}-${cleanTag}-${sz}`,
       price: price || '',
-      stock: '10',
+      stock: '',
       imageUrl: images[0]?.url || '',
     }));
     setVariants((prev) => [...prev, ...newItems]);
@@ -1583,7 +1576,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
   // Clear all variants from matrix
   const handleClearAllVariants = () => {
-    if (confirm('Are you sure you want to clear all variants? You can add fresh colors & sizes right away.')) {
+    if (confirm('Remove all variants? You can add them again.')) {
       setVariants([]);
     }
   };
@@ -1624,7 +1617,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
   };
 
   const handleAddSpec = () => {
-    setSpecs((prev) => [...prev, { label: 'New Attribute', value: 'Value' }]);
+    setSpecs((prev) => [...prev, { label: '', value: '' }]);
   };
 
   const handleRemoveSpec = (idx: number) => {
@@ -1643,13 +1636,13 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       return;
     }
     if (!brand.trim()) {
-      setErrorMessage('Please specify the artisan/brand name.');
+      setErrorMessage('Please enter the brand.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (!categoryId) {
-      setErrorMessage('Please select a catalog category.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!categoryId || !isFinalCategory) {
+      setErrorMessage(categoryId ? 'Please choose a more specific category.' : 'Please choose a category.');
+      document.getElementById('category-search')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     // Required category details are needed to publish (drafts may be incomplete).
@@ -1669,12 +1662,12 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       return;
     }
     if (images.length === 0) {
-      setErrorMessage('Please provide at least one product image URL.');
+      setErrorMessage('Add at least one photo of the product.');
       window.scrollTo({ top: 400, behavior: 'smooth' });
       return;
     }
     if (hasVariants && variants.length === 0) {
-      setErrorMessage('Please add at least one color & size variation using the Variations Builder.');
+      setErrorMessage('Add at least one variant, or switch to One option.');
       window.scrollTo({ top: 1200, behavior: 'smooth' });
       return;
     }
@@ -1762,8 +1755,12 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         attributes: attributeCheck.attributes,
         highlights: highlights.filter((h) => h.trim()),
         aplus: sanitizedAplus,
+        sizeChart:
+          SIZE_CHART_COLUMNS[chartKind].length > 0
+            ? { kind: chartKind, rows: chartSizes.map((size) => ({ size, values: chartValues[size] || [] })) }
+            : undefined,
         images: images.map((img) => img.url),
-        stock: hasVariants ? undefined : parseInt(standardStock, 10) || 10,
+        stock: hasVariants ? undefined : Math.max(0, parseInt(standardStock, 10) || 0),
         variants: hasVariants
           ? variants.map((v, i) => ({
               id: v.id,
@@ -1771,7 +1768,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
               color: v.color.trim(),
               sku: (v.sku.trim() || `${skuPrefix}-V${i + 1}`).toUpperCase(),
               price: v.price ? parseFloat(v.price) : numericPrice,
-              stock: parseInt(v.stock, 10) || 10,
+              stock: Math.max(0, parseInt(v.stock, 10) || 0),
               imageUrl: v.imageUrl || images[0]?.url,
               attributes: v.attributes || {},
             }))
@@ -1795,8 +1792,8 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         } catch {}
         setSuccessMessage(
           publishIntent
-            ? 'Listing request submitted successfully for Admin review!'
-            : 'Product saved safely as draft.'
+            ? 'Product published.'
+            : 'Draft saved.'
         );
         setTimeout(() => {
           router.push('/vendor/products');
@@ -1814,60 +1811,55 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-24">
-      {/* Top Header & Breadcrumbs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#D5D9D9]">
+      {/* Header: back link, title and the save actions */}
+      {!embedded && (
+      <div className="flex flex-col gap-4 border-b border-[#D5D9D9] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#565959] mb-1">
-            <Link href="/vendor/products" className="hover:text-[#007185] flex items-center gap-1">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Seller Catalog</span>
-            </Link>
-            <span>/</span>
-            <span className="text-[#0F1111]">
-              {mode === 'create' ? 'Add New Product' : `Edit Product (${title || 'Draft'})`}
-            </span>
-          </div>
-          <h1 className="text-2xl font-headline font-extrabold text-[#0F1111] flex items-center gap-2.5">
-            <Package className="h-6 w-6 text-[#007185]" />
-            <span>{mode === 'create' ? 'Create Marketplace Listing' : 'Edit Product Listing'}</span>
+          <Link href="/vendor/products" className="inline-flex items-center gap-1 text-sm text-[#565959] hover:text-[#007185]">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Products
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold text-[#0F1111]">
+            {mode === 'create' ? 'Add a product' : 'Edit product'}
           </h1>
-          <p className="text-xs text-[#565959] mt-0.5">
-            Provide comprehensive product details, high-resolution imagery, and variant inventory for Vyntra patrons.
+          <p className="mt-1 text-sm text-[#565959]">
+            {mode === 'create'
+              ? 'Fill in the details shoppers need. You can save a draft and finish later.'
+              : title || 'Untitled product'}
           </p>
         </div>
-
-        {/* Quick Top Actions */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/vendor/products"
-            className="px-4 py-2 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-xs font-bold text-[#0F1111] transition-all"
+            className={vendorButton.secondary}
           >
-            Discard
+            Cancel
           </Link>
           <button
             type="button"
             onClick={() => handleSubmit(false)}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-lg bg-white border border-[#007185] text-[#007185] hover:bg-[#007185]/5 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+            className={vendorButton.secondary}
           >
-            <Save className="h-3.5 w-3.5" />
-            <span>Save Draft</span>
+            <Save className="h-4 w-4" aria-hidden="true" />
+            Save draft
           </button>
           <button
             type="button"
             onClick={() => handleSubmit(true)}
             disabled={isSubmitting}
-            className="px-5 py-2 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5 border border-[#FCD200]"
+            className={vendorButton.primary}
           >
-            <CheckCircle2 className="h-4 w-4 text-[#0F1111]" />
-            <span>Publish to Marketplace</span>
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            {mode === 'create' ? 'Publish' : 'Save and publish'}
           </button>
         </div>
       </div>
+      )}
 
       {/* Notifications */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-3 animate-in fade-in">
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
           <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
           <span>
             {errorMessage}
@@ -1883,7 +1875,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         </div>
       )}
       {successMessage && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-3 animate-in fade-in">
+        <div role="status" className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
           <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
           <span>{successMessage}</span>
         </div>
@@ -1892,99 +1884,81 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {/* ===================================================================== */}
       {/* SECTION 1: BASIC INFORMATION                                         */}
       {/* ===================================================================== */}
-      <section className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+      <section className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
         <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
           <Tag className="h-4 w-4 text-[#007185]" />
-          <h2 className="font-headline font-bold text-base text-[#0F1111]">1. Basic Product Information</h2>
+          <h2 className="text-base font-semibold text-[#0F1111]">Basic details</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Product Title */}
-          <div className="md:col-span-2 space-y-1">
-            <label className="block text-xs font-bold text-[#0F1111]">
-              Product Title <span className="text-rose-600">*</span>
+          {/* Title */}
+          <div className="space-y-1 md:col-span-2">
+            <label htmlFor="product-title" className="block text-sm font-semibold text-[#0F1111]">
+              Title <span className="text-[#B12704]">*</span>
             </label>
             <input
+              id="product-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Handcrafted Royal Mulberry Silk Saree with Zari Border"
-              className="w-full px-3.5 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185] bg-white"
+              placeholder="For example: Cotton oversized T-shirt for women, graphic print"
+              className={inputClass}
             />
-            <p className="text-[11px] text-[#565959]">
-              Include brand, primary craft/material, and silhouette for optimal search visibility.
-            </p>
+            <p className="text-xs text-[#565959]">Brand, product type, material and the main feature help shoppers find it in search.</p>
           </div>
 
           {/* Subtitle */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#0F1111]">Product Subtitle / Edition</label>
+            <label htmlFor="product-subtitle" className="block text-sm font-semibold text-[#0F1111]">
+              Subtitle <span className="font-normal text-[#565959]">(optional)</span>
+            </label>
             <input
+              id="product-subtitle"
               type="text"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
-              placeholder="e.g., Festive Edit 2026 • Certified Handloom Weave"
-              className="w-full px-3.5 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white"
+              placeholder="For example: Pack of 2, or Regular fit"
+              className={inputClass}
             />
           </div>
 
-          {/* Brand Name (Separated from Seller) */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-[#0F1111]">
-                Product Brand <span className="text-rose-600">*</span>
+          {/* Brand */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="product-brand" className="block text-sm font-semibold text-[#0F1111]">
+                Brand <span className="text-[#B12704]">*</span>
               </label>
               {vendorStoreName && (
-                <button
-                  type="button"
-                  onClick={() => setBrand(vendorStoreName)}
-                  className="text-[11px] text-[#007185] hover:text-[#C7511F] hover:underline"
-                >
-                  Use my store name ({vendorStoreName})
+                <button type="button" onClick={() => setBrand(vendorStoreName)} className="text-xs text-[#007185] hover:underline">
+                  Use my store name
                 </button>
               )}
             </div>
             <input
+              id="product-brand"
               type="text"
               value={brand}
               onChange={(e) => setBrand(e.target.value)}
-              placeholder="e.g., U.S. Polo Assn., Allen Solly, Levi's, Nike, Zara, FabIndia"
-              className="w-full px-3.5 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185] bg-white font-medium"
+              placeholder="The brand printed on the product"
+              className={inputClass}
             />
-            <p className="text-[11px] text-[#565959]">
-              Enter the exact product brand (e.g. <strong>U.S. Polo Assn.</strong>). Customers use this to filter products by brand on Vyntra.
+            <p className="text-xs text-[#565959]">
+              Shoppers filter by brand. Products are sold by {vendorStoreName || 'your store'}.
             </p>
           </div>
 
-          {/* Seller / Merchant (Sold By) - Automatic Vendor Store Identification */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-[#0F1111]">
-              Seller / Merchant (Sold By)
-            </label>
-            <div className="flex items-center gap-2 px-3.5 py-2 text-xs rounded-lg border border-[#D5D9D9] bg-[#F7F8F8] text-[#0F1111]">
-              <Store className="w-3.5 h-3.5 text-[#007185]" />
-              <span className="font-bold">{vendorStoreName || 'Your Registered Store'}</span>
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded font-semibold ml-auto">
-                Verified Seller Account
-              </span>
-            </div>
-            <p className="text-[11px] text-[#565959]">
-              This is your merchant storefront on Vyntra. All products automatically display &quot;Sold by {vendorStoreName || 'Your Store'}&quot;.
-            </p>
-          </div>
-
-          {/* Amazon-Style Cascading Category Pathfinder (Dynamic Miller Columns) */}
+          {/* Category: browse column by column, or search; only final categories can be chosen */}
           <div className="space-y-3 pt-2 md:col-span-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1 border-b border-[#E7E7E7]">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <label className="block text-sm font-bold text-[#0F1111]">
-                  Product Classification / Category <span className="text-rose-600">*</span>
+                <label htmlFor="category-search" className="block text-sm font-semibold text-[#0F1111]">
+                  Category <span className="text-[#B12704]">*</span>
                 </label>
-                <p className="text-xs text-[#565959]">
-                  Browse step-by-step through Department › Section › Category › Sub-Category › Product Type (Leaf).
+                <p className="text-sm text-[#565959]">
+                  Pick the most specific category. It decides where shoppers find the product and which details and size chart we ask for.
                 </p>
               </div>
-              {activeCategory && (
+              {categoryId && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1992,242 +1966,170 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                     const fashion = rootCategories.find((r) => r.slug === 'fashion') || rootCategories[0];
                     setSelectedPath(fashion ? [fashion.id] : []);
                   }}
-                  className="inline-flex items-center gap-1 text-xs text-[#007185] hover:text-[#C7511F] hover:underline self-start sm:self-auto font-medium"
+                  className="inline-flex items-center gap-1 self-start text-sm font-medium text-[#007185] hover:underline sm:self-auto"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset Category
+                  <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                  Change category
                 </button>
               )}
             </div>
 
-            {/* Keyword Search Bar (Amazon Pathfinder Style) */}
             <div className="relative">
-              <div className="relative">
-                <Search className="w-4 h-4 text-[#565959] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={categorySearchQuery}
-                  onChange={(e) => setCategorySearchQuery(e.target.value)}
-                  placeholder="Search for a category (e.g., T-Shirts, Western Wear, Dresses, Boys Clothing, Handbags)..."
-                  className="w-full pl-9 pr-9 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] focus:ring-1 focus:ring-[#007185] bg-white shadow-inner"
-                />
-                {categorySearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setCategorySearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#565959] hover:text-[#0F1111]"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              {/* Instant Search Results Dropdown */}
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#565959]" aria-hidden="true" />
+              <input
+                id="category-search"
+                type="search"
+                value={categorySearchQuery}
+                onChange={(e) => setCategorySearchQuery(e.target.value)}
+                placeholder="Search categories, for example kurtas, sneakers or laptops"
+                className="w-full rounded-lg border border-[#D5D9D9] bg-white py-2 pl-9 pr-3 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
+              />
               {categorySearchQuery.trim().length >= 2 && (
-                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-[#D5D9D9] rounded-lg shadow-xl overflow-hidden max-h-72 overflow-y-auto divide-y divide-[#F0F2F2]">
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-[#D5D9D9] bg-white shadow-lg divide-y divide-[#F0F2F2]">
                   {searchResults.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-[#565959]">
-                      No categories found matching &quot;{categorySearchQuery}&quot;. Browse via the columns below.
-                    </div>
+                    <p className="p-4 text-center text-sm text-[#565959]">
+                      No category matches &ldquo;{categorySearchQuery.trim()}&rdquo;. Browse the columns below instead.
+                    </p>
                   ) : (
                     searchResults.map((res) => (
-                      <div
+                      <button
                         key={res.category.id}
-                        className="p-2.5 px-3.5 hover:bg-[#F7F8F8] flex items-center justify-between gap-3 transition-colors"
+                        type="button"
+                        onClick={() => {
+                          setCategoryId(res.category.id);
+                          setSelectedPath(res.trail.map((t) => t.id));
+                          setCategorySearchQuery('');
+                        }}
+                        className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-[#F7F8F8]"
                       >
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold text-[#0F1111] truncate">
-                            {res.category.name}
-                          </div>
-                          <div className="text-[11px] text-[#565959] truncate flex items-center gap-1">
-                            {res.pathString}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCategoryId(res.category.id);
-                            setSelectedPath(res.trail.map((t) => t.id));
-                            setCategorySearchQuery('');
-                          }}
-                          className="shrink-0 px-3 py-1 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] text-xs font-bold rounded-md shadow-sm active:scale-95 transition-transform"
-                        >
-                          Select
-                        </button>
-                      </div>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-[#0F1111]">{res.category.name}</span>
+                          <span className="block truncate text-xs text-[#565959]">{res.pathString}</span>
+                        </span>
+                        <span className="shrink-0 text-sm font-medium text-[#007185]">Choose</span>
+                      </button>
                     ))
                   )}
                 </div>
               )}
             </div>
 
-            {/* Dynamic Miller Columns Cascading Pathfinder */}
             {isLoadingCategories ? (
-              <div className="h-64 bg-[#F7F8F8] rounded-xl border border-[#D5D9D9] animate-pulse flex items-center justify-center">
-                <span className="text-xs text-[#565959] font-medium">Loading category hierarchy...</span>
+              <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-[#D5D9D9] bg-[#F7F8F8]" aria-live="polite">
+                <CometSpinner className="h-12 w-12" decorative />
+                <span className="text-sm text-[#565959]">Loading categories…</span>
               </div>
             ) : (
-              <div className="border border-[#D5D9D9] rounded-xl bg-white shadow-sm overflow-hidden">
-                <div className="flex overflow-x-auto divide-x divide-[#D5D9D9]">
-                  {pathfinderColumns.map((col) => (
-                    <div
-                      key={`col-${col.levelIndex}`}
-                      className="min-w-[210px] max-w-[260px] flex-1 flex-shrink-0 flex flex-col"
-                    >
-                      <div className="bg-[#F0F2F2] px-3 py-2 border-b border-[#D5D9D9] flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#0F1111] truncate">{col.title}</span>
-                        <span className="text-[10px] text-[#565959] bg-white px-1.5 py-0.5 rounded border border-[#D5D9D9]">
-                          {col.items.length}
-                        </span>
-                      </div>
-                      <div className="h-64 overflow-y-auto divide-y divide-[#F7F8F8] p-1">
-                        {col.items.length === 0 ? (
-                          <div className="h-full flex items-center justify-center p-4 text-center text-xs text-[#565959]">
-                            No subcategories
-                          </div>
-                        ) : (
-                          col.items.map((cat) => {
-                            const isSelectedInPath = col.selectedId === cat.id;
-                            const isFinalSelected = categoryId === cat.id;
+              <div className="overflow-hidden rounded-xl border border-[#D5D9D9] bg-white">
+                <div className="flex divide-x divide-[#D5D9D9] overflow-x-auto">
+                  {pathfinderColumns.map((col) => {
+                    const parent = col.levelIndex > 0 ? byId.get(selectedPath[col.levelIndex - 1]) : undefined;
+                    return (
+                      <div key={`col-${col.levelIndex}`} className="flex min-w-[200px] max-w-[260px] flex-1 flex-shrink-0 flex-col">
+                        <div className="truncate border-b border-[#D5D9D9] bg-[#F7F8F8] px-3 py-2 text-xs font-semibold text-[#565959]">
+                          {parent ? parent.name : 'Department'}
+                        </div>
+                        <ul className="h-64 overflow-y-auto p-1" role="list">
+                          {col.items.map((cat) => {
+                            const inPath = col.selectedId === cat.id;
                             const hasChildren = (childrenMap.get(cat.id) || []).length > 0;
-
+                            const chosen = categoryId === cat.id && !hasChildren;
                             return (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => {
-                                  const newPath = selectedPath.slice(0, col.levelIndex);
-                                  newPath.push(cat.id);
-                                  setSelectedPath(newPath);
-
-                                  if (!hasChildren) {
-                                    setCategoryId(cat.id);
-                                  } else {
-                                    // If vendor clicked an intermediate parent, set categoryId or leave open
-                                    setCategoryId(cat.id);
-                                  }
-                                }}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                                  isFinalSelected && !hasChildren
-                                    ? 'bg-emerald-50 text-emerald-800 font-bold border-l-4 border-emerald-600'
-                                    : isSelectedInPath
-                                    ? 'bg-[#007185]/10 text-[#007185] font-bold border-l-4 border-[#007185]'
-                                    : 'text-[#0F1111] hover:bg-[#F7F8F8] font-medium'
-                                }`}
-                              >
-                                <span className="truncate">{cat.name}</span>
-                                {hasChildren ? (
-                                  <ChevronRight className="w-3.5 h-3.5 text-[#565959] shrink-0 ml-1" />
-                                ) : isFinalSelected ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />
-                                ) : (
-                                  <span className="text-[10px] text-[#007185] font-semibold">Select</span>
-                                )}
-                              </button>
+                              <li key={cat.id}>
+                                <button
+                                  type="button"
+                                  aria-pressed={hasChildren ? undefined : chosen}
+                                  onClick={() => {
+                                    const newPath = selectedPath.slice(0, col.levelIndex);
+                                    newPath.push(cat.id);
+                                    setSelectedPath(newPath);
+                                    // Opening a group clears a choice made elsewhere; a final category is the choice.
+                                    setCategoryId(hasChildren ? '' : cat.id);
+                                  }}
+                                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${
+                                    chosen
+                                      ? 'bg-[#007185] font-semibold text-white'
+                                      : inPath
+                                      ? 'bg-[#007185]/10 font-semibold text-[#005B6B]'
+                                      : 'text-[#0F1111] hover:bg-[#F7F8F8]'
+                                  }`}
+                                >
+                                  <span className="truncate">{cat.name}</span>
+                                  {hasChildren ? (
+                                    <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden="true" />
+                                  ) : chosen ? (
+                                    <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                  ) : null}
+                                </button>
+                              </li>
                             );
-                          })
-                        )}
+                          })}
+                        </ul>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {/* Selected Classification Confirmation Bar */}
-                <div className="bg-[#F7F8F8] border-t border-[#D5D9D9] p-3 px-4">
-                  {activeCategory ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="space-y-0.5">
-                        <div className="text-[11px] font-bold text-[#565959] uppercase tracking-wide flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                          Selected Product Classification Path:
-                        </div>
-                        <div className="text-xs font-bold text-[#0F1111] flex items-center flex-wrap gap-1">
-                          {activeCategory.trail.map((t, idx) => (
-                            <React.Fragment key={t.id}>
-                              {idx > 0 && <span className="text-[#565959] font-normal">›</span>}
-                              <span
-                                className={
-                                  idx === activeCategory.trail.length - 1
-                                    ? 'text-[#007185] bg-white px-2 py-0.5 rounded border border-[#007185]/30'
-                                    : 'text-[#0F1111]'
-                                }
-                              >
-                                {t.name}
-                              </span>
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="shrink-0 flex items-center gap-2">
-                        <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Ready for Listing
-                        </span>
-                      </div>
+                <div className="border-t border-[#D5D9D9] bg-[#F7F8F8] px-4 py-3 text-sm" aria-live="polite">
+                  {activeCategory && isFinalCategory ? (
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-[#0F1111]">
+                        <CheckCircle2 className="mr-1.5 inline h-4 w-4 text-[#067D62]" aria-hidden="true" />
+                        {activeCategory.fullPath}
+                      </p>
+                      <a
+                        href={categoryPageFor(activeCategory.trail.map((t) => t.slug))}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 font-medium text-[#007185] hover:underline"
+                      >
+                        See where shoppers find it ↗
+                      </a>
                     </div>
+                  ) : activeCategory ? (
+                    <p className="text-[#B12704]">
+                      <AlertCircle className="mr-1.5 inline h-4 w-4" aria-hidden="true" />
+                      &ldquo;{activeCategory.name}&rdquo; has sub-categories. Choose one of them.
+                    </p>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs text-[#C7511F]">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>Please browse and click a category in the columns above or search by keyword to select.</span>
-                    </div>
+                    <p className="text-[#565959]">Open a department and keep going until you reach a category without an arrow.</p>
                   )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Product Type Configuration (Ready-made vs Made-to-Order) */}
-          <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#0F1111]">
-              Product Fulfillment Model <span className="text-rose-600">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <label
-                onClick={() => setIsCustomized(false)}
-                className={`cursor-pointer p-3 rounded-xl border flex flex-col justify-between transition-all ${
-                  !isCustomized
-                    ? 'border-[#007185] bg-[#007185]/5 shadow-sm'
-                    : 'border-[#D5D9D9] bg-white hover:border-[#565959]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-[#0F1111]">Ready-made (Standard)</span>
-                  <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      !isCustomized ? 'border-[#007185] bg-[#007185]' : 'border-[#D5D9D9]'
-                    }`}
-                  >
-                    {!isCustomized && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                  </div>
-                </div>
-                <p className="text-[10px] text-[#565959] mt-1">Pre-stocked units dispatched within 24 hours.</p>
-              </label>
-
-              <label
-                onClick={() => setIsCustomized(true)}
-                className={`cursor-pointer p-3 rounded-xl border flex flex-col justify-between transition-all ${
-                  isCustomized
-                    ? 'border-[#800020] bg-rose-50/50 shadow-sm'
-                    : 'border-[#D5D9D9] bg-white hover:border-[#565959]'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-[#800020] flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    <span>Made-to-Order</span>
+          {/* Ready-made or made to order */}
+          <fieldset className="space-y-2 md:col-span-2">
+            <legend className="text-sm font-semibold text-[#0F1111]">
+              How is it made? <span className="text-[#B12704]">*</span>
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                { value: false, label: 'Ready-made', hint: 'Already made and in stock.' },
+                { value: true, label: 'Made to order', hint: 'Made or tailored after the customer orders.' },
+              ].map((opt) => (
+                <label
+                  key={opt.label}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${
+                    isCustomized === opt.value ? 'border-[#007185] bg-[#007185]/5' : 'border-[#D5D9D9] bg-white hover:border-[#8A8F8F]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="made-how"
+                    checked={isCustomized === opt.value}
+                    onChange={() => setIsCustomized(opt.value)}
+                    className="mt-0.5 h-4 w-4 accent-[#007185]"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-[#0F1111]">{opt.label}</span>
+                    <span className="block text-xs text-[#565959]">{opt.hint}</span>
                   </span>
-                  <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                      isCustomized ? 'border-[#800020] bg-[#800020]' : 'border-[#D5D9D9]'
-                    }`}
-                  >
-                    {isCustomized && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                  </div>
-                </div>
-                <p className="text-[10px] text-[#565959] mt-1">Bespoke tailored pieces crafted on client order.</p>
-              </label>
+                </label>
+              ))}
             </div>
-          </div>
+          </fieldset>
         </div>
       </section>
 
@@ -2254,28 +2156,15 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {/* ===================================================================== */}
       {/* SECTION 3: MEDIA & MULTI-IMAGE MANAGEMENT                             */}
       {/* ===================================================================== */}
-      <section className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4 text-[#007185]" />
-            <div>
-              <h2 className="font-headline font-bold text-base text-[#0F1111]">
-                3. Product Media &amp; Image Gallery
-              </h2>
-              <p className="text-xs text-[#565959]">
-                Add multiple high-resolution images. First image or starred image serves as primary hero thumbnail.
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLoadSampleImages}
-            className="text-xs font-bold text-[#007185] hover:underline flex items-center gap-1 self-start sm:self-auto"
-          >
-            <Sparkles className="h-3 w-3" />
-            <span>Load Curated Sample Images</span>
-          </button>
+      <section className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+        <div className="border-b border-[#D5D9D9] pb-3">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-[#0F1111]">
+            <ImageIcon className="h-4 w-4 text-[#007185]" aria-hidden="true" />
+            Photos
+          </h2>
+          <p className="mt-1 text-sm text-[#565959]">
+            Add your own photos of this product. The cover photo is shown in search results and listings.
+          </p>
         </div>
 
         {/* Add Image URL Bar */}
@@ -2286,8 +2175,9 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
               type="url"
               value={imageUrlInput}
               onChange={(e) => setImageUrlInput(e.target.value)}
-              placeholder="Enter HTTPS image URL (e.g. Unsplash, Cloudinary, Supabase Storage)..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white font-mono"
+              placeholder="Paste a photo link starting with https://"
+              aria-label="Photo link"
+              className="w-full rounded-lg border border-[#D5D9D9] bg-white py-2 pl-9 pr-3 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
             />
           </div>
           <button
@@ -2296,7 +2186,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
             className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Add Image</span>
+            <span>Add link</span>
           </button>
           <button
             type="button"
@@ -2307,25 +2197,23 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
             className="w-full sm:w-auto px-4 py-2 rounded-lg bg-white border border-[#D5D9D9] hover:border-[#007185] text-[#0F1111] text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
           >
             <FolderOpen className="h-3.5 w-3.5 text-[#007185]" />
-            <span>Browse Media Library</span>
+            <span>Choose from my photos</span>
           </button>
         </div>
 
         {/* Image Grid with Thumbnails, Reordering & Primary Selector */}
         {images.length === 0 ? (
-          <div className="py-12 border-2 border-dashed border-[#D5D9D9] rounded-2xl text-center space-y-2 bg-[#F7F8F8]">
+          <div className="py-12 border-2 border-dashed border-[#D5D9D9] rounded-xl text-center space-y-2 bg-[#F7F8F8]">
             <ImageIcon className="h-8 w-8 text-[#565959]/50 mx-auto" />
-            <p className="font-bold text-xs text-[#0F1111]">No images uploaded yet</p>
-            <p className="text-[11px] text-[#565959]">
-              Add image URLs above or click &ldquo;Load Curated Sample Images&rdquo; to test.
-            </p>
+            <p className="text-sm font-semibold text-[#0F1111]">No photos yet</p>
+            <p className="text-sm text-[#565959]">Add at least one photo to publish.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
             {/* Left: Thumbnail & Management List */}
             <div className="md:col-span-2 space-y-3">
-              <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
-                Uploaded Images ({images.length})
+              <span className="text-xs font-bold text-[#565959]">
+                {images.length} {images.length === 1 ? 'photo' : 'photos'}
               </span>
 
               <div className="space-y-2.5">
@@ -2342,32 +2230,25 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       {/* Thumbnail */}
                       <div className="relative w-12 h-14 rounded-lg overflow-hidden bg-[#F7F8F8] border border-[#D5D9D9] shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img.url} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
-                        {img.isPrimary && (
-                          <div className="absolute top-0 right-0 bg-[#FFD814] text-[#0F1111] text-[8px] font-black px-1 rounded-bl">
-                            ★
-                          </div>
-                        )}
+                        <img src={img.url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-[#0F1111]">Angle #{idx + 1}</span>
+                          <span className="text-sm font-semibold text-[#0F1111]">Photo {idx + 1}</span>
                           {img.isPrimary ? (
-                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#FFD814] text-[#0F1111]">
-                              Primary Cover
-                            </span>
+                            <span className="rounded bg-[#FFD814] px-1.5 py-0.5 text-xs font-semibold text-[#0F1111]">Cover</span>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleSetPrimaryImage(idx)}
-                              className="text-[10px] text-[#007185] hover:underline font-semibold"
+                              className="text-xs text-[#007185] hover:underline font-semibold"
                             >
-                              Set as Cover
+                              Make cover
                             </button>
                           )}
                         </div>
-                        <p className="text-[10px] text-[#565959] font-mono truncate max-w-sm mt-0.5">{img.url}</p>
+                        <p className="text-xs text-[#565959] tabular-nums truncate max-w-sm mt-0.5">{img.url}</p>
                       </div>
                     </div>
 
@@ -2378,7 +2259,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                         disabled={idx === 0}
                         onClick={() => handleMoveImage(idx, 'up')}
                         className="p-1 text-[#565959] hover:text-[#0F1111] disabled:opacity-30"
-                        title="Move Up"
+                        title="Move up" aria-label={`Move photo ${idx + 1} up`}
                       >
                         <ChevronUp className="h-4 w-4" />
                       </button>
@@ -2387,7 +2268,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                         disabled={idx === images.length - 1}
                         onClick={() => handleMoveImage(idx, 'down')}
                         className="p-1 text-[#565959] hover:text-[#0F1111] disabled:opacity-30"
-                        title="Move Down"
+                        title="Move down" aria-label={`Move photo ${idx + 1} down`}
                       >
                         <ChevronDown className="h-4 w-4" />
                       </button>
@@ -2395,7 +2276,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                         type="button"
                         onClick={() => handleRemoveImage(idx)}
                         className="p-1 text-rose-600 hover:text-rose-800 ml-1"
-                        title="Remove Image"
+                        title="Remove photo" aria-label={`Remove photo ${idx + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -2407,24 +2288,22 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
             {/* Right: Live Interactive Main Image Preview */}
             <div className="space-y-2">
-              <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
-                Storefront Preview
+              <span className="text-xs font-bold text-[#565959]">
+                Preview
               </span>
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#F7F8F8] border border-[#D5D9D9] shadow-inner flex items-center justify-center">
+              <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#F7F8F8] border border-[#D5D9D9] shadow-inner flex items-center justify-center">
                 {images[activePreviewIndex] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={images[activePreviewIndex]?.url}
-                    alt="Main Preview"
-                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    alt="Selected photo"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <ImageIcon className="h-12 w-12 text-[#565959]/30" />
                 )}
                 {images[activePreviewIndex]?.isPrimary && (
-                  <div className="absolute top-3 left-3 bg-[#FFD814] text-[#0F1111] text-[10px] font-black px-2 py-0.5 rounded shadow">
-                    HERO COVER IMAGE
-                  </div>
+                  <div className="absolute left-3 top-3 rounded bg-[#FFD814] px-2 py-0.5 text-xs font-semibold text-[#0F1111]">Cover</div>
                 )}
               </div>
             </div>
@@ -2435,16 +2314,14 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {/* ===================================================================== */}
       {/* SECTION 4: PRODUCT VARIANTS & WAREHOUSE INVENTORY                     */}
       {/* ===================================================================== */}
-      <section className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+      <section className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
           <div className="flex items-center gap-2">
             <Boxes className="h-4 w-4 text-[#007185]" />
             <div>
-              <h2 className="font-headline font-bold text-base text-[#0F1111]">
-                4. Product Variants &amp; Inventory Matrix
-              </h2>
-              <p className="text-xs text-[#565959]">
-                Configure sizes, colors, SKUs, and variant-wise stock allocations.
+              <h2 className="text-base font-semibold text-[#0F1111]">Variants and stock</h2>
+              <p className="text-sm text-[#565959]">
+                One option, or several sizes, colours or capacities, each with its own price and stock.
               </p>
             </div>
           </div>
@@ -2458,7 +2335,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 !hasVariants ? 'bg-white text-[#0F1111] shadow-sm' : 'text-[#565959] hover:text-[#0F1111]'
               }`}
             >
-              Single Unit
+              One option
             </button>
             <button
               type="button"
@@ -2467,7 +2344,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 hasVariants ? 'bg-[#007185] text-white shadow-sm' : 'text-[#565959] hover:text-[#0F1111]'
               }`}
             >
-              Multiple Variants (Size/Color)
+              Several variants
             </button>
           </div>
         </div>
@@ -2477,52 +2354,50 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-4 bg-[#F7F8F8] rounded-xl border border-[#D5D9D9]">
             <div className="space-y-1">
               <label className="block text-xs font-bold text-[#0F1111]">
-                Warehouse Available Stock Units <span className="text-rose-600">*</span>
+                Stock <span className="text-[#B12704]">*</span>
               </label>
               <input
                 type="number"
                 min="0"
                 value={standardStock}
                 onChange={(e) => setStandardStock(e.target.value)}
-                className="w-full px-3.5 py-2 text-xs font-mono font-bold rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white"
+                className="w-full px-3.5 py-2 text-xs tabular-nums font-bold rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white"
               />
-              <p className="text-[10px] text-[#565959]">Total physical pieces available for direct fulfillment.</p>
+              <p className="text-xs text-[#565959]">Pieces you have ready to ship. 0 shows the product as out of stock.</p>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-[#0F1111]">Generated Master SKU</label>
+              <label className="block text-xs font-bold text-[#0F1111]">SKU</label>
               <input
                 type="text"
                 readOnly
                 value={`${skuPrefix}-STD`}
-                className="w-full px-3.5 py-2 text-xs font-mono rounded-lg border border-[#D5D9D9] bg-[#EAEDED] text-[#565959]"
+                className="w-full px-3.5 py-2 text-xs tabular-nums rounded-lg border border-[#D5D9D9] bg-[#EAEDED] text-[#565959]"
               />
-              <p className="text-[10px] text-[#565959]">Auto-generated inventory identification code.</p>
+              <p className="text-xs text-[#565959]">Created for you; it identifies this item in your orders.</p>
             </div>
           </div>
         ) : (
           /* Multi-Variant Matrix Table */
           <div className="space-y-5">
             {/* Amazon-Style Variation Creator */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#F7F8F8] border border-[#D5D9D9] space-y-4">
+            <div className="p-4 sm:p-5 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#007185]" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F1111]">
-                    Amazon-Style Variations Builder
-                  </h3>
+                  <h3 className="text-sm font-semibold text-[#0F1111]">Add variants</h3>
                 </div>
                 {variants.length > 0 && (
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-[#565959]">
-                      Configured SKUs: <strong className="text-[#0F1111]">{variants.length}</strong>
+                      <strong className="text-[#0F1111]">{variants.length}</strong> {variants.length === 1 ? 'variant' : 'variants'}
                     </span>
                     <button
                       type="button"
                       onClick={handleClearAllVariants}
                       className="text-xs text-rose-600 hover:text-rose-800 hover:underline font-bold"
                     >
-                      Clear All
+                      Remove all
                     </button>
                   </div>
                 )}
@@ -2537,7 +2412,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 {/* Step 1: Color Name */}
                 <div className="lg:col-span-4 space-y-1.5">
                   <label className="block text-xs font-bold text-[#0F1111]">
-                    1. Color Name <span className="text-rose-600">*</span>
+                    1. Colour <span className="text-[#B12704]">*</span>
                   </label>
                   <input
                     type="text"
@@ -2552,7 +2427,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       }
                     }}
                   />
-                  <p className="text-[10px] text-[#565959]">Enter color to generate sizes for.</p>
+                  <p className="text-xs text-[#565959]">The colour these sizes come in.</p>
                 </div>
 
                 {/* Step 2: Select Sizes */}
@@ -2604,9 +2479,9 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       ) : isElectronicsCategory ? (
                         <span className="text-[#007185] font-extrabold">2. Choose Configuration / Storage / Spec</span>
                       ) : isFootwearCategory ? (
-                        <span className="text-[#007185] font-extrabold">2. Choose UK Shoe Sizes (India Standard)</span>
+                        <span className="text-[#007185] font-extrabold">2. UK / India shoe sizes</span>
                       ) : (
-                        <span>2. Choose Sizes</span>
+                        <span>2. Sizes</span>
                       )}
                     </label>
                     <button
@@ -2616,9 +2491,9 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           selectedSizes.length === AVAILABLE_SIZES.length ? [] : [...AVAILABLE_SIZES]
                         )
                       }
-                      className="text-[10px] text-[#007185] font-bold hover:underline"
+                      className="text-xs text-[#007185] font-bold hover:underline"
                     >
-                      {selectedSizes.length === AVAILABLE_SIZES.length ? 'Deselect All' : 'Select All'}
+                      {selectedSizes.length === AVAILABLE_SIZES.length ? 'Clear' : 'Select all'}
                     </button>
                   </div>
 
@@ -2626,7 +2501,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   {isApplianceCategory && (
                     <div className="bg-[#F0F8FF] border border-[#BCE1EB] rounded-xl p-2.5 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-[#007185] flex items-center gap-1">
+                        <span className="text-xs font-bold text-[#007185] flex items-center gap-1">
                           <Sparkles className="h-3 w-3 text-[#007185]" />
                           {isRefrigeratorCategory
                             ? 'Specify Custom Refrigerator Capacity & Star Rating:'
@@ -2654,7 +2529,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                             ? 'Specify Custom Dishwasher Place Settings:'
                             : 'Specify Custom Capacity / Spec:'}
                         </span>
-                        <span className="text-[10px] text-[#565959] italic">Direct custom spec</span>
+                        <span className="text-xs text-[#565959] italic">Direct custom spec</span>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
@@ -2719,7 +2594,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                         {/* BEE Star Rating Selector */}
                         {(isRefrigeratorCategory || isWashingMachineCategory || isAirConditionerCategory) && (
                           <div className="flex items-center gap-1 bg-white border border-[#D5D9D9] p-0.5 rounded-lg shadow-2xs">
-                            <span className="text-[10px] font-bold text-[#565959] px-1.5">BEE Star:</span>
+                            <span className="text-xs font-bold text-[#565959] px-1.5">BEE Star:</span>
                             {(isRefrigeratorCategory
                               ? ['1 Star', '2 Star', '3 Star', '4 Star', '5 Star']
                               : isWashingMachineCategory
@@ -2809,7 +2684,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Book Quick Presets */}
                   {isBookCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Binding Presets:</span>
                       <button
                         type="button"
@@ -2837,7 +2712,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Camera / Lens Kit Presets */}
                   {isCameraCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Camera Lens Kits:</span>
                       <button
                         type="button"
@@ -2865,7 +2740,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Appliance Quick Presets */}
                   {isApplianceCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Quick Presets:</span>
                       <button
                         type="button"
@@ -2893,7 +2768,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Audio / Headphone Presets */}
                   {isAudioCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Headphone Variations:</span>
                       <button
                         type="button"
@@ -2914,7 +2789,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Laptop Quick Presets */}
                   {isLaptopCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Laptop Presets:</span>
                       <button
                         type="button"
@@ -2935,7 +2810,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Smartwatch Quick Presets */}
                   {isSmartwatchCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Dial Sizes:</span>
                       <button
                         type="button"
@@ -2956,7 +2831,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Mobile Quick Storage Presets */}
                   {isMobileCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Quick Storage Presets:</span>
                       <button
                         type="button"
@@ -2984,7 +2859,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Footwear Quick Range Presets */}
                   {isFootwearCategory && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] pb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pb-1">
                       <span className="text-[#565959] font-medium">Quick Presets:</span>
                       <button
                         type="button"
@@ -3032,7 +2907,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                   {/* Universal Custom Variant Tag Input */}
                   <div className="pt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] text-[#565959] font-medium whitespace-nowrap">Can&apos;t find your variant?</span>
+                    <span className="text-xs text-[#565959] font-medium whitespace-nowrap">Can&apos;t find your variant?</span>
                     <div className="flex items-center flex-1 min-w-[200px] max-w-sm bg-white border border-[#D5D9D9] rounded-lg overflow-hidden shadow-2xs">
                       <input
                         type="text"
@@ -3065,7 +2940,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                     onClick={handleGenerateAmazonVariants}
                     className="w-full py-2.5 px-4 rounded-xl bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-extrabold shadow-sm transition-all border border-[#FCD200] flex items-center justify-center gap-1.5"
                   >
-                    <span>+ Add Variations</span>
+                    <span>Add variants</span>
                   </button>
                 </div>
               </div>
@@ -3075,18 +2950,18 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
             {/* Empty State vs Matrix Table */}
             {variants.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-[#D5D9D9] bg-[#FAFAFA] p-8 text-center space-y-2">
+              <div className="rounded-xl border-2 border-dashed border-[#D5D9D9] bg-[#FAFAFA] p-8 text-center space-y-2">
                 <Layers className="w-8 h-8 text-[#565959]/40 mx-auto" />
                 <p className="text-sm font-bold text-[#0F1111]">No Variants Added Yet</p>
                 <p className="text-xs text-[#565959] max-w-md mx-auto">
-                  Type a color name above (e.g. <strong>{isFootwearCategory ? 'Black White' : 'Green'}</strong>), select your sizes ({isFootwearCategory ? '6 UK, 7 UK, 8 UK...' : 'S, M, L, XL, 2XL'}), and click <strong>&quot;+ Add Variations&quot;</strong> to generate your clean catalog matrix.
+                  Type a color name above (e.g. <strong>{isFootwearCategory ? 'Black White' : 'Green'}</strong>), select your sizes ({isFootwearCategory ? '6 UK, 7 UK, 8 UK...' : 'S, M, L, XL, 2XL'}), and choose <strong>Add variants</strong>.
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="overflow-x-auto border border-[#D5D9D9] rounded-xl">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
+                    <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] text-xs">
                       <tr>
                         <th className="py-2.5 px-3 font-bold">
                           {isBookCategory
@@ -3108,10 +2983,10 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                             : 'Size'}
                         </th>
                         <th className="py-2.5 px-3 font-bold">Color Name</th>
-                        <th className="py-2.5 px-3 font-bold">Image Swatch (Amazon-Style)</th>
+                        <th className="py-2.5 px-3 font-bold">Photo</th>
                         <th className="py-2.5 px-3 font-bold">Variant SKU</th>
                         <th className="py-2.5 px-3 font-bold">Price Override (₹)</th>
-                        <th className="py-2.5 px-3 font-bold">Warehouse Stock</th>
+                        <th className="py-2.5 px-3 font-bold">Stock</th>
                         <th className="py-2.5 px-3 font-bold text-right">Action</th>
                       </tr>
                     </thead>
@@ -3183,7 +3058,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                               value={v.imageUrl || ''}
                               onChange={(e) => handleUpdateVariant(idx, 'imageUrl', e.target.value)}
                               placeholder="Swatch Image HTTPS URL..."
-                              className="w-full px-2 py-1 text-[11px] border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white font-mono"
+                              className="w-full px-2 py-1 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white tabular-nums"
                             />
                             <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
                               <button
@@ -3246,7 +3121,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           type="text"
                           value={v.sku || `${skuPrefix}-${v.size || idx + 1}`}
                           onChange={(e) => handleUpdateVariant(idx, 'sku', e.target.value)}
-                          className="w-32 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white font-mono uppercase"
+                          className="w-32 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white tabular-nums"
                         />
                       </td>
 
@@ -3257,7 +3132,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           value={v.price}
                           placeholder={price || 'Default'}
                           onChange={(e) => handleUpdateVariant(idx, 'price', e.target.value)}
-                          className="w-24 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white font-mono"
+                          className="w-24 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white tabular-nums"
                         />
                       </td>
 
@@ -3268,7 +3143,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                           min="0"
                           value={v.stock}
                           onChange={(e) => handleUpdateVariant(idx, 'stock', e.target.value)}
-                          className="w-20 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white font-mono font-bold"
+                          className="w-20 px-2 py-1.5 text-xs border border-[#D5D9D9] rounded focus:outline-none focus:border-[#007185] bg-white tabular-nums font-bold"
                         />
                       </td>
 
@@ -3296,10 +3171,10 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                     className="px-3.5 py-1.5 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7F8F8] text-xs font-bold text-[#007185] transition-all flex items-center gap-1.5"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    <span>+ Add Custom Single Row</span>
+                    <span>Add one row</span>
                   </button>
-                  <p className="text-[11px] text-[#565959]">
-                    Tip: Use the builder above to quickly add another complete colorway.
+                  <p className="text-xs text-[#565959]">
+                    To add another colour in all sizes, use Add variants above.
                   </p>
                 </div>
               </div>
@@ -3311,19 +3186,17 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {/* ===================================================================== */}
       {/* SECTION 5: ATTRIBUTES, SPECIFICATIONS & SIZE CHART                     */}
       {/* ===================================================================== */}
-      <section className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+      <section className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
         <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
           <Ruler className="h-4 w-4 text-[#007185]" />
-          <h2 className="font-headline font-bold text-base text-[#0F1111]">
-            5. Specifications, Attributes &amp; Measurements
-          </h2>
+          <h2 className="text-base font-semibold text-[#0F1111]">Specifications and size chart</h2>
         </div>
 
         {/* Specifications Grid */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
-              Technical Specifications Table
+            <span className="text-sm text-[#565959]">
+              Shown in the product details table. Rows left empty are not shown.
             </span>
             <div className="flex items-center gap-2">
               {isBookCategory ? (
@@ -3331,46 +3204,46 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   type="button"
                   onClick={() =>
                     setSpecs([
-                      { label: 'Author', value: brand || 'James Clear' },
-                      { label: 'Publisher', value: 'Penguin Random House' },
-                      { label: 'Language', value: 'English' },
-                      { label: 'Print Length', value: '320 pages' },
-                      { label: 'Binding', value: variants[0]?.size || 'Paperback' },
-                      { label: 'ISBN-10', value: '935302484X' },
-                      { label: 'ISBN-13', value: '978-9353024840' },
-                      { label: 'Reading Age', value: '13 years and up' },
-                      { label: 'Country of Origin', value: 'India' },
+                      { label: 'Author', value: brand || '' },
+                      { label: 'Publisher', value: '' },
+                      { label: 'Language', value: '' },
+                      { label: 'Print Length', value: '' },
+                      { label: 'Binding', value: variants[0]?.size || '' },
+                      { label: 'ISBN-10', value: '' },
+                      { label: 'ISBN-13', value: '' },
+                      { label: 'Reading Age', value: '' },
+                      { label: 'Country of Origin', value: '' },
                     ])
                   }
                   className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-md hover:bg-amber-100 flex items-center gap-1 transition-all"
                 >
                   <Sparkles className="h-3 w-3 text-amber-700" />
-                  <span>Pre-fill Book Specs Template</span>
+                  <span>Add common book spec rows</span>
                 </button>
               ) : isCameraCategory ? (
                 <button
                   type="button"
                   onClick={() =>
                     setSpecs([
-                      { label: 'Brand', value: brand || 'Sony' },
-                      { label: 'Model Name', value: title ? title.slice(0, 40) : 'ILCE-6700M' },
-                      { label: 'Compatible Mountings', value: 'Sony E' },
-                      { label: 'Aspect Ratio', value: '1:1, 3:2, 4:3, 16:9' },
-                      { label: 'Photo Sensor Technology', value: 'APS-C Exmor R CMOS' },
-                      { label: 'Supported File Format', value: 'HEIF, JPEG, RAW' },
-                      { label: 'Image Stabilisation', value: '5-Axis In-Body Sensor-shift' },
-                      { label: 'Maximum Focal Length', value: '135 Millimeters' },
-                      { label: 'Maximum Aperture', value: '2.8 f' },
-                      { label: 'Expanded ISO Minimum', value: '50' },
-                      { label: 'Metering Description', value: 'Center Weighted / Multi / Spot' },
-                      { label: 'Video Capture Resolution', value: '4K 120p, 4K 60p, 10-bit 4:2:2' },
-                      { label: 'Warranty', value: '2 Years Manufacturer Warranty' },
+                      { label: 'Brand', value: brand || '' },
+                      { label: 'Model Name', value: title.slice(0, 40) },
+                      { label: 'Compatible Mountings', value: '' },
+                      { label: 'Aspect Ratio', value: '' },
+                      { label: 'Photo Sensor Technology', value: '' },
+                      { label: 'Supported File Format', value: '' },
+                      { label: 'Image Stabilisation', value: '' },
+                      { label: 'Maximum Focal Length', value: '' },
+                      { label: 'Maximum Aperture', value: '' },
+                      { label: 'Expanded ISO Minimum', value: '' },
+                      { label: 'Metering Description', value: '' },
+                      { label: 'Video Capture Resolution', value: '' },
+                      { label: 'Warranty', value: '' },
                     ])
                   }
                   className="text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-300 px-2.5 py-1 rounded-md hover:bg-indigo-100 flex items-center gap-1 transition-all"
                 >
                   <Sparkles className="h-3 w-3 text-indigo-600" />
-                  <span>Pre-fill Camera Specs Template</span>
+                  <span>Add common camera spec rows</span>
                 </button>
               ) : isApplianceCategory ? (
                 <button
@@ -3385,104 +3258,104 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
                     if (isRefrigeratorCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'LG' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Smart Inverter Refrigerator' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
                         { label: 'Energy Star Rating', value: starValue },
-                        { label: 'Capacity', value: capNum ? `${capNum} Litres` : '251 Litres' },
-                        { label: 'Configuration', value: 'Double Door Frost Free' },
-                        { label: 'Compressor Type', value: 'Smart Inverter Compressor with 10 Year Warranty' },
-                        { label: 'Annual Energy Consumption', value: '232 Kilowatt Hours Per Year' },
-                        { label: 'Installation Type', value: 'Free Scheduled Standard Installation Included' },
-                        { label: 'Warranty Summary', value: '10 Years on Compressor + 1 Year Comprehensive' },
+                        { label: 'Capacity', value: capNum ? `${capNum} Litres` : '' },
+                        { label: 'Configuration', value: '' },
+                        { label: 'Compressor Type', value: '' },
+                        { label: 'Annual Energy Consumption', value: '' },
+                        { label: 'Installation Type', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isWashingMachineCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'LG' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Smart Inverter Washing Machine' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
                         { label: 'Energy Star Rating', value: starValue },
-                        { label: 'Capacity', value: capNum ? `${capNum} Kilograms` : '7.5 Kilograms' },
-                        { label: 'Operation Type', value: 'Fully-Automatic Front Load' },
-                        { label: 'Motor Type', value: 'Smart Inverter Direct Drive Motor with 10-Yr Warranty' },
-                        { label: 'Maximum Rotational Speed', value: '1200 RPM' },
-                        { label: 'Installation Type', value: 'Free Certified Doorstep Installation with Demo' },
-                        { label: 'Warranty Summary', value: '10 Years on Motor + 2 Years Comprehensive Warranty' },
+                        { label: 'Capacity', value: capNum ? `${capNum} Kilograms` : '' },
+                        { label: 'Operation Type', value: '' },
+                        { label: 'Motor Type', value: '' },
+                        { label: 'Maximum Rotational Speed', value: '' },
+                        { label: 'Installation Type', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isAirCoolerCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'Symphony' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Heavy Duty Desert Air Cooler' },
-                        { label: 'Tank Capacity', value: capNum ? `${capNum} Litres` : '70 Litres' },
-                        { label: 'Cooling Media', value: 'High Density Honeycomb Pads' },
-                        { label: 'Air Throw Distance', value: '45 Feet Powerful Air Throw' },
-                        { label: 'Blower / Fan Type', value: '3-Speed Rust-Proof Heavy Duty Aerodynamic Fan' },
-                        { label: 'Special Features', value: 'Ice Chamber, Inverter Compatible, Dura-Pump Tech' },
-                        { label: 'Warranty Summary', value: '1 Year Brand Manufacturer Warranty' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
+                        { label: 'Tank Capacity', value: capNum ? `${capNum} Litres` : '' },
+                        { label: 'Cooling Media', value: '' },
+                        { label: 'Air Throw Distance', value: '' },
+                        { label: 'Blower / Fan Type', value: '' },
+                        { label: 'Special Features', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isWaterPurifierCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'Kent' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Mineral RO Water Purifier' },
-                        { label: 'Storage Tank Capacity', value: capNum ? `${capNum} Litres` : '8 Litres' },
-                        { label: 'Purification Technology', value: 'RO + UV + UF + Alkaline TDS Controller' },
-                        { label: 'Purification Stages', value: '8 Stage Advanced Multi-Barrier Purification' },
-                        { label: 'Filtration Capacity', value: 'Up to 20 Litres Per Hour' },
-                        { label: 'Material', value: '100% Food Grade Non-Toxic ABS Plastic' },
-                        { label: 'Installation Type', value: 'Wall Mountable / Counter Top' },
-                        { label: 'Warranty Summary', value: '1 Year Comprehensive + 3 Years Service Warranty' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
+                        { label: 'Storage Tank Capacity', value: capNum ? `${capNum} Litres` : '' },
+                        { label: 'Purification Technology', value: '' },
+                        { label: 'Purification Stages', value: '' },
+                        { label: 'Filtration Capacity', value: '' },
+                        { label: 'Material', value: '' },
+                        { label: 'Installation Type', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isDryerCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'Philips' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Professional Hair Dryer with Ionic Care' },
-                        { label: 'Power Wattage', value: capNum ? `${capNum} Watts` : '2000 Watts' },
-                        { label: 'Heat & Speed Settings', value: '3 Heat Settings + 2 Speed Settings with Cool Shot' },
-                        { label: 'Motor Type', value: 'Long-Life Heavy Duty AC Motor' },
-                        { label: 'Special Features', value: 'Ionic Conditioning for Frizz-Free Shiny Hair' },
-                        { label: 'Cord Length', value: '1.8 Metres Salon Swivel Cord' },
-                        { label: 'In-The-Box', value: 'Hair Dryer Unit, Styling Concentrator Nozzle, User Manual' },
-                        { label: 'Warranty Summary', value: '2 Years Worldwide Brand Warranty' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
+                        { label: 'Power Wattage', value: capNum ? `${capNum} Watts` : '' },
+                        { label: 'Heat & Speed Settings', value: '' },
+                        { label: 'Motor Type', value: '' },
+                        { label: 'Special Features', value: '' },
+                        { label: 'Cord Length', value: '' },
+                        { label: 'In-The-Box', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isAirConditionerCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'Daikin' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Dual Inverter Split Air Conditioner' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
                         { label: 'Energy Star Rating', value: starValue },
-                        { label: 'Capacity', value: capNum ? `${capNum} Ton` : '1.5 Ton' },
-                        { label: 'Cooling Capacity', value: '5000 Watts' },
-                        { label: 'Compressor Type', value: 'Dual Inverter Rotary Compressor with 10-Yr Warranty' },
-                        { label: 'Condenser Coil', value: '100% Grooved Copper Tubes with Anti-Corrosion Coating' },
-                        { label: 'Installation Type', value: 'Standard Copper Pipe Installation by Brand Technician' },
-                        { label: 'Warranty Summary', value: '10 Years on Compressor + 5 Years on PCB + 1 Year Machine' },
+                        { label: 'Capacity', value: capNum ? `${capNum} Ton` : '' },
+                        { label: 'Cooling Capacity', value: '' },
+                        { label: 'Compressor Type', value: '' },
+                        { label: 'Condenser Coil', value: '' },
+                        { label: 'Installation Type', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isMicrowaveCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'Samsung' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Convection Microwave Oven' },
-                        { label: 'Cavity Capacity', value: capNum ? `${capNum} Litres` : '28 Litres' },
-                        { label: 'Type', value: 'Convection with Grill and Solo Baking Modes' },
-                        { label: 'Auto Cook Menus', value: 'Over 200 Indian Recipes Pre-Programmed' },
-                        { label: 'Cavity Material', value: 'Ceramic Enamel Cavity with 99.9% Anti-Bacterial Protection' },
-                        { label: 'Warranty Summary', value: '10 Years on Ceramic Enamel Cavity + 1 Year Machine' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
+                        { label: 'Cavity Capacity', value: capNum ? `${capNum} Litres` : '' },
+                        { label: 'Type', value: '' },
+                        { label: 'Auto Cook Menus', value: '' },
+                        { label: 'Cavity Material', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else if (isChimneyCategory) {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'Faber' },
-                        { label: 'Model Name', value: title ? title.slice(0, 45) : 'Auto-Clean Kitchen Chimney' },
-                        { label: 'Suction Capacity', value: capNum ? `${capNum} m³/hr` : '1350 m³/hr' },
-                        { label: 'Size', value: '60 cm (Ideal for 2-4 Burner Stoves)' },
-                        { label: 'Filter Type', value: 'Filterless with Thermal Auto-Clean Technology' },
-                        { label: 'Control Type', value: 'Touch & Motion Gesture Sensor Controls' },
-                        { label: 'Warranty Summary', value: '12 Years on Motor + 2 Years Comprehensive Warranty' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 45) },
+                        { label: 'Suction Capacity', value: capNum ? `${capNum} m³/hr` : '' },
+                        { label: 'Size', value: '' },
+                        { label: 'Filter Type', value: '' },
+                        { label: 'Control Type', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     } else {
                       setSpecs([
-                        { label: 'Brand', value: brand || 'LG' },
-                        { label: 'Model Name', value: title ? title.slice(0, 40) : 'Premium Smart Home Appliance' },
+                        { label: 'Brand', value: brand || '' },
+                        { label: 'Model Name', value: title.slice(0, 40) },
                         { label: 'Energy Star Rating', value: starValue },
-                        { label: 'Capacity', value: capNum ? `${capNum}` : 'Standard Capacity' },
-                        { label: 'Motor / Compressor', value: 'Smart Digital Inverter Technology' },
-                        { label: 'Installation Type', value: 'Free Scheduled Doorstep Installation Included' },
-                        { label: 'Warranty Summary', value: '10 Years on Motor/Compressor + 1 Year Machine Warranty' },
+                        { label: 'Capacity', value: capNum ? `${capNum}` : '' },
+                        { label: 'Motor / Compressor', value: '' },
+                        { label: 'Installation Type', value: '' },
+                        { label: 'Warranty Summary', value: '' },
                       ]);
                     }
                   }}
@@ -3491,22 +3364,22 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   <Sparkles className="h-3 w-3 text-teal-600" />
                   <span>
                     {isRefrigeratorCategory
-                      ? 'Pre-fill Refrigerator Specs'
+                      ? 'Add common refrigerator spec rows'
                       : isWashingMachineCategory
-                      ? 'Pre-fill Washing Machine Specs'
+                      ? 'Add common washing machine spec rows'
                       : isAirConditionerCategory
-                      ? 'Pre-fill AC Specs'
+                      ? 'Add common ac spec rows'
                       : isAirCoolerCategory
-                      ? 'Pre-fill Cooler Specs'
+                      ? 'Add common cooler spec rows'
                       : isWaterPurifierCategory
-                      ? 'Pre-fill Purifier Specs'
+                      ? 'Add common purifier spec rows'
                       : isDryerCategory
-                      ? 'Pre-fill Dryer Specs'
+                      ? 'Add common dryer spec rows'
                       : isMicrowaveCategory
-                      ? 'Pre-fill Microwave Specs'
+                      ? 'Add common microwave spec rows'
                       : isChimneyCategory
-                      ? 'Pre-fill Chimney Specs'
-                      : 'Pre-fill Appliance Specs'}
+                      ? 'Add common chimney spec rows'
+                      : 'Add common appliance spec rows'}
                   </span>
                 </button>
               ) : isAudioCategory ? (
@@ -3514,22 +3387,22 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   type="button"
                   onClick={() =>
                     setSpecs([
-                      { label: 'Brand', value: brand || 'JBL' },
-                      { label: 'Colour', value: variants[0]?.color || 'Black' },
-                      { label: 'Ear Placement', value: 'Over Ear' },
-                      { label: 'Form Factor', value: 'Over Ear' },
-                      { label: 'Impedance', value: '32 Ohms' },
-                      { label: 'Noise Cancellation', value: 'Adaptive Noise Cancelling with Smart Ambient' },
-                      { label: 'Battery Life', value: 'Up to 76 hours of battery life' },
-                      { label: 'Connectivity', value: 'Bluetooth 5.3 Wireless' },
-                      { label: 'Microphone', value: 'Built-in Beamforming Mics' },
-                      { label: 'Warranty', value: '1 Year Brand Warranty' },
+                      { label: 'Brand', value: brand || '' },
+                      { label: 'Colour', value: variants[0]?.color || '' },
+                      { label: 'Ear Placement', value: '' },
+                      { label: 'Form Factor', value: '' },
+                      { label: 'Impedance', value: '' },
+                      { label: 'Noise Cancellation', value: '' },
+                      { label: 'Battery Life', value: '' },
+                      { label: 'Connectivity', value: '' },
+                      { label: 'Microphone', value: '' },
+                      { label: 'Warranty', value: '' },
                     ])
                   }
                   className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-md hover:bg-amber-100 flex items-center gap-1 transition-all"
                 >
                   <Sparkles className="h-3 w-3 text-amber-600" />
-                  <span>Pre-fill Headphone / Audio Specs Template</span>
+                  <span>Add common headphone / audio spec rows</span>
                 </button>
               ) : isMobileCategory ? (
                 <button
@@ -3543,15 +3416,15 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       { label: 'Primary Camera', value: '' },
                       { label: 'Front Camera', value: '' },
                       { label: 'Battery', value: '' },
-                      { label: 'Network', value: '5G' },
-                      { label: 'Operating System', value: 'Android / iOS' },
-                      { label: 'Warranty', value: '1 Year Manufacturer Warranty' },
+                      { label: 'Network', value: '' },
+                      { label: 'Operating System', value: '' },
+                      { label: 'Warranty', value: '' },
                     ])
                   }
                   className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-md hover:bg-emerald-100 flex items-center gap-1 transition-all"
                 >
                   <Sparkles className="h-3 w-3 text-emerald-600" />
-                  <span>Pre-fill Mobile Specs Template</span>
+                  <span>Add common mobile spec rows</span>
                 </button>
               ) : isElectronicsCategory ? (
                 <button
@@ -3564,15 +3437,15 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                       { label: 'Storage / SSD', value: '' },
                       { label: 'Graphics / GPU', value: '' },
                       { label: 'Battery / Playtime', value: '' },
-                      { label: 'Connectivity', value: 'Bluetooth & Wi-Fi' },
-                      { label: 'Operating System', value: 'Windows / macOS' },
-                      { label: 'Warranty', value: '1 Year Brand Warranty' },
+                      { label: 'Connectivity', value: '' },
+                      { label: 'Operating System', value: '' },
+                      { label: 'Warranty', value: '' },
                     ])
                   }
                   className="text-xs font-bold text-sky-800 bg-sky-50 border border-sky-300 px-2.5 py-1 rounded-md hover:bg-sky-100 flex items-center gap-1 transition-all"
                 >
                   <Sparkles className="h-3 w-3 text-sky-600" />
-                  <span>Pre-fill Electronics Specs Template</span>
+                  <span>Add common electronics spec rows</span>
                 </button>
               ) : null}
               <button
@@ -3581,7 +3454,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 className="text-xs font-bold text-[#007185] hover:underline flex items-center gap-1"
               >
                 <Plus className="h-3 w-3" />
-                <span>Add Specification</span>
+                <span>Add a row</span>
               </button>
             </div>
           </div>
@@ -3598,7 +3471,8 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                     setSpecs(copy);
                   }}
                   className="w-1/3 px-2 py-1 text-xs font-bold bg-white border border-[#D5D9D9] rounded"
-                  placeholder="Attribute"
+                  placeholder="Name, e.g. Material"
+                  aria-label={`Specification ${idx + 1} name`}
                 />
                 <input
                   type="text"
@@ -3609,12 +3483,14 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                     setSpecs(copy);
                   }}
                   className="w-2/3 px-2 py-1 text-xs bg-white border border-[#D5D9D9] rounded"
-                  placeholder="Value"
+                  placeholder="Value, e.g. 100% cotton"
+                  aria-label={`Specification ${idx + 1} value`}
                 />
                 <button
                   type="button"
                   onClick={() => handleRemoveSpec(idx)}
                   className="text-rose-600 hover:text-rose-800 p-1"
+                  aria-label={`Remove specification ${idx + 1}`}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -3623,200 +3499,35 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
           </div>
         </div>
 
-        {/* Dynamic Category-Aware Measurement Chart & Explanatory Guidance (Fashion & Footwear only) */}
-        {!isElectronicsCategory && !isApplianceCategory && !isBookCategory && (
-          <div className="space-y-3 pt-4 border-t border-[#D5D9D9]">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Ruler className="h-4 w-4 text-[#007185]" />
-              <span className="text-xs font-bold text-[#0F1111] uppercase tracking-wider">
-                {isFootwearCategory
-                  ? 'Footwear Sizing & Fit Conversion Matrix (India / UK / EU)'
-                  : isMeasurementChartVisible
-                  ? 'Apparel Measurement Chart (Inches)'
-                  : 'Category Sizing & Dimensions Guide'}
-              </span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  isFootwearCategory
-                    ? 'bg-sky-50 text-[#007185] border border-sky-200'
-                    : measurementProfile.showApparelChart
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-amber-50 text-amber-800 border border-amber-200'
-                }`}
-              >
-                {isFootwearCategory ? (isWomenFootwear ? "Women's Footwear" : "Men's Footwear") : measurementProfile.badge}
-              </span>
-            </div>
-
-            {/* Optional override toggle for special listings */}
-            {!isFootwearCategory && !measurementProfile.showApparelChart && (
-              <button
-                type="button"
-                onClick={() => setShowChartOverride(!isMeasurementChartVisible)}
-                className="text-[11px] text-[#007185] hover:text-[#C7511F] font-medium underline flex items-center gap-1"
-              >
-                {isMeasurementChartVisible ? 'Hide custom chart' : '+ Show custom size chart anyway'}
-              </button>
-            )}
+        {/* Size chart (clothing and shoes): one row per size sold, shown to shoppers as entered */}
+        {chartKind !== 'none' && (
+          <div className="border-t border-[#D5D9D9] pt-4">
+            <SizeChartEditor kind={chartKind} fit={chartFit} sizes={chartSizes} values={chartValues} onChange={setChartValues} />
           </div>
-
-          {/* Conditional Display: Footwear vs Stitched Apparel vs Unstitched / Non-Apparel Guidance */}
-          {isFootwearCategory ? (
-            <div className="space-y-3">
-              <p className="text-[11px] text-[#565959]">
-                Standard India/UK footwear fit reference. Buyers will see this size conversion guide in the <strong>&quot;Size Chart&quot;</strong> modal on your product detail page.
-              </p>
-
-              <div className="overflow-x-auto border border-[#D5D9D9] rounded-xl max-w-2xl bg-white shadow-sm">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-2.5 px-3 font-bold">Brand Size</th>
-                      <th className="py-2.5 px-3 font-bold text-[#007185]">UK / India</th>
-                      <th className="py-2.5 px-3 font-bold">EU</th>
-                      <th className="py-2.5 px-3 font-bold">USA</th>
-                      <th className="py-2.5 px-3 font-bold">Heel to Toe (in)</th>
-                      <th className="py-2.5 px-3 font-bold">Foot Length (cm)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#D5D9D9]/50">
-                    {(isWomenFootwear
-                      ? [
-                          { brand: '3', uk: '3 UK', eu: '35.5', us: '4.5', in: '8.7 in', cm: '22.1 cm' },
-                          { brand: '4', uk: '4 UK', eu: '36.7', us: '5.5', in: '9.0 in', cm: '22.9 cm' },
-                          { brand: '5', uk: '5 UK', eu: '38.0', us: '6.5', in: '9.3 in', cm: '23.7 cm' },
-                          { brand: '6', uk: '6 UK', eu: '39.3', us: '7.5', in: '9.7 in', cm: '24.6 cm' },
-                          { brand: '7', uk: '7 UK', eu: '40.7', us: '8.5', in: '10.0 in', cm: '25.4 cm' },
-                          { brand: '8', uk: '8 UK', eu: '42.0', us: '9.5', in: '10.3 in', cm: '26.2 cm' },
-                        ]
-                      : [
-                          { brand: '6', uk: '6 UK', eu: '40.0', us: '7.0', in: '9.8 in', cm: '25.0 cm' },
-                          { brand: '7', uk: '7 UK', eu: '41.0', us: '8.0', in: '10.2 in', cm: '26.0 cm' },
-                          { brand: '8', uk: '8 UK', eu: '42.0', us: '9.0', in: '10.6 in', cm: '27.0 cm' },
-                          { brand: '9', uk: '9 UK', eu: '43.0', us: '10.0', in: '11.0 in', cm: '28.0 cm' },
-                          { brand: '10', uk: '10 UK', eu: '44.5', us: '11.0', in: '11.4 in', cm: '29.0 cm' },
-                          { brand: '11', uk: '11 UK', eu: '46.0', us: '12.0', in: '11.8 in', cm: '30.0 cm' },
-                          { brand: '12', uk: '12 UK', eu: '47.0', us: '13.0', in: '12.2 in', cm: '31.0 cm' },
-                        ]
-                    ).map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50">
-                        <td className="py-2 px-3 font-bold text-[#0F1111]">{row.brand}</td>
-                        <td className="py-2 px-3 font-extrabold text-[#007185]">{row.uk}</td>
-                        <td className="py-2 px-3 text-[#565959]">{row.eu}</td>
-                        <td className="py-2 px-3 text-[#565959]">{row.us}</td>
-                        <td className="py-2 px-3 text-[#565959]">{row.in}</td>
-                        <td className="py-2 px-3 text-[#565959]">{row.cm}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : isMeasurementChartVisible ? (
-            <div className="space-y-3">
-              <p className="text-[11px] text-[#565959]">
-                Specify garment measurements in inches for standard sizes S to XL. This measurement table helps buyers pick their exact fit and significantly reduces returns.
-              </p>
-
-              <div className="overflow-x-auto border border-[#D5D9D9] rounded-xl max-w-xl bg-white shadow-sm">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-2.5 px-3 font-bold">Size</th>
-                      <th className="py-2.5 px-3 font-bold">Chest (in)</th>
-                      <th className="py-2.5 px-3 font-bold">Waist (in)</th>
-                      <th className="py-2.5 px-3 font-bold">Length (in)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#D5D9D9]/50">
-                    {sizeChart.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50">
-                        <td className="py-2 px-3 font-bold text-[#0F1111]">{row.size}</td>
-                        <td className="py-2 px-3">
-                          <input
-                            type="text"
-                            value={row.chest}
-                            onChange={(e) => {
-                              const copy = [...sizeChart];
-                              copy[idx].chest = e.target.value;
-                              setSizeChart(copy);
-                            }}
-                            className="w-20 px-2 py-1 border border-[#D5D9D9] rounded text-xs focus:outline-none focus:border-[#007185]"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            type="text"
-                            value={row.waist}
-                            onChange={(e) => {
-                              const copy = [...sizeChart];
-                              copy[idx].waist = e.target.value;
-                              setSizeChart(copy);
-                            }}
-                            className="w-20 px-2 py-1 border border-[#D5D9D9] rounded text-xs focus:outline-none focus:border-[#007185]"
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <input
-                            type="text"
-                            value={row.length}
-                            onChange={(e) => {
-                              const copy = [...sizeChart];
-                              copy[idx].length = e.target.value;
-                              setSizeChart(copy);
-                            }}
-                            className="w-20 px-2 py-1 border border-[#D5D9D9] rounded text-xs focus:outline-none focus:border-[#007185]"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className="p-3.5 bg-gradient-to-r from-amber-50/60 to-slate-50 border border-amber-200/80 rounded-xl text-xs space-y-1.5 max-w-xl">
-              <div className="flex items-center gap-2 text-amber-900 font-semibold">
-                <Info className="h-4 w-4 text-amber-700 shrink-0" />
-                <span>{measurementProfile.title}</span>
-              </div>
-              <p className="text-[#565959] text-[11px] leading-relaxed">
-                {measurementProfile.description}
-              </p>
-              <div className="pt-1 text-[11px] text-[#0F1111] font-medium flex items-center gap-1.5">
-                <span className="text-[#007185]">💡 Recommendation:</span>
-                <span>{measurementProfile.recommendation}</span>
-              </div>
-            </div>
-          )}
-        </div>
         )}
       </section>
 
       {/* ===================================================================== */}
       {/* SECTION 6: RICH DESCRIPTION & HIGHLIGHTS                              */}
       {/* ===================================================================== */}
-      <section className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+      <section className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
         <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
           <Sparkles className="h-4 w-4 text-[#007185]" />
-          <h2 className="font-headline font-bold text-base text-[#0F1111]">
-            6. Highlights &amp; Full Story Description
-          </h2>
+          <h2 className="text-base font-semibold text-[#0F1111]">Highlights and description</h2>
         </div>
 
-        {/* Amazon-style Bullet Highlights ("About this item") */}
+        {/* Highlights: short points shown under "About this item" */}
         <div className="space-y-3">
-          <label className="block text-xs font-bold text-[#0F1111]">
-            Key Bullet Highlights (&ldquo;About this item&rdquo;)
-          </label>
+          <div>
+            <p className="text-sm font-semibold text-[#0F1111]">Highlights</p>
+            <p className="text-xs text-[#565959]">Short points shown under &ldquo;About this item&rdquo;, such as fabric, fit or what&apos;s in the box.</p>
+          </div>
           <div className="space-y-2">
             {highlights.map((h, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-[#007185]/10 text-[#007185] flex items-center justify-center font-bold text-[10px] shrink-0">
-                  ✓
-                </span>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#565959]" aria-hidden="true" />
                 <input
+                  aria-label={`Highlight ${idx + 1}`}
                   type="text"
                   value={h}
                   onChange={(e) => {
@@ -3830,6 +3541,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                   type="button"
                   onClick={() => handleRemoveHighlight(idx)}
                   className="text-rose-600 hover:text-rose-800 p-1"
+                  aria-label={`Remove highlight ${idx + 1}`}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -3841,7 +3553,14 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
                 type="text"
                 value={newHighlight}
                 onChange={(e) => setNewHighlight(e.target.value)}
-                placeholder="Add another highlight bullet..."
+                placeholder="For example: 100% cotton, machine washable"
+                aria-label="New highlight"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddHighlight();
+                  }
+                }}
                 className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white"
               />
               <button
@@ -3857,18 +3576,19 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
 
         {/* Full Markdown / Text Narrative */}
         <div className="space-y-1 pt-3 border-t border-[#D5D9D9]">
-          <label className="block text-xs font-bold text-[#0F1111]">
-            Full Artisan Story &amp; Product Narrative
+          <label htmlFor="product-description" className="block text-sm font-semibold text-[#0F1111]">
+            Description
           </label>
           <textarea
+            id="product-description"
             rows={6}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Share the heritage, handloom weaving history, atelier backstory, and styling guidance..."
-            className="w-full px-3.5 py-2.5 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:border-[#007185] bg-white"
+            placeholder="Describe the product: what it is, what it's made of, how it fits or works, and how to care for it."
+            className={inputClass}
           />
-          <p className="text-[11px] text-[#565959]">
-            Displayed directly in the full-width scrollable description section of the product detail page.
+          <p className="text-xs text-[#565959]">
+            Shown in the description section of the product page.
           </p>
         </div>
       </section>
@@ -3876,59 +3596,45 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {/* ===================================================================== */}
       {/* SECTION 7: AMAZON A+ RICH PRODUCT DESCRIPTION (EDITORIAL MODULES)    */}
       {/* ===================================================================== */}
-      <section className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
+      <section className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#D5D9D9]">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#800020]" />
+            <Sparkles className="h-5 w-5 text-[#007185]" />
             <div>
-              <h3 className="text-base font-bold text-[#0F1111]">
-                Amazon A+ Rich Product Description (Editorial Modules)
-              </h3>
-              <p className="text-xs text-[#565959]">
-                Add visually rich editorial sections for desktop and mobile: Hero banners, image-with-text splits, feature cards, and craftsmanship stories.
+              <h2 className="text-base font-semibold text-[#0F1111]">
+                Brand story <span className="font-normal text-[#565959]">(optional)</span>
+              </h2>
+              <p className="text-sm text-[#565959]">
+                Extra sections with your own photos and text, shown below the description: banners, photo-and-text blocks and feature cards.
               </p>
             </div>
           </div>
-          <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 text-[#800020] border border-amber-200">
-            A+ Brand Content
-          </span>
         </div>
 
         <APlusBuilder
           aplusData={aplusData}
           onChange={setAplusData}
-          brandName={brand || 'Artisan Studio'}
+          brandName={brand}
         />
       </section>
 
       {/* ===================================================================== */}
       {/* BOTTOM STICKY BAR: DRAFT & PUBLISH ACTIONS                            */}
       {/* ===================================================================== */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-[#D5D9D9] shadow-2xl py-3 px-4 sm:px-8">
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#D5D9D9] bg-white px-4 py-3 sm:px-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-bold text-[#0F1111]">{title || 'Untitled Product'}</span>
-            <span className="text-[#565959]">•</span>
-            <span className="font-mono font-bold text-[#007185]">
-              {price ? formatINR(numericPrice) : 'Price TBD'}
-            </span>
-            {isCustomized && (
-              <span className="bg-rose-100 text-[#800020] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                Made to Order
-              </span>
-            )}
+          <div className="flex min-w-0 items-center gap-3 text-sm">
+            <span className="hidden max-w-[16rem] truncate font-semibold text-[#0F1111] sm:inline">{title || 'Untitled product'}</span>
+            <span className="tabular-nums font-semibold text-[#0F1111]">{price ? formatINR(numericPrice) : 'No price yet'}</span>
             {lastAutoSavedTime && (
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold whitespace-nowrap">
-                <Check className="h-2.5 w-2.5 text-emerald-600" />
-                Auto-saved ({lastAutoSavedTime})
-              </span>
+              <span className="hidden whitespace-nowrap text-[#565959] md:inline">Kept on this device at {lastAutoSavedTime}</span>
             )}
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/vendor/products"
-              className="px-4 py-2 rounded-lg bg-[#F7F8F8] border border-[#D5D9D9] hover:bg-[#EAEDED] text-xs font-bold text-[#0F1111] transition-all"
+              className={`${vendorButton.secondary} hidden sm:inline-flex`}
             >
               Cancel
             </Link>
@@ -3936,19 +3642,19 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
               type="button"
               onClick={() => handleSubmit(false)}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-lg bg-white border border-[#007185] text-[#007185] hover:bg-[#007185]/5 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              className={vendorButton.secondary}
             >
-              <Save className="h-3.5 w-3.5" />
-              <span>{isSubmitting ? 'Saving...' : 'Save as Draft'}</span>
+              <Save className="h-4 w-4" aria-hidden="true" />
+              <span>{isSubmitting ? 'Saving…' : 'Save draft'}</span>
             </button>
             <button
               type="button"
               onClick={() => handleSubmit(true)}
               disabled={isSubmitting}
-              className="px-6 py-2 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5 border border-[#FCD200]"
+              className={vendorButton.primary}
             >
-              <CheckCircle2 className="h-4 w-4 text-[#0F1111]" />
-              <span>{isSubmitting ? 'Publishing...' : 'Publish Product'}</span>
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              <span>{isSubmitting ? 'Saving…' : mode === 'create' ? 'Publish' : 'Save and publish'}</span>
             </button>
           </div>
         </div>
@@ -3958,80 +3664,53 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
       {/* RESTORE DRAFT RECOVERY MODAL                                         */}
       {/* ===================================================================== */}
       {showDraftModal && existingDraft && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#D5D9D9] max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#232F3E] to-[#131921] text-white p-5 flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#FF9900]/20 border border-[#FF9900]/40 flex items-center justify-center shrink-0">
-                  <RotateCcw className="w-5 h-5 text-[#FF9900]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white leading-tight">Restore Unsaved Draft?</h3>
-                  <p className="text-xs text-stone-300 mt-0.5">We recovered your progress from an earlier session</p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="restore-draft-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-[#D5D9D9] bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 id="restore-draft-title" className="text-lg font-semibold text-[#0F1111]">Continue where you left off?</h3>
+                <p className="mt-1 text-sm text-[#565959]">This browser kept a product you hadn&apos;t saved.</p>
               </div>
-              <button
-                type="button"
-                onClick={handleDiscardDraft}
-                className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-                title="Dismiss"
-              >
-                <X className="w-4 h-4" />
+              <button type="button" onClick={() => setShowDraftModal(false)} className="rounded-lg p-1 text-[#565959] hover:bg-[#F7F8F8]" aria-label="Close">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-[#565959] leading-relaxed">
-                You were working on a product before the window was closed or refreshed. Would you like to restore your details or discard and start fresh?
-              </p>
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-[#D5D9D9] bg-[#F7F8F8] p-3.5 text-sm">
+              <dt className="text-[#565959]">Title</dt>
+              <dd className="truncate font-medium text-[#0F1111]">{existingDraft.title || 'Untitled product'}</dd>
+              <dt className="text-[#565959]">Price</dt>
+              <dd className="tabular-nums font-medium text-[#0F1111]">
+                {existingDraft.price ? `₹${Number(existingDraft.price).toLocaleString('en-IN')}` : 'Not set'}
+              </dd>
+              <dt className="text-[#565959]">Variants and photos</dt>
+              <dd className="font-medium text-[#0F1111]">
+                {existingDraft.variants?.length || 0} variants, {existingDraft.images?.length || 0} photos
+              </dd>
+              <dt className="text-[#565959]">Last change</dt>
+              <dd className="font-medium text-[#0F1111]">
+                {existingDraft.savedAt
+                  ? new Date(existingDraft.savedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                  : 'Earlier'}
+              </dd>
+            </dl>
 
-              {/* Draft snapshot card */}
-              <div className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 space-y-2 text-xs">
-                <div className="flex items-baseline justify-between gap-2 border-b border-stone-200/80 pb-2">
-                  <span className="font-bold text-[#0F1111] line-clamp-1">
-                    {existingDraft.title || 'Untitled Product'}
-                  </span>
-                  <span className="font-mono font-bold text-[#007185] whitespace-nowrap">
-                    {existingDraft.price ? `₹${Number(existingDraft.price).toLocaleString('en-IN')}` : 'Price TBD'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-[#565959]">
-                  <div>
-                    Brand: <strong className="text-[#0F1111]">{existingDraft.brand || 'None'}</strong>
-                  </div>
-                  <div>
-                    Variants: <strong className="text-[#0F1111]">{existingDraft.variants?.length || 0} configured</strong>
-                  </div>
-                  <div>
-                    Images: <strong className="text-[#0F1111]">{existingDraft.images?.length || 0} uploaded</strong>
-                  </div>
-                  <div>
-                    Saved: <strong className="text-[#0F1111]">{existingDraft.savedAt ? new Date(existingDraft.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={handleRestoreDraft}
-                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] font-bold text-xs shadow-sm transition-all border border-[#FCD200] flex items-center justify-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Restore My Draft</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDiscardDraft}
-                  className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-white hover:bg-stone-100 text-[#565959] hover:text-rose-600 font-semibold text-xs border border-stone-200 transition-all text-center"
-                >
-                  Discard & Start Fresh
-                </button>
-              </div>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#FCD200] bg-[#FFD814] px-4 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00]"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Continue it
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="rounded-lg border border-[#D5D9D9] bg-white px-4 py-2 text-sm font-medium text-[#0F1111] hover:bg-[#F7F8F8]"
+              >
+                Start a new one
+              </button>
             </div>
           </div>
         </div>
@@ -4043,7 +3722,7 @@ export function ProductForm({ mode, productId, initialData }: ProductFormProps) 
         onClose={() => setIsMediaModalOpen(false)}
         onSelect={handleSelectMediaAsset}
         allowedCategory={mediaTarget === 'gallery' ? 'PRODUCT_GALLERY' : 'COLOR_SWATCH'}
-        title={mediaTarget === 'gallery' ? 'Select Product Gallery Image' : 'Select Color Swatch Image'}
+        title={mediaTarget === 'gallery' ? 'Choose a product photo' : 'Choose a photo for this colour'}
       />
     </div>
   );

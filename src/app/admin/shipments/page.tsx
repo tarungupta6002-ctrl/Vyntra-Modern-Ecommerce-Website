@@ -10,7 +10,6 @@ import {
   Search,
   RefreshCw,
   ExternalLink,
-  Loader2,
   Package,
   ShieldAlert,
   Send,
@@ -22,6 +21,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export const dynamic = 'force-dynamic';
 
 interface ShipmentItem {
@@ -318,7 +318,7 @@ export default function AdminShipmentsPage() {
       <div className="bg-white border border-[#D5D9D9] rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-24 text-center space-y-2">
-            <Loader2 className="w-8 h-8 animate-spin text-[#007185] mx-auto" />
+            <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
             <p className="text-xs text-[#565959]">Loading vendor shipments...</p>
           </div>
         ) : filtered.length === 0 ? (
@@ -591,7 +591,7 @@ export default function AdminShipmentsPage() {
                   >
                     {isSubmittingNotice ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-current" decorative />
                         <span>Dispatching...</span>
                       </>
                     ) : (

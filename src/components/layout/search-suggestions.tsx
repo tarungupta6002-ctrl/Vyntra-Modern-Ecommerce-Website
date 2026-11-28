@@ -2,10 +2,11 @@
 
 /* eslint-disable @next/next/no-img-element -- vendor thumbnails come from arbitrary hosts */
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Clock, Search, Tag, LayoutGrid, X, Loader2 } from 'lucide-react';
+import { Clock, Search, Tag, LayoutGrid, X } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import type { SearchSuggestion } from '@/app/api/search/suggest/route';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 const RECENT_KEY = 'vyntra:recent-searches';
 const MAX_RECENT = 6;
 const DEBOUNCE_MS = 200;
@@ -283,7 +284,7 @@ export function SearchSuggestionsPanel({
 
       {!showingRecent && loading && items.length === 0 && (
         <div className="flex items-center gap-2 px-3 py-3 text-sm text-[#565959]">
-          <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+          <CometSpinner className="h-4 w-4 text-current" decorative /> Searching…
         </div>
       )}
       {!showingRecent && !loading && items.length === 0 && (

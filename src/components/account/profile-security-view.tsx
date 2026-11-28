@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Eye, EyeOff, Loader2, LogOut } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, LogOut } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PASSWORD_HINT, passwordProblem } from '@/lib/password-rules';
 import { useUserProfileStore } from '@/store/user-profile-store';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface ProfileSecurityViewProps {
   embeddedInAccount?: boolean;
 }
@@ -175,7 +176,7 @@ export function ProfileSecurityView({ embeddedInAccount = false }: ProfileSecuri
   if (!profile) {
     return (
       <div className="flex min-h-[300px] items-center justify-center gap-2 text-sm text-[#565959]">
-        <Loader2 className="h-5 w-5 animate-spin" /> Loading your account…
+        <CometSpinner className="h-4 w-4 text-current" decorative /> Loading your account…
       </div>
     );
   }
@@ -242,7 +243,7 @@ export function ProfileSecurityView({ embeddedInAccount = false }: ProfileSecuri
                       disabled={savingField}
                       className="inline-flex items-center gap-1.5 rounded-full bg-[#FFD814] px-4 py-1.5 text-sm font-semibold hover:bg-[#F7CA00] disabled:opacity-60"
                     >
-                      {savingField && <Loader2 className="h-4 w-4 animate-spin" />} Save
+                      {savingField && <CometSpinner className="h-4 w-4 text-current" decorative />} Save
                     </button>
                     <button
                       type="button"
@@ -344,7 +345,7 @@ export function ProfileSecurityView({ embeddedInAccount = false }: ProfileSecuri
               disabled={changingPwd}
               className="inline-flex items-center gap-1.5 rounded-full bg-[#FFD814] px-5 py-2 text-sm font-semibold hover:bg-[#F7CA00] disabled:opacity-60"
             >
-              {changingPwd && <Loader2 className="h-4 w-4 animate-spin" />} Change password
+              {changingPwd && <CometSpinner className="h-4 w-4 text-current" decorative />} Change password
             </button>
             <p className="text-xs text-[#565959]">
               Forgot it?{' '}
@@ -372,7 +373,7 @@ export function ProfileSecurityView({ embeddedInAccount = false }: ProfileSecuri
             onClick={() => signOut('local')}
             className="inline-flex items-center gap-1.5 rounded-full border border-[#D5D9D9] px-4 py-1.5 text-sm font-semibold hover:bg-[#F7F8F8] disabled:opacity-60"
           >
-            {signingOut === 'local' ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Sign out
+            {signingOut === 'local' ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <LogOut className="h-4 w-4" />} Sign out
           </button>
           <button
             type="button"
@@ -380,7 +381,7 @@ export function ProfileSecurityView({ embeddedInAccount = false }: ProfileSecuri
             onClick={() => signOut('global')}
             className="inline-flex items-center gap-1.5 rounded-full border border-[#D5D9D9] px-4 py-1.5 text-sm font-semibold hover:bg-[#F7F8F8] disabled:opacity-60"
           >
-            {signingOut === 'global' && <Loader2 className="h-4 w-4 animate-spin" />} Sign out of all devices
+            {signingOut === 'global' && <CometSpinner className="h-4 w-4 text-current" decorative />} Sign out of all devices
           </button>
         </div>
       </section>

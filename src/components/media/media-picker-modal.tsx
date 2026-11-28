@@ -8,7 +8,6 @@ import {
   Check,
   Trash2,
   AlertCircle,
-  Loader2,
   Image as ImageIcon,
   FolderOpen,
   Filter,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { validateClientImage, CATEGORY_DIMENSION_GUIDELINES } from '@/lib/media/validation';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export interface SelectedMedia {
   id: string;
   url: string;
@@ -359,7 +359,7 @@ export function MediaPickerModal({
 
                 {loading ? (
                   <div className="py-20 text-center space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#007185] mx-auto" />
+                    <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
                     <p className="text-xs text-[#565959]">Loading media assets...</p>
                   </div>
                 ) : items.length === 0 ? (
@@ -618,7 +618,7 @@ export function MediaPickerModal({
                 >
                   {isUploading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-[#007185]" />
+                      <CometSpinner className="h-4 w-4 text-[#007185]" decorative />
                       <span>Validating & Uploading...</span>
                     </>
                   ) : (

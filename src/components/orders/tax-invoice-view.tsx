@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Printer, ArrowLeft, AlertCircle } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface InvoiceData {
   orderNumber: string;
   orderDate: string;
@@ -98,7 +99,7 @@ export function TaxInvoiceView({ orderId }: { orderId?: string; embedded?: boole
     return (
       <div className="w-full min-h-[60vh] flex items-center justify-center bg-stone-100">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <p className="text-sm text-stone-600">Loading invoice…</p>
         </div>
       </div>

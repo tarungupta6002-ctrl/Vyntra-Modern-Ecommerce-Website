@@ -50,6 +50,7 @@ import { useWishlistStore, WishlistAuthError } from '@/store/wishlist-store';
 import { useAddressStore } from '@/store/address-store';
 import { formatINR } from '@/lib/utils';
 import { APlusContentDisplay } from '@/components/products/aplus-content-display';
+import { SizeChartTable, hasSizeGuide } from '@/components/products/size-chart-table';
 import { ProductReviewsSection } from '@/components/products/product-reviews-section';
 import { SellerOfferItem } from '@/types/multiseller';
 import {
@@ -547,15 +548,18 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
     product,
   ]);
 
+  const showSizeGuide = hasSizeGuide({ chart: product.sizeChart, kind: product.sizeChartKind, fit: product.footwearFit, offered: product.sizes || [] });
+
   const isUnstitchedOrFreeSize =
-    isFashionCategory &&
+    product.sizeChartKind === 'free-size' ||
+    (isFashionCategory &&
     !isFootwear &&
     (product.category === 'ethnic' ||
       product.category?.toLowerCase().includes('saree') ||
       product.subCategory?.toLowerCase().includes('saree') ||
       product.title?.toLowerCase().includes('saree') ||
       product.subCategory?.toLowerCase().includes('shawl') ||
-      product.subCategory?.toLowerCase().includes('dupatta'));
+      product.subCategory?.toLowerCase().includes('dupatta')));
 
   const defaultSize = isUnstitchedOrFreeSize
     ? 'Free Size'
@@ -1193,14 +1197,14 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                       : 'Size:'}{' '}
                     <strong className="text-[#0F1111]">{selectedSize}</strong>
                   </span>
-                  {/* Size Chart Link (Fashion only) */}
-                  {isFashionCategory && !isUnstitchedOrFreeSize && (
+                  {/* Size chart link (only when there is a chart to show) */}
+                  {showSizeGuide && (
                     <a
                       href="#size-chart"
                       className="text-[#007185] hover:underline flex items-center gap-1 font-semibold text-xs"
                     >
                       <Ruler className="h-3 w-3" />
-                      <span>{isFootwear ? 'Size Guide' : 'Size Chart'}</span>
+                      <span>Size chart</span>
                     </a>
                   )}
                 </div>
@@ -1208,7 +1212,7 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
                 <div className="flex flex-wrap gap-2">
                   {isFashionCategory && (isUnstitchedOrFreeSize || (product.sizes.length === 1 && product.sizes[0].size.toLowerCase().includes('free'))) ? (
                     <span className="inline-block px-3 py-1 bg-[#F7F8F8] border border-[#D5D9D9] rounded-md text-xs font-bold text-[#0F1111]">
-                      Free Size {isUnstitchedOrFreeSize ? '(Standard 5.5m + 0.8m Blouse Piece)' : ''}
+                      Free size
                     </span>
                   ) : (
                     uniqueSizesList.map((s) => {
@@ -1730,141 +1734,15 @@ export default function ProductDetailView({ product }: ProductDetailViewProps) {
           </div>
         </div>
 
-        {/* 3. Size Chart & Measurements Guide (Fashion & Footwear only) */}
-        {isFashionCategory && (isFootwear || !isUnstitchedOrFreeSize) && (
-          <div id="size-chart" className="space-y-4 pt-4 border-t border-[#D5D9D9]">
-            <div className="flex items-center gap-2 pb-3 border-b border-[#D5D9D9]">
-              <Ruler className="h-5 w-5 text-[#007185]" />
-              <h2 className="text-xl font-headline font-bold text-[#0F1111]">
-                {isFootwear
-                  ? `Shoe Size Guide & Fit Conversion (${isWomenFootwear ? "Women's" : "Men's"} India / UK / EU)`
-                  : 'Size Guide & Detailed Measurements'}
-              </h2>
-            </div>
-
-          {isFootwear ? (
-            <div className="space-y-3">
-              <div className="border border-[#D5D9D9] rounded-xl overflow-x-auto max-w-3xl shadow-sm bg-white">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
-                    <tr>
-                      <th className="py-3 px-4 font-bold">Brand Size</th>
-                      <th className="py-3 px-4 font-bold text-[#007185]">UK / India</th>
-                      <th className="py-3 px-4 font-bold">EU</th>
-                      <th className="py-3 px-4 font-bold">USA</th>
-                      <th className="py-3 px-4 font-bold">Heel to Toe (in)</th>
-                      <th className="py-3 px-4 font-bold">Foot Length (cm)</th>
-                      <th className="py-3 px-4 font-bold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#D5D9D9]">
-                    {(isWomenFootwear
-                      ? [
-                          { brand: '3', uk: '3 UK', eu: '35.5', us: '4.5', in: '8.7 in', cm: '22.1 cm' },
-                          { brand: '4', uk: '4 UK', eu: '36.7', us: '5.5', in: '9.0 in', cm: '22.9 cm' },
-                          { brand: '5', uk: '5 UK', eu: '38.0', us: '6.5', in: '9.3 in', cm: '23.7 cm' },
-                          { brand: '6', uk: '6 UK', eu: '39.3', us: '7.5', in: '9.7 in', cm: '24.6 cm' },
-                          { brand: '7', uk: '7 UK', eu: '40.7', us: '8.5', in: '10.0 in', cm: '25.4 cm' },
-                          { brand: '8', uk: '8 UK', eu: '42.0', us: '9.5', in: '10.3 in', cm: '26.2 cm' },
-                        ]
-                      : [
-                          { brand: '6', uk: '6 UK', eu: '40.0', us: '7.0', in: '9.8 in', cm: '25.0 cm' },
-                          { brand: '7', uk: '7 UK', eu: '41.0', us: '8.0', in: '10.2 in', cm: '26.0 cm' },
-                          { brand: '8', uk: '8 UK', eu: '42.0', us: '9.0', in: '10.6 in', cm: '27.0 cm' },
-                          { brand: '9', uk: '9 UK', eu: '43.0', us: '10.0', in: '11.0 in', cm: '28.0 cm' },
-                          { brand: '10', uk: '10 UK', eu: '44.5', us: '11.0', in: '11.4 in', cm: '29.0 cm' },
-                          { brand: '11', uk: '11 UK', eu: '46.0', us: '12.0', in: '11.8 in', cm: '30.0 cm' },
-                          { brand: '12', uk: '12 UK', eu: '47.0', us: '13.0', in: '12.2 in', cm: '31.0 cm' },
-                        ]
-                    ).map((row, idx) => {
-                      const matchedSize = (product.sizes || []).find(
-                        (s) =>
-                          s.size?.toLowerCase() === row.uk.toLowerCase() ||
-                          s.size === row.brand ||
-                          s.size?.startsWith(row.brand)
-                      );
-                      const isSelected =
-                        selectedSize?.toLowerCase() === row.uk.toLowerCase() ||
-                        selectedSize === row.brand ||
-                        selectedSize?.startsWith(row.brand);
-                      const isOffered = Boolean(matchedSize);
-                      const isOutOfStock = matchedSize?.disabled;
-
-                      return (
-                        <tr
-                          key={idx}
-                          className={`transition-colors ${
-                            isSelected
-                              ? 'bg-[#007185]/10 font-bold border-l-4 border-l-[#007185]'
-                              : 'hover:bg-slate-50'
-                          }`}
-                        >
-                          <td className="py-3 px-4 font-bold text-[#0F1111]">{row.brand}</td>
-                          <td className="py-3 px-4 font-extrabold text-[#007185]">{row.uk}</td>
-                          <td className="py-3 px-4 text-[#565959]">{row.eu}</td>
-                          <td className="py-3 px-4 text-[#565959]">{row.us}</td>
-                          <td className="py-3 px-4 text-[#565959]">{row.in}</td>
-                          <td className="py-3 px-4 text-[#565959]">{row.cm}</td>
-                          <td className="py-3 px-4">
-                            {isOffered && !isOutOfStock ? (
-                              <span className="text-[#067D62] font-semibold flex items-center gap-1">
-                                <Check className="w-3.5 h-3.5" /> In Stock
-                              </span>
-                            ) : isOffered && isOutOfStock ? (
-                              <span className="text-rose-600 font-semibold">Out of Stock</span>
-                            ) : (
-                              <span className="text-stone-400 font-normal">Not Offered</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* How to measure foot length tip */}
-              <div className="p-3 bg-[#F7F8F8] border border-[#D5D9D9] rounded-xl text-xs text-[#565959] flex items-start gap-2 max-w-3xl">
-                <Info className="w-4 h-4 text-[#007185] shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-[#0F1111] font-semibold">Footwear Sizing Tip:</strong>{' '}
-                  Stand on a blank sheet of paper wearing your usual socks. Mark the tip of your longest toe and the back edge of your heel. Measure the distance in inches or centimeters to select your ideal UK/India shoe size.
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="border border-[#D5D9D9] rounded-xl overflow-x-auto max-w-3xl shadow-sm">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#F7F8F8] border-b border-[#D5D9D9] text-[#565959] uppercase tracking-wider text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4 font-bold">Standard Size</th>
-                    <th className="py-3 px-4 font-bold">Chest (Inches)</th>
-                    <th className="py-3 px-4 font-bold">Waist (Inches)</th>
-                    <th className="py-3 px-4 font-bold">Length (Inches)</th>
-                    <th className="py-3 px-4 font-bold">Availability</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#D5D9D9]">
-                  {[
-                    { size: 'S', chest: '38 in', waist: '32 in', length: '40 in', stock: 'In Stock' },
-                    { size: 'M', chest: '40 in', waist: '34 in', length: '41 in', stock: 'In Stock' },
-                    { size: 'L', chest: '42 in', waist: '36 in', length: '42 in', stock: 'In Stock' },
-                    { size: 'XL', chest: '44 in', waist: '38 in', length: '43 in', stock: 'Limited' },
-                    { size: 'Free Size', chest: '40-44 in', waist: 'Adjustable', length: 'Standard', stock: 'In Stock' },
-                  ].map((row, idx) => (
-                    <tr key={idx} className={selectedSize === row.size ? 'bg-[#007185]/5 font-bold' : ''}>
-                      <td className="py-3 px-4 text-[#0F1111]">{row.size}</td>
-                      <td className="py-3 px-4 text-[#565959]">{row.chest}</td>
-                      <td className="py-3 px-4 text-[#565959]">{row.waist}</td>
-                      <td className="py-3 px-4 text-[#565959]">{row.length}</td>
-                      <td className="py-3 px-4 text-[#067D62] font-semibold">{row.stock}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        {/* 3. Size chart: the seller's own, or a labelled general shoe chart */}
+        {showSizeGuide && (
+          <SizeChartTable
+            chart={product.sizeChart}
+            kind={product.sizeChartKind}
+            fit={product.footwearFit}
+            offered={product.sizes || []}
+            selectedSize={selectedSize}
+          />
         )}
 
         {/* 4. Customer Reviews & Ratings */}

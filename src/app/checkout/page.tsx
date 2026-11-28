@@ -36,6 +36,7 @@ import { CartItem } from '@/types';
 import { formatINR } from '@/lib/utils';
 import { CheckoutTrustBanner } from '@/components/cart/checkout-trust-banner';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 // Shared singleton promise to prevent concurrent duplicate Razorpay script injections
 let razorpayLoadingPromise: Promise<boolean> | null = null;
 
@@ -614,7 +615,7 @@ export default function CheckoutPage() {
           <p className="text-xs text-on-surface-variant leading-relaxed">
             Finalizing your order and loading your verified confirmation details...
           </p>
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mt-2" />
+          <CometSpinner className="h-12 w-12 mt-2" />
         </div>
       </div>
     );
@@ -625,7 +626,7 @@ export default function CheckoutPage() {
     return (
       <div className="w-full bg-surface min-h-[calc(100vh-280px)] flex items-center justify-center py-16 px-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <p className="text-xs text-on-surface-variant font-medium">Preparing secure checkout...</p>
         </div>
       </div>

@@ -17,6 +17,7 @@ import { APlusData, createDefaultAPlusContent } from '@/types/aplus';
 import { resolveBuyBox } from '@/lib/buy-box';
 import { SellerOfferItem, BuyBoxResult } from '@/types/multiseller';
 import { categoryHref } from '@/lib/category-routes';
+import { footwearFitFor, sanitizeSizeChart, sizeChartKindFor, type SizeChart } from '@/lib/catalog/size-chart';
 
 function getColorHex(colorName: string): string {
   const lower = (colorName || '').toLowerCase();
@@ -142,19 +143,27 @@ export function formatCatalogProduct(product: any): FormattedCatalogProduct {
 /**
  * Formats a Prisma product into the DetailedProduct structure for PDP.
  */
-/** Breadcrumb items from the root category down to the product's category. */
-function categoryTrail(category: any): Array<{ label: string; href: string }> {
+/** The product's category and its ancestors, root first. */
+function categoryChain(category: any): Array<{ name: string; slug: string }> {
   const chain: Array<{ name: string; slug: string }> = [];
   let node = category;
   while (node && chain.length < 6) {
     if (node.slug) chain.unshift({ name: node.name, slug: node.slug });
     node = node.parent;
   }
+  return chain;
+}
+
+/** Breadcrumb items from the root category down to the product's category. */
+function categoryTrail(category: any): Array<{ label: string; href: string }> {
+  const chain = categoryChain(category);
   const slugs = chain.map((c) => c.slug);
   return chain.map((c, i) => ({ label: c.name, href: categoryHref(slugs, i) }));
 }
 
 export function formatDetailedProduct(product: any): DetailedProduct {
+  const categorySlugs = categoryChain(product.category).map((c) => c.slug);
+  const chartKind = sizeChartKindFor(categorySlugs);
   const p1 = Number(product.basePrice || 0);
   const p2 = product.discountPrice ? Number(product.discountPrice) : null;
 
@@ -386,6 +395,7 @@ export function formatDetailedProduct(product: any): DetailedProduct {
   let aplusData: APlusData | undefined = undefined;
   let customSpecs: Array<{ label: string; value: string }> | undefined = undefined;
   let customHighlights: string[] | undefined = undefined;
+  let sellerSizeChart: SizeChart | null = null;
   let cleanDescription = '';
 
   if (product.description) {
@@ -407,6 +417,9 @@ export function formatDetailedProduct(product: any): DetailedProduct {
           }
           if (parsed.aplus && Array.isArray(parsed.aplus.modules)) {
             aplusData = parsed.aplus;
+          }
+          if (parsed.sizeChart) {
+            sellerSizeChart = sanitizeSizeChart(parsed.sizeChart);
           }
         }
       } catch {
@@ -700,6 +713,10 @@ export function formatDetailedProduct(product: any): DetailedProduct {
     subCategory: product.category?.name || 'Artisanal Collection',
     // Home › department › … › category (the page appends the product title itself).
     breadcrumb: [{ label: 'Home', href: '/' }, ...categoryTrail(product.category)],
+    sizeChartKind: chartKind,
+    // A stored chart only counts when it matches the product's current category.
+    sizeChart: sellerSizeChart && sellerSizeChart.kind === chartKind ? sellerSizeChart : null,
+    footwearFit: chartKind === 'footwear' ? footwearFitFor(categorySlugs) : undefined,
     price: sellingPrice,
     originalPrice,
     discount: discountStr,
@@ -971,8 +988,8 @@ function getCachedProduct(slug: string): Promise<DetailedProduct | null> {
       const formatted = formatDetailedProduct(productFromDb);
       return JSON.parse(JSON.stringify(formatted));
     },
-    // v2: breadcrumbs link to the department and Fashion pages
-    ['detailed-product-v2', slug],
+    // v3: size chart kind and the seller's size chart
+    ['detailed-product-v3', slug],
     {
       tags: ['products', `product-${slug}`],
       revalidate: 300,

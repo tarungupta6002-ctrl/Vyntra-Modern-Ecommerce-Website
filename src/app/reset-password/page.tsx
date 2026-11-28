@@ -3,10 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PASSWORD_HINT, passwordProblem } from '@/lib/password-rules';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 /**
  * Where the "Forgot password" email lands (via /auth/callback, which signs the user in
  * with the one-time link). The user sets a new password here without the old one.
@@ -72,7 +73,7 @@ export default function ResetPasswordPage() {
 
         {status === 'checking' && (
           <p className="mt-4 flex items-center gap-2 text-sm text-[#565959]">
-            <Loader2 className="h-4 w-4 animate-spin" /> Checking your reset link…
+            <CometSpinner className="h-4 w-4 text-current" decorative /> Checking your reset link…
           </p>
         )}
 
@@ -139,7 +140,7 @@ export default function ResetPasswordPage() {
               disabled={saving}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FFD814] px-5 py-2.5 text-sm font-semibold hover:bg-[#F7CA00] disabled:opacity-60"
             >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save new password
+              {saving && <CometSpinner className="h-4 w-4 text-current" decorative />} Save new password
             </button>
           </form>
         )}

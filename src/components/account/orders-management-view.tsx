@@ -43,6 +43,7 @@ import { ReturnRequestModal } from '@/components/orders/return-request-modal';
 import { CustomerDisputeModal } from '@/components/orders/customer-dispute-modal';
 import { computeIstDisputeDeadline, isWithinDeadline } from '@/lib/date-utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface OrdersManagementViewProps {
   embeddedInAccount?: boolean;
 }
@@ -350,7 +351,7 @@ export function OrdersManagementView({ embeddedInAccount = false }: OrdersManage
       <div className="flex flex-col gap-6" id="ordersContainer">
         {isLoading ? (
           <div className="bg-surface-container-lowest rounded-2xl p-12 text-center my-6 flex flex-col items-center justify-center border border-surface-container">
-            <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mb-3" />
+            <CometSpinner className="h-12 w-12 mb-3" />
             <p className="text-xs font-semibold text-on-surface-variant">Loading your purchase history...</p>
           </div>
         ) : filteredOrders.length === 0 ? (

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VendorPayoutsData {
   storeName: string;
   platformCommissionRate: number;
@@ -127,7 +128,7 @@ export default function VendorPayoutsPage() {
         description="What each sale earned you after commission, and the payouts sent to your bank."
         actions={
           <button onClick={fetchPayouts} disabled={isLoading} className={vendorButton.secondary}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </button>
         }
@@ -195,7 +196,7 @@ export default function VendorPayoutsPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-[#D5D9D9] overflow-hidden">
           {isLoading ? (
             <div className="p-12 text-center text-xs text-[#565959]">
-              <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-[#007185]" />
+              <CometSpinner className="h-12 w-12 mx-auto mb-2 block text-[#007185]" />
               Loading product financial entries...
             </div>
           ) : error ? (

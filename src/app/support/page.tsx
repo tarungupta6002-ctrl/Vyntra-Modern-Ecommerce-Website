@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { HelpSupportView } from '@/components/account/help-support-view';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export const metadata: Metadata = {
   title: 'Help & Support | Vyntra',
   description: 'Help with orders, delivery, returns, refunds and payments on Vyntra, and a way to contact our team.',
@@ -24,7 +25,7 @@ export default function GeneralSupportPage() {
         <Suspense
           fallback={
             <div className="w-full min-h-[400px] flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
+              <CometSpinner className="h-12 w-12" />
             </div>
           }
         >

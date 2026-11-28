@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { HIDDEN_FROM_SELLERS } from '@/lib/category-routes';
 import {
   getTemplateForCategoryPath,
   validateAttributes,
@@ -65,4 +66,26 @@ export async function validateListingAttributes(
 /** Listing-level check only (kept for callers without variant data). */
 export async function validateProductAttributes(categoryId: string, input: unknown, isPublishing: boolean) {
   return validateListingAttributes(categoryId, input, [], isPublishing);
+}
+
+/**
+ * Checks the category a seller files a product under: it must exist, be a final (leaf) category,
+ * since listing pages show products by their specific category, and not be one of the hidden
+ * duplicates. Returns its path (root first) or an error message for the seller.
+ */
+export async function checkListingCategory(
+  categoryId: string
+): Promise<{ path: string[]; error?: undefined } | { path?: undefined; error: string }> {
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true, slug: true, _count: { select: { children: true } } },
+  });
+  if (!category) return { error: 'The selected category does not exist.' };
+  if (HIDDEN_FROM_SELLERS.has(category.slug)) {
+    return { error: 'This category is no longer used. Please choose another one.' };
+  }
+  if (category._count.children > 0) {
+    return { error: 'Please choose a more specific category (one with no sub-categories).' };
+  }
+  return { path: await getCategoryPathSlugs(categoryId) };
 }

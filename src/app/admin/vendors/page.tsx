@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VerifiedVendorItem {
   id: string;
   merchantId?: string;
@@ -465,10 +466,9 @@ export default function AdminVendorsPage() {
           {/* Verified Vendors Table */}
           <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
             {isLoadingVerified ? (
-              <div className="p-8 space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 bg-[#F7F8F8] rounded-xl animate-pulse" />
-                ))}
+              <div className="flex flex-col items-center justify-center gap-3 py-12" aria-live="polite">
+                <CometSpinner className="h-12 w-12" decorative />
+                <p className="text-sm text-[#565959]">Loading…</p>
               </div>
             ) : verifiedError ? (
               <div className="p-10 text-center space-y-3">
@@ -714,10 +714,9 @@ export default function AdminVendorsPage() {
           {/* Applications Table */}
           <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
             {isLoadingApps ? (
-              <div className="p-8 space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-16 bg-[#F7F8F8] rounded-xl animate-pulse" />
-                ))}
+              <div className="flex flex-col items-center justify-center gap-3 py-12" aria-live="polite">
+                <CometSpinner className="h-12 w-12" decorative />
+                <p className="text-sm text-[#565959]">Loading…</p>
               </div>
             ) : appError ? (
               <div className="p-10 text-center space-y-3">
@@ -1473,7 +1472,7 @@ export default function AdminVendorsPage() {
               >
                 {isSubmittingAction ? (
                   <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    <CometSpinner className="h-4 w-4 text-current" decorative />
                     <span>Authorizing &amp; Issuing ID...</span>
                   </>
                 ) : (

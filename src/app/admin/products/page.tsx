@@ -26,6 +26,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface SellerOfferSummary {
   id: string;
   vendorId: string;
@@ -275,10 +276,9 @@ export default function AdminProductModerationPage() {
       {/* Products Table */}
       <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-8 space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-16 bg-[#F7F8F8] rounded-xl animate-pulse" />
-            ))}
+          <div className="flex flex-col items-center justify-center gap-3 py-12" aria-live="polite">
+            <CometSpinner className="h-12 w-12" decorative />
+            <p className="text-sm text-[#565959]">Loading…</p>
           </div>
         ) : error ? (
           <div className="p-10 text-center space-y-3">

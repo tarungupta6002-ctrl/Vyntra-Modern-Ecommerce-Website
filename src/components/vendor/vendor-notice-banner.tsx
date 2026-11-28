@@ -10,11 +10,11 @@ import {
   ChevronRight,
   ExternalLink,
   X,
-  Loader2,
   Package,
   Edit,
 } from 'lucide-react';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VendorNotice {
   id: string;
   adminEmail: string;
@@ -175,7 +175,7 @@ export function VendorNoticeBanner() {
                 >
                   {acknowledgingId === notice.id ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <CometSpinner className="h-4 w-4 text-current" decorative />
                       <span>Saving...</span>
                     </>
                   ) : (

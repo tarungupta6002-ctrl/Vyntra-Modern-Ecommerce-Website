@@ -34,6 +34,7 @@ import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 import { PageHeader, consoleButton, humanize } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface OrderItemDetail {
   id: string;
   productId: string;
@@ -237,7 +238,7 @@ export default function AdminOrderDetailPage() {
           </Link>
         </div>
         <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
-          <RefreshCw className="h-8 w-8 text-[#007185] animate-spin mx-auto" />
+          <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
           <h2 className="text-base font-bold text-[#0F1111]">Loading Order Details...</h2>
           <p className="text-xs text-[#565959]">Retrieving customer, vendor consignment, and logistics records.</p>
         </div>
@@ -788,7 +789,7 @@ export default function AdminOrderDetailPage() {
                         disabled={retrying}
                         className="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold flex items-center justify-center gap-1.5"
                       >
-                        <RefreshCw className={`h-3.5 w-3.5 ${retrying ? 'animate-spin' : ''}`} />
+                        {retrying ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-3.5 w-3.5" />}
                         <span>{retrying ? 'Retrying…' : 'Retry refund'}</span>
                       </button>
                     </div>

@@ -30,6 +30,7 @@ import { AdminReturnDetailsModal } from '@/components/admin/admin-return-details
 import { AdminDisputeReviewModal } from '@/components/admin/admin-dispute-review-modal';
 import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface AdminReturnItem {
   id: string;
   type: string;
@@ -391,7 +392,7 @@ export default function AdminReturnsManagementPage() {
         actions={
           <>
           <button type="button" onClick={fetchReturns} disabled={isLoading} className={consoleButton.secondary}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </button>
           </>
@@ -453,7 +454,7 @@ export default function AdminReturnsManagementPage() {
       <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="py-16 text-center text-[#565959] space-y-2">
-            <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#007185]" />
+            <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
             <p className="text-xs font-semibold">Loading marketplace return requests...</p>
           </div>
         ) : error ? (
@@ -733,7 +734,7 @@ export default function AdminReturnsManagementPage() {
 
             {isLoadingDetails ? (
               <div className="py-12 text-center text-[#565959] space-y-2">
-                <RefreshCw className="h-6 w-6 animate-spin mx-auto text-[#007185]" />
+                <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
                 <p className="text-xs font-semibold">Calculating allowable refund ceilings and platform shares...</p>
               </div>
             ) : modalError && !refundCalculation ? (
@@ -918,7 +919,7 @@ export default function AdminReturnsManagementPage() {
                   >
                     {isSubmittingRefund ? (
                       <>
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-current" decorative />
                         <span>{needsManualReference ? 'Recording…' : 'Refunding via Razorpay…'}</span>
                       </>
                     ) : (

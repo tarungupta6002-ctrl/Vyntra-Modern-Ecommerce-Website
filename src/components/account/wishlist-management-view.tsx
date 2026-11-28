@@ -39,6 +39,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useAddressStore } from '@/store/address-store';
 import { formatINR } from '@/lib/utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface WishlistManagementViewProps {
   embeddedInAccount?: boolean;
 }
@@ -190,7 +191,7 @@ export function WishlistManagementView({
     return (
       <div className="w-full min-h-[400px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <p className="text-xs text-[#565959] font-medium">Loading your curated wishlist...</p>
         </div>
       </div>

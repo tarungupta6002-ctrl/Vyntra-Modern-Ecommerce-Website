@@ -26,6 +26,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { resolveRefundDestination, resolveRefundReference } from '@/lib/refund-ui-helpers';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface AdminReturnDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -210,7 +211,7 @@ export function AdminReturnDetailsModal({
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {isLoading || !returnRequest ? (
             <div className="py-24 text-center text-[#565959] space-y-3">
-              <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin mx-auto" />
+              <CometSpinner className="h-12 w-12 mx-auto block" />
               <p className="text-xs font-semibold">Loading complete order, product, and financial ledger...</p>
             </div>
           ) : (

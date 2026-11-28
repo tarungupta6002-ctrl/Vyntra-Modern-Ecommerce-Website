@@ -30,7 +30,7 @@ export function ProductAttributesSection({
   return (
     <section
       id="product-attributes"
-      className="bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm space-y-5 scroll-mt-24"
+      className="bg-white rounded-xl border border-[#D5D9D9] p-6 shadow-sm space-y-5 scroll-mt-24"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#D5D9D9]">
         <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export function ProductAttributesSection({
                 <p className="px-3 py-2 text-sm rounded-lg border border-dashed border-[#D5D9D9] bg-[#F7F8F8] text-[#565959]">
                   Set per variant
                 </p>
-                <p className="text-[11px] text-[#565959]">Each variant below has its own value.</p>
+                <p className="text-xs text-[#565959]">Each variant below has its own value.</p>
               </div>
             );
           }
@@ -108,16 +108,16 @@ export function ProductAttributesSection({
                 </div>
               )}
               {missing ? (
-                <p className="text-[11px] text-[#B12704]">Required to publish</p>
+                <p className="text-xs text-[#B12704]">Required to publish</p>
               ) : def.hint ? (
-                <p className="text-[11px] text-[#565959]">{def.hint}</p>
+                <p className="text-xs text-[#565959]">{def.hint}</p>
               ) : null}
             </div>
           );
         })}
       </div>
 
-      <p className="flex items-start gap-1.5 text-[11px] text-[#565959]">
+      <p className="flex items-start gap-1.5 text-xs text-[#565959]">
         <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
         Sold in several capacities or ratings? Choose &quot;Multiple Variants&quot; below and set them per variant.
       </p>

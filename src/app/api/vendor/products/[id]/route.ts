@@ -5,7 +5,8 @@ import { findDefaultPickupAddress, PICKUP_ADDRESS_REQUIRED, warehouseLabel } fro
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { Prisma } from '@prisma/client';
-import { validateListingAttributes } from '@/lib/catalog/category-path';
+import { checkListingCategory, getCategoryPathSlugs, validateListingAttributes } from '@/lib/catalog/category-path';
+import { sanitizeSizeChart, sizeChartKindFor, type SizeChart } from '@/lib/catalog/size-chart';
 import { readStoredAttributes, type ProductAttributes } from '@/lib/catalog/attributes';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +91,7 @@ export async function GET(request: Request, context: RouteContext) {
     let aplus = null;
     let specs: Array<{ label: string; value: string }> = [];
     let highlights: string[] = [];
+    let sizeChart: SizeChart | null = null;
     let plainDescription = product.description;
     if (product.description && product.description.trim().startsWith('{')) {
       try {
@@ -102,6 +104,9 @@ export async function GET(request: Request, context: RouteContext) {
         }
         if (Array.isArray(parsed?.highlights)) {
           highlights = parsed.highlights;
+        }
+        if (parsed?.sizeChart) {
+          sizeChart = sanitizeSizeChart(parsed.sizeChart);
         }
         plainDescription = parsed.plainDescription || '';
       } catch {}
@@ -116,6 +121,7 @@ export async function GET(request: Request, context: RouteContext) {
       specs,
       highlights,
       aplus,
+      sizeChart,
       attributes: readStoredAttributes((product as any).attributes),
       brand: product.brand,
       price: Number(product.basePrice),
@@ -180,6 +186,16 @@ export async function PUT(request: Request, context: RouteContext) {
       return apiError('Please select a valid category.', 400);
     }
 
+    // A changed category must be a final, in-use one (an unchanged one is kept as it is).
+    const categoryCheck =
+      existingProduct?.categoryId === categoryId
+        ? { path: await getCategoryPathSlugs(categoryId) }
+        : await checkListingCategory(categoryId);
+    if (categoryCheck.error) {
+      return apiError(categoryCheck.error, 400, null, 'INVALID_CATEGORY');
+    }
+    const sizeChart = sizeChartKindFor(categoryCheck.path ?? []) === body.sizeChart?.kind ? sanitizeSizeChart(body.sizeChart) : null;
+
     if (existingProduct?.isPublished && !isAdmin) {
       if (
         existingProduct.title !== title ||
@@ -230,12 +246,13 @@ export async function PUT(request: Request, context: RouteContext) {
         : {};
 
     let finalDescription = description;
-    if (body.aplus || body.specs || body.highlights) {
+    if (body.aplus || body.specs || body.highlights || sizeChart) {
       finalDescription = JSON.stringify({
         plainDescription: description || '',
         specs: Array.isArray(body.specs) ? body.specs : [],
         highlights: Array.isArray(body.highlights) ? body.highlights : [],
         aplus: body.aplus || null,
+        sizeChart,
       });
     }
 

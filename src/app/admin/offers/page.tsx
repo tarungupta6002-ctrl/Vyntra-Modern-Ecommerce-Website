@@ -12,7 +12,6 @@ import {
   Clock,
   Filter,
   Search,
-  Loader2,
   Trophy,
   ExternalLink,
   RefreshCw,
@@ -20,6 +19,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export const dynamic = 'force-dynamic';
 
 interface SellerOfferItem {
@@ -168,7 +168,7 @@ export default function AdminOffersPage() {
       <div className="bg-white border border-[#D5D9D9] rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-24 text-center space-y-2">
-            <Loader2 className="w-8 h-8 animate-spin text-[#007185] mx-auto" />
+            <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
             <p className="text-xs text-[#565959]">Loading marketplace offers...</p>
           </div>
         ) : filteredOffers.length === 0 ? (

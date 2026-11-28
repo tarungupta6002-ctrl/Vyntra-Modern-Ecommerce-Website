@@ -31,11 +31,11 @@ import {
   ShieldAlert,
   Send,
   X,
-  Loader2,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VariantItem {
   id: string;
   sku: string;
@@ -268,7 +268,7 @@ export default function AdminVendorDetailPage() {
           </Link>
         </div>
         <div className="bg-white rounded-xl border border-[#D5D9D9] p-12 text-center space-y-3 shadow-xs">
-          <RefreshCw className="h-8 w-8 text-[#007185] animate-spin mx-auto" />
+          <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
           <h2 className="text-base font-bold text-[#0F1111]">Loading Vendor Details &amp; Catalog...</h2>
           <p className="text-xs text-[#565959]">Fetching live database profile, warehouses, and listed products.</p>
         </div>
@@ -1257,7 +1257,7 @@ export default function AdminVendorDetailPage() {
                   >
                     {isSubmittingNotice ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-current" decorative />
                         <span>Dispatching...</span>
                       </>
                     ) : (

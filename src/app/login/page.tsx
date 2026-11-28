@@ -28,6 +28,7 @@ import { PASSWORD_HINT, passwordProblem } from '@/lib/password-rules';
 import { useUserProfileStore } from '@/store/user-profile-store';
 import { useCartStore } from '@/store/cart-store';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 type AuthMode = 'mobile' | 'otp' | 'email' | 'signup';
 
 interface ToastState {
@@ -727,7 +728,7 @@ function LoginContent() {
                       className="group w-full py-2.5 px-6 rounded-md bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-70"
                     >
                       {isLoading ? (
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-white" decorative />
                       ) : (
                         <>
                           <span>Continue with Mobile Number</span>
@@ -798,7 +799,7 @@ function LoginContent() {
                       className="group w-full py-2.5 px-6 rounded-md bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-70"
                     >
                       {isLoading ? (
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-white" decorative />
                       ) : (
                         <>
                           <span>Verify &amp; Proceed</span>
@@ -892,7 +893,7 @@ function LoginContent() {
                       className="group w-full py-2.5 px-6 rounded-md bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-70"
                     >
                       {isLoading ? (
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-white" decorative />
                       ) : (
                         <>
                           <span>Sign In with Email</span>
@@ -1031,7 +1032,7 @@ function LoginContent() {
                       className="group w-full py-2.5 px-6 rounded-md bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] border border-[#FCD200] font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-70 mt-2"
                     >
                       {isLoading ? (
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <CometSpinner className="h-4 w-4 text-white" decorative />
                       ) : (
                         <>
                           <span>Create Account &amp; Continue</span>
@@ -1157,7 +1158,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-surface flex items-center justify-center">
-          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
         </div>
       }
     >

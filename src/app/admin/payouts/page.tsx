@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export interface SettledProductItem {
   id: string;
   orderId: string;
@@ -246,7 +247,7 @@ export default function AdminPayoutsPage() {
             Commission {data ? `${data.platformCommissionRate}%` : ''}
           </button>
           <button type="button" onClick={fetchAdminPayouts} disabled={isLoading} className={consoleButton.secondary}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </button>
           </>
@@ -304,7 +305,7 @@ export default function AdminPayoutsPage() {
 
         {isLoading ? (
           <div className="p-12 text-center text-xs text-[#565959]">
-            <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-[#007185]" />
+            <CometSpinner className="h-12 w-12 mx-auto mb-2 block text-[#007185]" />
             Loading vendor payout balances...
           </div>
         ) : error ? (
@@ -576,7 +577,7 @@ export default function AdminPayoutsPage() {
                   disabled={isUpdatingCommission}
                   className="px-4 py-2 bg-[#131921] hover:bg-[#232F3E] text-[#FFD814] rounded-lg text-xs font-bold shadow-sm disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {isUpdatingCommission && <RefreshCw className="h-3 w-3 animate-spin" />}
+                  {isUpdatingCommission && <CometSpinner className="h-4 w-4 text-current" decorative />}
                   Save Commission Rate
                 </button>
               </div>
@@ -710,7 +711,7 @@ export default function AdminPayoutsPage() {
                     disabled={isProcessingSettlement}
                     className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shadow-sm disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    {isProcessingSettlement && <RefreshCw className="h-3 w-3 animate-spin" />}
+                    {isProcessingSettlement && <CometSpinner className="h-4 w-4 text-current" decorative />}
                     Confirm Settlement &amp; Lock Items
                   </button>
                 </div>

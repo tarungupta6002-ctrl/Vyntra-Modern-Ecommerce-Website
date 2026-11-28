@@ -28,6 +28,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface ReturnRequestItem {
   id: string;
   orderId: string;
@@ -410,7 +411,7 @@ function VendorReturnsContent() {
       <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-xs text-[#565959]">
-            <div className="inline-block animate-spin h-6 w-6 border-2 border-gray-900 border-t-transparent rounded-full mb-2"></div>
+            <CometSpinner className="h-12 w-12 inline-block mb-2 text-[#0F1111]" />
             <p>Fetching merchant return requests...</p>
           </div>
         ) : returns.length === 0 ? (

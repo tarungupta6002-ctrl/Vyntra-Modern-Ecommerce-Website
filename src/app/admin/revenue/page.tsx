@@ -26,6 +26,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface RevenueMetrics {
   grossGMV: number;
   totalGMV: number;
@@ -154,7 +155,7 @@ export default function AdminRevenuePage() {
             className="p-2.5 rounded-xl border border-[#D5D9D9] bg-white hover:bg-[#F7F8F8] text-[#0F1111] transition-all disabled:opacity-50"
             title="Refresh Data"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
           </button>
         </div>
         }

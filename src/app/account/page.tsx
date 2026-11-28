@@ -41,7 +41,7 @@ import {
 import { formatINR } from '@/lib/utils';
 const TabLoadingSkeleton = () => (
   <div className="p-8 flex items-center justify-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    <CometSpinner className="h-12 w-12" />
   </div>
 );
 
@@ -87,6 +87,7 @@ import { useWishlistStore } from '@/store/wishlist-store';
 import { useUserProfileStore } from '@/store/user-profile-store';
 import { useOrderStore } from '@/store/order-store';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 type AccountTab =
   | 'overview'
   | 'orders'
@@ -1269,7 +1270,7 @@ export default function AccountPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-surface flex items-center justify-center">
-          <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
         </div>
       }
     >

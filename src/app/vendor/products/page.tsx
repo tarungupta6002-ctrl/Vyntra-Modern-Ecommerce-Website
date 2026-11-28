@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VendorProduct {
   id: string;
   title: string;
@@ -91,31 +92,14 @@ function VendorProductsContent() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [products, setProducts] = useState<VendorProduct[]>([]);
-  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
 
   // Modal State
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Form Fields
-  const [formData, setFormData] = useState({
-    title: '',
-    subtitle: '',
-    brand: '',
-    categoryId: '',
-    price: '',
-    originalPrice: '',
-    sku: '',
-    stock: '15',
-    imageUrl: '',
-    description: '',
-  });
-  const [formError, setFormError] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Onboarding Store State
@@ -169,24 +153,9 @@ function VendorProductsContent() {
   };
 
   // 3. Fetch Categories
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch('/api/vendor/categories');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setCategories(json.data);
-        if (json.data.length > 0 && !formData.categoryId) {
-          setFormData((prev) => ({ ...prev, categoryId: json.data[0].id }));
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to load categories');
-    }
-  };
 
   useEffect(() => {
     fetchSession();
-    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -195,25 +164,10 @@ function VendorProductsContent() {
     }
   }, [session, statusFilter]);
 
-  // Handle URL ?edit= query parameter with strict ownership authorization
+  // Old links with ?edit=<id> open the product's edit page.
   useEffect(() => {
-    if (!editParam || !session?.isVendor) return;
-    const cleanId = String(editParam);
-    async function loadEditProduct(idToLoad: string) {
-      try {
-        const res = await fetch(`/api/vendor/products/${encodeURIComponent(idToLoad)}`);
-        const json = await res.json();
-        if (res.ok && json.success && json.data) {
-          handleOpenEditModal(json.data);
-        } else {
-          showToast(json.error?.message || 'Access denied: You cannot edit products from other sellers.', 'error');
-        }
-      } catch (e: any) {
-        showToast(e.message || 'Error loading product', 'error');
-      }
-    }
-    loadEditProduct(cleanId);
-  }, [editParam, session]);
+    if (editParam) router.replace(`/vendor/products/${encodeURIComponent(String(editParam))}/edit`);
+  }, [editParam, router]);
 
   // Handle Search Debounce
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -221,108 +175,6 @@ function VendorProductsContent() {
     fetchProducts();
   };
 
-  // Open Modal for New Product
-  const handleOpenAddModal = () => {
-    setEditingProduct(null);
-    setFormData({
-      title: '',
-      subtitle: '',
-      brand: session?.vendorProfile?.storeName || 'Vyntra Artisan',
-      categoryId: categories[0]?.id || '',
-      price: '',
-      originalPrice: '',
-      sku: `VYN-${Date.now().toString().slice(-6)}`,
-      stock: '20',
-      imageUrl: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80',
-      description: '',
-    });
-    setFormError('');
-    setModalOpen(true);
-  };
-
-  // Open Modal for Edit
-  const handleOpenEditModal = (prod: VendorProduct) => {
-    setEditingProduct(prod);
-    setFormData({
-      title: prod.title,
-      subtitle: prod.subtitle || '',
-      brand: prod.brand,
-      categoryId: prod.category?.id || categories[0]?.id || '',
-      price: prod.price.toString(),
-      originalPrice: prod.originalPrice.toString(),
-      sku: prod.slug,
-      stock: prod.totalStock.toString(),
-      imageUrl: prod.image,
-      description: '',
-    });
-    setFormError('');
-    setModalOpen(true);
-  };
-
-  // Handle Form Submit (Draft or Publish)
-  const handleSubmitProduct = async (shouldPublish: boolean) => {
-    if (!formData.title.trim()) {
-      setFormError('Product title is required.');
-      return;
-    }
-    if (!formData.price || isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
-      setFormError('Please enter a valid positive price.');
-      return;
-    }
-    if (!formData.categoryId) {
-      setFormError('Please select a product category.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormError('');
-
-    try {
-      const payload = {
-        title: formData.title.trim(),
-        subtitle: formData.subtitle.trim(),
-        brand: formData.brand.trim() || 'Vyntra Artisan',
-        categoryId: formData.categoryId,
-        price: Number(formData.price),
-        originalPrice: formData.originalPrice ? Number(formData.originalPrice) : Number(formData.price),
-        sku: formData.sku.trim(),
-        stock: Number(formData.stock) || 10,
-        images: formData.imageUrl ? [formData.imageUrl.trim()] : [],
-        description: formData.description.trim(),
-        isPublished: shouldPublish,
-      };
-
-      const endpoint = editingProduct
-        ? `/api/vendor/products/${editingProduct.id}`
-        : '/api/vendor/products';
-      const method = editingProduct ? 'PUT' : 'POST';
-
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || 'Failed to save product');
-      }
-
-      showToast(
-        shouldPublish
-          ? 'Product successfully PUBLISHED to customer catalog!'
-          : 'Product successfully saved as DRAFT.'
-      );
-      setModalOpen(false);
-      fetchProducts();
-    } catch (err: any) {
-      setFormError(err.message || 'An unexpected error occurred.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Quick Toggle Publish / Draft
   const handleTogglePublish = async (prod: VendorProduct) => {
     try {
       const res = await fetch(`/api/vendor/products/${prod.id}/publish`, {
@@ -408,8 +260,8 @@ function VendorProductsContent() {
   if (sessionLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <RefreshCw className="h-8 w-8 text-[#FF9900] animate-spin mb-4" />
-        <p className="text-sm text-[#565959]">Verifying merchant credentials & atelier security...</p>
+        <CometSpinner className="h-12 w-12 mb-4" />
+        <p className="text-sm text-[#565959]">Checking your seller account…</p>
       </div>
     );
   }
@@ -486,7 +338,7 @@ function VendorProductsContent() {
     const storeName =
       session.vendorApplication?.storeName ||
       session.vendorProfile?.storeName ||
-      'Your Artisan Atelier';
+      'Your store';
     const appDate = session.vendorApplication?.createdAt
       ? new Date(session.vendorApplication.createdAt).toLocaleDateString('en-IN', {
           day: 'numeric',
@@ -528,7 +380,7 @@ function VendorProductsContent() {
             disabled={isCheckingStatus}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D5D9D9] hover:bg-[#F7F8F8] text-xs font-semibold text-[#0F1111] shadow-sm transition-all shrink-0"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isCheckingStatus ? 'animate-spin' : ''}`} />
+            {isCheckingStatus ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-3.5 w-3.5" />}
             <span>{isCheckingStatus ? 'Checking...' : 'Refresh Status'}</span>
           </button>
         </div>
@@ -585,7 +437,7 @@ function VendorProductsContent() {
             disabled={isCheckingStatus}
             className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isCheckingStatus ? 'animate-spin' : ''}`} />
+            {isCheckingStatus ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-3.5 w-3.5" />}
             <span>Check Application Status</span>
           </button>
         </div>
@@ -602,7 +454,7 @@ function VendorProductsContent() {
     const storeName =
       session.vendorApplication?.storeName ||
       session.vendorProfile?.storeName ||
-      'Artisan Atelier';
+      'Your store';
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-rose-200 p-8 max-w-2xl mx-auto mt-8">
         <div className="flex items-center gap-3.5 pb-6 border-b border-[#EAEDED]">
@@ -654,7 +506,7 @@ function VendorProductsContent() {
     }
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <RefreshCw className="h-8 w-8 text-[#FF9900] animate-spin mb-4" />
+        <CometSpinner className="h-12 w-12 mb-4" />
         <p className="text-sm font-semibold text-[#0F1111]">Redirecting to Seller Onboarding...</p>
         <p className="text-xs text-[#565959] mt-1">Please complete your merchant setup to access Seller Central.</p>
       </div>
@@ -778,7 +630,7 @@ function VendorProductsContent() {
       <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="py-16 text-center">
-            <RefreshCw className="h-6 w-6 text-[#FF9900] animate-spin mx-auto mb-2" />
+            <CometSpinner className="h-12 w-12 mx-auto mb-2 block" />
             <p className="text-xs text-[#565959]">Loading vendor catalog from Prisma database...</p>
           </div>
         ) : products.length === 0 ? (
@@ -827,15 +679,11 @@ function VendorProductsContent() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-14 rounded-md overflow-hidden bg-[#EAEDED] shrink-0 border border-[#D5D9D9] relative">
-                          <img
-                            src={prod.image}
-                            alt={prod.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80';
-                            }}
-                          />
+                          {prod.image ? (
+                            <img src={prod.image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="absolute inset-0 grid place-items-center text-xs text-[#565959]">No photo</span>
+                          )}
                         </div>
                         <div className="min-w-0">
                           <Link
@@ -979,234 +827,6 @@ function VendorProductsContent() {
         </div>
       )}
 
-      {/* Legacy modal replaced by dedicated full-page architecture at /vendor/products/new */}
-      {false && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-[#D5D9D9] my-8 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-[#D5D9D9] mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-[#0F1111]">
-                  {editingProduct ? 'Edit Product Listing' : 'Add New Product to Atelier'}
-                </h2>
-                <p className="text-xs text-[#565959] mt-0.5">
-                  Real-time database catalog item with inventory sync.
-                </p>
-              </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 text-[#565959] hover:text-[#0F1111] rounded-lg hover:bg-[#F0F2F2]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {formError && (
-              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{formError}</span>
-              </div>
-            )}
-
-            <div className="space-y-4 text-xs">
-              {/* Product Title */}
-              <div>
-                <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                  Product Name / Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Royal Handcrafted Linen Kurta"
-                  className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                  required
-                />
-              </div>
-
-              {/* Subtitle & Brand */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    Brand Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.brand}
-                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                    placeholder="e.g. Vyntra Royal Atelier"
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900] bg-white"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Pricing & Stock */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    Selling Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="2499"
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    Original Price / MRP (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.originalPrice}
-                    onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                    placeholder="4999"
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    Stock Units *
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                    placeholder="20"
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                  />
-                </div>
-              </div>
-
-              {/* SKU & Image URL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    SKU Code *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="e.g. VRA-LNK-01"
-                    disabled={!!editingProduct}
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900] disabled:bg-gray-100"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                    Image URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                  />
-                </div>
-              </div>
-
-              {/* Image Preview */}
-              {formData.imageUrl && (
-                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[#F7FAFA] border border-[#D5D9D9]">
-                  <div className="w-12 h-14 rounded overflow-hidden bg-gray-200 shrink-0">
-                    <img
-                      src={formData.imageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80';
-                      }}
-                    />
-                  </div>
-                  <div className="text-[11px] text-[#565959]">
-                    <span className="font-bold text-[#0F1111] block">Image Preview</span>
-                    <span>Verified web image URL for storefront display.</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <label className="block font-bold uppercase tracking-wider text-[#0F1111] mb-1">
-                  Product Description &amp; Craft Details
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe material, weave, craftsmanship, fit and care instructions..."
-                  className="w-full px-3.5 py-2 text-sm rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-1 focus:ring-[#FF9900] focus:border-[#FF9900]"
-                />
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-6 border-t border-[#D5D9D9] mt-6">
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-[#D5D9D9] text-[#0F1111] font-semibold text-xs hover:bg-[#F7FAFA] transition-colors"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleSubmitProduct(false)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#EAEDED] hover:bg-[#D5D9D9] text-[#0F1111] font-bold text-xs transition-colors flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <span>Save as Draft</span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleSubmitProduct(true)}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                    <span>Publishing to Catalog...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>{editingProduct ? 'Update & Publish' : 'Publish Product'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1216,8 +836,8 @@ export default function VendorProductsPage() {
     <Suspense
       fallback={
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <RefreshCw className="h-8 w-8 text-[#FF9900] animate-spin mb-4" />
-          <p className="text-sm text-[#565959]">Loading atelier catalog...</p>
+          <CometSpinner className="h-12 w-12 mb-4 text-[#007185]" />
+          <p className="text-sm text-[#565959]">Loading products…</p>
         </div>
       }
     >

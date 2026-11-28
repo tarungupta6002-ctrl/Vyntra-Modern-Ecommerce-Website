@@ -64,3 +64,22 @@ export function categoryHref(chain: string[], i: number): string {
   if (parent.startsWith('/products') || parent.includes('?')) return fallback;
   return `${parent}?subcategory=${encodeURIComponent(slug)}`;
 }
+
+/**
+ * Duplicate categories left over in the tree (empty). Sellers can't file products here, because
+ * no listing page shows them; their twins are boys-clothing, girls-clothing, baby-clothing,
+ * mens-innerwear-loungewear, womens-handbags and the men's / women's wallets.
+ */
+export const HIDDEN_FROM_SELLERS = new Set([
+  'boys-apparel',
+  'girls-apparel',
+  'infant-baby-essentials',
+  'mens-innerwear',
+  'handbags-clutches',
+  'wallets',
+]);
+
+/** The page shoppers browse to find products filed in the category at the end of `chain`. */
+export function categoryPageFor(chain: string[]): string {
+  return categoryHref(chain, chain.length - 1);
+}

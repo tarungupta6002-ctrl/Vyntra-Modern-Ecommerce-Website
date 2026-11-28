@@ -24,6 +24,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export default function BecomeSellerPage() {
   const router = useRouter();
 
@@ -227,7 +228,7 @@ export default function BecomeSellerPage() {
     return (
       <div className="min-h-screen bg-[#F7F8F8] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <span className="text-sm font-medium text-[#565959]">Checking seller status...</span>
         </div>
       </div>
@@ -720,7 +721,7 @@ export default function BecomeSellerPage() {
                   </label>
                   {isFetchingPincode && (
                     <span className="text-[10px] text-[#007185] font-semibold flex items-center gap-1 animate-pulse">
-                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      <CometSpinner className="h-4 w-4 text-current" decorative />
                       Auto-detecting City &amp; State...
                     </span>
                   )}

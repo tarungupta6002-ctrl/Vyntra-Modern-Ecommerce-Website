@@ -3,9 +3,10 @@
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2, Loader2, LifeBuoy, RotateCcw, Search, Send } from 'lucide-react';
+import { CheckCircle2, LifeBuoy, RotateCcw, Search, Send } from 'lucide-react';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 type TicketStatus = 'OPEN' | 'ANSWERED' | 'RESOLVED';
 
 interface Ticket {
@@ -196,7 +197,7 @@ function AdminSupportInner() {
         <section className="overflow-hidden rounded-xl border border-[#D5D9D9] bg-white" aria-label="Tickets">
           {loading ? (
             <div className="flex items-center gap-2 p-4 text-sm text-[#565959]">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              <CometSpinner className="h-4 w-4 text-current" decorative /> Loading…
             </div>
           ) : listError ? (
             <p className="p-4 text-sm text-[#B12704]">{listError}</p>
@@ -239,7 +240,7 @@ function AdminSupportInner() {
             <p className="p-6 text-sm text-[#565959]">Choose a ticket to read and reply.</p>
           ) : ticketLoading ? (
             <div className="flex items-center gap-2 p-6 text-sm text-[#565959]">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading ticket…
+              <CometSpinner className="h-4 w-4 text-current" decorative /> Loading ticket…
             </div>
           ) : !ticket ? (
             <p className="p-6 text-sm text-[#B12704]">{actionError || 'Ticket not found.'}</p>
@@ -307,7 +308,7 @@ function AdminSupportInner() {
                     onClick={() => sendReply(false)}
                     className="inline-flex items-center gap-2 rounded-full bg-[#FFD814] px-5 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00] disabled:opacity-60"
                   >
-                    {busy === 'reply' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {busy === 'reply' ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <Send className="h-4 w-4" />}
                     Send reply
                   </button>
                   <button
@@ -316,7 +317,7 @@ function AdminSupportInner() {
                     onClick={() => sendReply(true)}
                     className="inline-flex items-center gap-2 rounded-full border border-[#D5D9D9] bg-white px-5 py-2 text-sm font-semibold text-[#0F1111] hover:border-[#007185] disabled:opacity-60"
                   >
-                    {busy === 'resolve' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 text-emerald-700" />}
+                    {busy === 'resolve' ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <CheckCircle2 className="h-4 w-4 text-emerald-700" />}
                     Send and mark resolved
                   </button>
                   <span className="flex-1" />

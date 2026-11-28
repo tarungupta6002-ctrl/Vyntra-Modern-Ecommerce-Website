@@ -1,172 +1,102 @@
-'use client';
+import React from 'react';
+import { cn } from '@/lib/utils';
 
-import React, { useId } from 'react';
+/**
+ * Vyntra's loading indicator: the loading-ui comet, a head whose tail opens and closes as it
+ * circles (1.7s). Styles live in globals.css (.comet-spinner). Sizes: h-12 w-12 (48px) for page
+ * and section loaders, h-4 w-4 (16px) inside buttons and next to text. It takes the text
+ * colour, so inside a button it matches the button's text; without a text colour it is teal.
+ */
+export function CometSpinner({
+  className,
+  label = 'Loading',
+  decorative = false,
+  style,
+}: {
+  className?: string;
+  /** What is loading, for screen readers. */
+  label?: string;
+  /** Next to visible text such as "Saving…": hide it from screen readers. */
+  decorative?: boolean;
+  style?: React.CSSProperties;
+}) {
+  const classes = className || '';
+  const hasSize = /(^|\s)(h-|w-|size-)/.test(classes);
+  const hasColor = /(^|\s)([a-z]+:)*text-(?!(xs|sm|base|lg|xl|[2-9]xl|left|right|center|justify|start|end|wrap|nowrap|balance|ellipsis|clip)\b)/.test(classes);
+  return (
+    <span
+      role={decorative ? undefined : 'status'}
+      aria-label={decorative ? undefined : label}
+      aria-hidden={decorative || undefined}
+      className={cn('comet-spinner', !hasSize && 'h-12 w-12', !hasColor && 'text-[#007185]', classes)}
+      style={style}
+    >
+      <span className="comet-spinner__orbit">
+        <span className="comet-spinner__head" />
+      </span>
+    </span>
+  );
+}
+
+// Page and section loaders are 48px; the presets are kept for older callers.
+const SIZE_CLASS: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
+  sm: 'h-4 w-4',
+  md: 'h-12 w-12',
+  lg: 'h-12 w-12',
+  xl: 'h-12 w-12',
+};
 
 export interface LoadingSpinnerProps {
-  /** Size in pixels or standard presets ('sm' = 24, 'md' = 36, 'lg' = 52, 'xl' = 64) */
+  /** Preset ('sm' 16px; 'md', 'lg' and 'xl' 48px) or pixels. */
   size?: 'sm' | 'md' | 'lg' | 'xl' | number;
-  /** Primary vibrant start color (defaults to Vyntra warm orange #FF7A00 matching modern marketplaces) */
+  /** Colour override (defaults to the store teal). */
   color?: string;
-  /** Secondary end gradient color */
+  /** Kept for older callers; the comet has no second colour. */
   endColor?: string;
-  /** Thickness of the spinner stroke in pixels */
+  /** Kept for older callers. */
   strokeWidth?: number;
-  /** Custom extra classes */
   className?: string;
 }
 
-const SIZE_MAP = {
-  sm: { px: 24, stroke: 2.5 },
-  md: { px: 36, stroke: 3 },
-  lg: { px: 52, stroke: 3.5 },
-  xl: { px: 64, stroke: 4 },
-};
-
-/**
- * Modern minimalist circular arc spinner with smooth fading tail,
- * perfectly matching clean production e-commerce loaders.
- */
-export function LoadingSpinner({
-  size = 'lg',
-  color = '#FF7A00',
-  endColor = '#FFB366',
-  strokeWidth,
-  className = '',
-}: LoadingSpinnerProps) {
-  const gradientId = useId();
-
-  const dimension = typeof size === 'number' ? size : SIZE_MAP[size]?.px || 52;
-  const stroke = strokeWidth || (typeof size === 'number' ? Math.max(2, Math.round(dimension / 15)) : SIZE_MAP[size]?.stroke || 3.5);
-
-  const radius = (dimension - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  // Arc length covers ~70% of the circle, smooth fading tail
-  const dashArray = `${circumference * 0.72} ${circumference * 0.28}`;
-
-  return (
-    <div
-      role="status"
-      aria-label="Loading content"
-      className={`inline-flex items-center justify-center shrink-0 ${className}`}
-      style={{ width: dimension, height: dimension }}
-    >
-      <svg
-        viewBox={`0 0 ${dimension} ${dimension}`}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="animate-spin"
-        style={{
-          width: dimension,
-          height: dimension,
-          animationDuration: '800ms',
-          animationTimingFunction: 'linear',
-        }}
-      >
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={color} stopOpacity="1" />
-            <stop offset="50%" stopColor={endColor} stopOpacity="0.75" />
-            <stop offset="100%" stopColor={endColor} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {/* Faint subtle background track for smooth contrast */}
-        <circle
-          cx={dimension / 2}
-          cy={dimension / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={stroke}
-          strokeOpacity="0.08"
-          fill="none"
-        />
-
-        {/* Smooth gradient spinning arc with rounded head */}
-        <circle
-          cx={dimension / 2}
-          cy={dimension / 2}
-          r={radius}
-          stroke={`url(#${gradientId})`}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={dashArray}
-          fill="none"
-        />
-      </svg>
-    </div>
-  );
+/** The comet at a preset size (older name, kept so existing pages keep working). */
+export function LoadingSpinner({ size = 'lg', color, className = '' }: LoadingSpinnerProps) {
+  const sizeClass = typeof size === 'number' ? '' : SIZE_CLASS[size] || SIZE_CLASS.lg;
+  const style: React.CSSProperties = {
+    ...(typeof size === 'number' ? { width: size, height: size } : {}),
+    ...(color ? { color } : {}),
+  };
+  return <CometSpinner className={cn(sizeClass, typeof size === 'number' && 'h-auto', className)} style={style} />;
 }
 
 export interface PageLoaderProps {
-  /** Optional message displayed below the spinner */
+  /** Optional message under the spinner. */
   message?: string;
-  /** Sub-message or subtitle */
   subtitle?: string;
-  /** Spinner size preset */
   size?: 'sm' | 'md' | 'lg' | 'xl' | number;
-  /** Spinner color override */
   color?: string;
-  /** Minimum container height */
+  /** Minimum container height. */
   minHeight?: string;
-  /** Custom container className */
   className?: string;
 }
 
-/**
- * Centered page-level loading state with clean white backdrop,
- * exactly matching the IndeStack minimalist loading design.
- */
-export function PageLoader({
-  message,
-  subtitle,
-  size = 'lg',
-  color = '#FF7A00',
-  minHeight = 'min-h-[65vh]',
-  className = '',
-}: PageLoaderProps) {
+/** A centred loading state for a whole page or panel. */
+export function PageLoader({ message, subtitle, size = 'lg', color, minHeight = 'min-h-[65vh]', className = '' }: PageLoaderProps) {
   return (
-    <div
-      className={`w-full flex flex-col items-center justify-center bg-white ${minHeight} ${className}`}
-      aria-live="polite"
-    >
+    <div className={cn('flex w-full flex-col items-center justify-center', minHeight, className)} aria-live="polite">
       <LoadingSpinner size={size} color={color} />
-      {message && (
-        <p className="mt-4 text-sm font-semibold text-[#0F1111] animate-pulse">
-          {message}
-        </p>
-      )}
-      {subtitle && (
-        <p className="mt-1 text-xs text-[#565959]">
-          {subtitle}
-        </p>
-      )}
+      {message && <p className="mt-4 text-sm font-medium text-[#0F1111]">{message}</p>}
+      {subtitle && <p className="mt-1 text-xs text-[#565959]">{subtitle}</p>}
     </div>
   );
 }
 
-/**
- * Full viewport overlay loader for form submissions or critical operations.
- */
-export function FullPageLoader({
-  message = 'Processing...',
-  subtitle = 'Please wait while we update your catalog',
-}: {
-  message?: string;
-  subtitle?: string;
-}) {
+/** A full-screen overlay while something important is being saved. */
+export function FullPageLoader({ message = 'Saving…', subtitle }: { message?: string; subtitle?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xs">
-      <LoadingSpinner size="xl" color="#FF7A00" />
-      {message && (
-        <p className="mt-4 text-base font-bold text-[#0F1111]">
-          {message}
-        </p>
-      )}
-      {subtitle && (
-        <p className="mt-1 text-xs text-[#565959]">
-          {subtitle}
-        </p>
-      )}
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/85">
+      <LoadingSpinner size="xl" />
+      {message && <p className="mt-4 text-base font-semibold text-[#0F1111]">{message}</p>}
+      {subtitle && <p className="mt-1 text-xs text-[#565959]">{subtitle}</p>}
     </div>
   );
 }

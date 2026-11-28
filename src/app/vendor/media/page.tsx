@@ -12,7 +12,6 @@ import {
   Copy,
   Check,
   AlertCircle,
-  Loader2,
   FolderOpen,
   Layers,
   Palette,
@@ -21,6 +20,7 @@ import {
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
 import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export const dynamic = 'force-dynamic';
 
 interface MediaItem {
@@ -210,7 +210,7 @@ export default function VendorMediaPage() {
       <div className="bg-white border border-[#D5D9D9] rounded-xl p-5 shadow-sm">
         {loading ? (
           <div className="py-24 text-center space-y-2">
-            <Loader2 className="w-8 h-8 animate-spin text-[#007185] mx-auto" />
+            <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
             <p className="text-xs text-[#565959]">Retrieving media asset library...</p>
           </div>
         ) : items.length === 0 ? (

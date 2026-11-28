@@ -85,7 +85,7 @@ export function VariantOptionsBuilder({ defs, onGenerate }: VariantOptionsBuilde
                 placeholder={`Values in ${def.unit}, e.g. ${def.min} – ${def.max}`}
                 className="w-full px-3 py-2 text-xs border border-[#D5D9D9] rounded-lg bg-white focus:outline-none focus:border-[#007185]"
               />
-              <p className="text-[10px] text-[#565959]">Separate several values with commas.</p>
+              <p className="text-xs text-[#565959]">Separate several values with commas.</p>
             </div>
           ) : (
             <fieldset key={def.key} className="space-y-1.5">
@@ -149,7 +149,7 @@ export function VariantOptionsBuilder({ defs, onGenerate }: VariantOptionsBuilde
           <Plus className="h-3.5 w-3.5" />
           {comboCount > 0 ? `Add ${comboCount} variant${comboCount === 1 ? '' : 's'}` : 'Add variants'}
         </button>
-        <span className="text-[11px] text-[#565959]">Price and stock can be set per variant below.</span>
+        <span className="text-xs text-[#565959]">Price and stock can be set per variant below.</span>
       </div>
     </div>
   );

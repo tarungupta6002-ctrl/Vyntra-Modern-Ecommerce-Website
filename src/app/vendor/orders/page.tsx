@@ -28,6 +28,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface VendorOrderItem {
   id: string;
   productId: string;
@@ -245,7 +246,7 @@ function VendorOrdersContent() {
   if (sessionLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-        <div className="w-8 h-8 border-4 border-[#FFD814] border-t-transparent rounded-full animate-spin" />
+        <CometSpinner className="h-12 w-12" />
         <span className="text-xs text-[#565959] font-medium">Verifying seller credentials...</span>
       </div>
     );
@@ -303,7 +304,7 @@ function VendorOrdersContent() {
     }
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <RefreshCw className="h-8 w-8 text-[#FF9900] animate-spin mb-4" />
+        <CometSpinner className="h-12 w-12 mb-4" />
         <p className="text-sm font-semibold text-[#0F1111]">Redirecting to Seller Onboarding...</p>
         <p className="text-xs text-[#565959] mt-1">Please complete your merchant setup to access Seller Central.</p>
       </div>
@@ -335,7 +336,7 @@ function VendorOrdersContent() {
         description="Confirm new orders, pack them and add tracking when they ship."
         actions={
           <button type="button" onClick={() => fetchOrders(page, statusFilter, searchQuery)} className={vendorButton.secondary}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </button>
         }
@@ -429,10 +430,9 @@ function VendorOrdersContent() {
 
       {/* Orders List Content */}
       {isLoading ? (
-        <div className="space-y-4 animate-pulse">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-[#D5D9D9] p-6 h-56" />
-          ))}
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-[#D5D9D9] bg-white py-16" aria-live="polite">
+          <CometSpinner className="h-12 w-12" decorative />
+          <p className="text-sm text-[#565959]">Loading orders…</p>
         </div>
       ) : error ? (
         <div className="p-8 bg-white rounded-xl border border-rose-200 text-center space-y-3">
@@ -664,7 +664,7 @@ function VendorOrdersContent() {
                                   className="px-3.5 py-1.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 >
                                   {isUpdating ? (
-                                    <div className="w-3 h-3 border-2 border-[#0F1111] border-t-transparent rounded-full animate-spin" />
+                                    <CometSpinner className="h-4 w-4 text-[#0F1111]" decorative />
                                   ) : (
                                     <Package className="h-3.5 w-3.5" />
                                   )}
@@ -680,7 +680,7 @@ function VendorOrdersContent() {
                                   className="px-3.5 py-1.5 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
                                 >
                                   {isUpdating ? (
-                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <CometSpinner className="h-4 w-4 text-white" decorative />
                                   ) : (
                                     <Truck className="h-3.5 w-3.5" />
                                   )}
@@ -751,7 +751,7 @@ export default function VendorOrdersPage() {
     <Suspense
       fallback={
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-          <div className="w-8 h-8 border-4 border-[#FFD814] border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <span className="text-xs text-[#565959] font-medium">Loading orders fulfillment desk...</span>
         </div>
       }

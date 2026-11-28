@@ -5,7 +5,8 @@ import { findDefaultPickupAddress, PICKUP_ADDRESS_REQUIRED, warehouseLabel } fro
 import { apiSuccess, apiError, handleApiError } from '@/lib/api-response';
 import { invalidateProduct } from '@/lib/cache-invalidation';
 import { Prisma } from '@prisma/client';
-import { validateListingAttributes } from '@/lib/catalog/category-path';
+import { checkListingCategory, validateListingAttributes } from '@/lib/catalog/category-path';
+import { sanitizeSizeChart, sizeChartKindFor } from '@/lib/catalog/size-chart';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,10 +149,7 @@ export async function GET(request: Request) {
         }
       }
 
-      const primaryImage =
-        prod.images.find((img) => img.isPrimary)?.url ||
-        prod.images[0]?.url ||
-        'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80';
+      const primaryImage = prod.images.find((img) => img.isPrimary)?.url || prod.images[0]?.url || '';
 
       return {
         id: prod.id,
@@ -210,14 +208,12 @@ export async function POST(request: Request) {
       return apiError('Please select a valid category.', 400);
     }
 
-    // Verify category exists
-    const categoryExists = await prisma.category.findUnique({
-      where: { id: categoryId },
-      select: { id: true },
-    });
-    if (!categoryExists) {
-      return apiError('The selected category does not exist.', 400);
+    // The category must be a final, in-use category so the product shows on its listing page.
+    const categoryCheck = await checkListingCategory(categoryId);
+    if (categoryCheck.error) {
+      return apiError(categoryCheck.error, 400, null, 'INVALID_CATEGORY');
     }
+    const sizeChart = sizeChartKindFor(categoryCheck.path ?? []) === body.sizeChart?.kind ? sanitizeSizeChart(body.sizeChart) : null;
 
     const price = Number(body.price);
     if (isNaN(price) || price <= 0) {
@@ -225,12 +221,10 @@ export async function POST(request: Request) {
     }
 
     const originalPrice = body.originalPrice ? Number(body.originalPrice) : price;
-    // Publishing & Governance:
-    // Super Admins & Admins (like Tarun Store) publish directly to the live marketplace.
-    // For third-party sellers, if they submit with isPublished: true, Super Admin/Admin status automatically approves it.
+    // Approved sellers publish their own listings, as they can already from the edit page and the
+    // publish toggle (sellers are reviewed when they join). Publishing still needs a pickup address.
     const wantsPublish = Boolean(body.isPublished);
-    const isAdminOrSuperAdmin = auth.role === 'ADMIN' || auth.role === 'SUPER_ADMIN';
-    const isPublished = isAdminOrSuperAdmin ? wantsPublish : (body.directAdminPublish === true);
+    const isPublished = wantsPublish;
     const isCustomized = Boolean(body.isCustomized);
     const description = body.description?.trim() || null;
     const subtitle = body.subtitle?.trim() || null;
@@ -251,12 +245,13 @@ export async function POST(request: Request) {
     }
 
     let finalDescription = description;
-    if (body.aplus || body.specs || body.highlights) {
+    if (body.aplus || body.specs || body.highlights || sizeChart) {
       finalDescription = JSON.stringify({
         plainDescription: description || '',
         specs: Array.isArray(body.specs) ? body.specs : [],
         highlights: Array.isArray(body.highlights) ? body.highlights : [],
         aplus: body.aplus || null,
+        sizeChart,
       });
     }
 
@@ -270,9 +265,9 @@ export async function POST(request: Request) {
     if (rawImages.length === 0 && body.image) {
       rawImages.push(body.image.trim());
     }
-    // Fallback image if none provided
-    if (rawImages.length === 0) {
-      rawImages.push('https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=800&q=80');
+    // Shoppers must see the seller's own photo, so a listing can't go live without one.
+    if (rawImages.length === 0 && isPublished) {
+      return apiError('Add at least one photo of the product before publishing.', 400, null, 'PHOTO_REQUIRED');
     }
 
     // Variants & stock
@@ -394,11 +389,7 @@ export async function POST(request: Request) {
     invalidateProduct(created.slug, created.id);
 
     return apiSuccess({
-      message: isPublished
-        ? 'Product published successfully!'
-        : wantsPublish
-        ? 'Listing submitted for Admin Review. Once approved by Marketplace Governance, it will go live.'
-        : 'Product draft saved successfully.',
+      message: isPublished ? 'Product published.' : 'Draft saved.',
       productId: created.id,
       slug: created.slug,
       isPublished: created.isPublished,

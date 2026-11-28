@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'mint' | 'addToCart' | 'buyNow';
@@ -59,7 +60,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading ? (
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <CometSpinner className="h-4 w-4 inline-block text-current" decorative />
         ) : null}
         {children}
       </button>

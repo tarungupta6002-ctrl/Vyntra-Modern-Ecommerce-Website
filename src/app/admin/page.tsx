@@ -27,6 +27,7 @@ import {
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface AdminKPIs {
   totalCustomers: number;
   totalVendors: number;
@@ -114,7 +115,7 @@ export default function AdminOverviewPage() {
         actions={
           <>
           <button type="button" onClick={fetchMetrics} disabled={isLoading} className={consoleButton.secondary}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </button>
           </>
@@ -204,10 +205,9 @@ export default function AdminOverviewPage() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-3 py-4">
-            {[1, 2].map((i) => (
-              <div key={i} className="h-16 bg-[#F7F8F8] rounded-xl animate-pulse" />
-            ))}
+          <div className="flex flex-col items-center justify-center gap-3 py-12" aria-live="polite">
+            <CometSpinner className="h-12 w-12" decorative />
+            <p className="text-sm text-[#565959]">Loading…</p>
           </div>
         ) : verifiedVendors.length === 0 ? (
           <div className="py-10 text-center text-xs text-[#565959] bg-[#F7F8F8] rounded-xl border border-dashed border-[#D5D9D9]">
@@ -333,10 +333,9 @@ export default function AdminOverviewPage() {
           </div>
 
           {isLoading ? (
-            <div className="space-y-3 py-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 bg-[#F7F8F8] rounded-xl animate-pulse" />
-              ))}
+            <div className="flex flex-col items-center justify-center gap-3 py-12" aria-live="polite">
+              <CometSpinner className="h-12 w-12" decorative />
+              <p className="text-sm text-[#565959]">Loading…</p>
             </div>
           ) : recentApps.length === 0 ? (
             <div className="py-10 text-center text-xs text-[#565959]">

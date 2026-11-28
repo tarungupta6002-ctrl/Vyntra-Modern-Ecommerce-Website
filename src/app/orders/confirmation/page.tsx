@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface OrderItem {
   id: string;
   productId: string;
@@ -100,7 +101,7 @@ function OrderConfirmationContent() {
   if (loading) {
     return (
       <div className="w-full min-h-[60vh] bg-surface flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+        <CometSpinner className="h-12 w-12 mb-4" />
         <h2 className="font-headline font-bold text-lg text-on-surface">Loading Order Confirmation...</h2>
         <p className="text-xs text-on-surface-variant mt-1">Verifying order receipt and warehouse allocation</p>
       </div>
@@ -356,7 +357,7 @@ export default function OrderConfirmationPage() {
     <Suspense
       fallback={
         <div className="w-full min-h-[60vh] bg-surface flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+          <CometSpinner className="h-12 w-12 mb-4" />
           <h2 className="font-headline font-bold text-lg text-on-surface">Loading Order Confirmation...</h2>
         </div>
       }

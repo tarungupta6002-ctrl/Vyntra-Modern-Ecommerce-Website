@@ -30,6 +30,7 @@ import {
 } from '@/store/address-store';
 import { useUserProfileStore } from '@/store/user-profile-store';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface SavedAddressesViewProps {
   embeddedInAccount?: boolean;
 }
@@ -286,7 +287,7 @@ export function SavedAddressesView({ embeddedInAccount = false }: SavedAddresses
     return (
       <div className="w-full min-h-[400px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#007185] border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <p className="text-xs text-[#565959] font-medium">Loading saved delivery addresses...</p>
         </div>
       </div>

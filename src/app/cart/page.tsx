@@ -32,6 +32,7 @@ import { useAddressStore } from '@/store/address-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { formatINR } from '@/lib/utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export default function CartPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -277,7 +278,7 @@ export default function CartPage() {
     return (
       <div className="w-full bg-surface min-h-[calc(100vh-280px)] flex items-center justify-center py-16 px-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <CometSpinner className="h-12 w-12" />
           <p className="text-xs text-on-surface-variant font-medium">Loading your shopping bag...</p>
         </div>
       </div>

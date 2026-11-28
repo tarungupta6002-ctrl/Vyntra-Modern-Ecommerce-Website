@@ -24,6 +24,7 @@ import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 import { PageHeader, StatRow, consoleButton, humanize } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface AdminOrder {
   id: string;
   orderNumber: string;
@@ -176,7 +177,7 @@ export default function AdminOrdersManagementPage() {
         actions={
           <>
           <button type="button" onClick={() => fetchOrders()} disabled={isLoading} className={consoleButton.secondary}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </button>
           </>
@@ -224,7 +225,7 @@ export default function AdminOrdersManagementPage() {
       <div className="bg-white rounded-xl shadow-sm border border-[#D5D9D9] overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center text-xs text-[#565959]">
-            <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-[#007185]" />
+            <CometSpinner className="h-12 w-12 mx-auto mb-2 block text-[#007185]" />
             Loading platform consignments...
           </div>
         ) : error ? (

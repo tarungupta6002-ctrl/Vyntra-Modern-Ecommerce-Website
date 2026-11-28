@@ -20,7 +20,7 @@ import {
   BookOpen,
   FolderOpen,
 } from 'lucide-react';
-import { APlusData, APlusModule, APlusModuleType, APlusHeaderStyle, createDefaultAPlusContent } from '@/types/aplus';
+import { APlusData, APlusModule, APlusModuleType, APlusHeaderStyle } from '@/types/aplus';
 import { MediaPickerModal, SelectedMedia } from '@/components/media/media-picker-modal';
 
 interface APlusBuilderProps {
@@ -37,62 +37,62 @@ const MODULE_DEFINITIONS: Array<{
 }> = [
   {
     type: 'hero_banner',
-    title: 'Full-Width Image Banner (Standard Amazon A+)',
-    desc: 'Full-width edge-to-edge product banner (970x600, 970x300, or any brand graphic)',
+    title: 'Full-width banner',
+    desc: 'One wide photo across the page (for example 970 × 600).',
     icon: Layout,
   },
   {
     type: 'image_text_split',
-    title: 'Image with Text (Split Layout)',
-    desc: 'Editorial side-by-side photo with craft narrative (Left/Right)',
+    title: 'Photo with text',
+    desc: 'A photo beside a short paragraph.',
     icon: Columns,
   },
   {
     type: 'feature_cards_3',
-    title: 'Three Feature Cards',
-    desc: '3 responsive cards with photo headers, titles, and descriptions',
+    title: 'Three feature cards',
+    desc: 'Three cards, each with a photo, title and line of text.',
     icon: Grid,
   },
   {
     type: 'feature_cards_4',
-    title: 'Four Feature Cards',
-    desc: '4 compact feature cards for technical highlights or key values',
+    title: 'Four feature cards',
+    desc: 'Four smaller cards for key features.',
     icon: Grid,
   },
   {
     type: 'lifestyle_gallery',
-    title: 'Lifestyle Image Gallery',
-    desc: '3-photo lookbook showcase highlighting real-world drape & style',
+    title: 'Photo gallery',
+    desc: 'Three photos of the product in use.',
     icon: ImageIcon,
   },
   {
     type: 'craftsmanship_story',
-    title: 'Material & Craftsmanship Standard',
-    desc: 'Deep-dive with stat badges (Artisan Hours, Purity Standard)',
+    title: 'Materials and making',
+    desc: 'Text with a few short facts',
     icon: Sparkles,
   },
   {
     type: 'product_highlights',
-    title: 'Product Highlights Grid',
-    desc: 'Checkmarked hallmark points highlighting unique handloom features',
+    title: 'Highlights grid',
+    desc: 'A grid of short points about the product.',
     icon: CheckCircle2,
   },
   {
     type: 'care_and_size',
-    title: 'Care Instructions & Size Matrix',
-    desc: 'Detailed longevity washing guide and standard inches sizing chart',
+    title: 'Care instructions',
+    desc: 'How to wash and look after the product.',
     icon: Sliders,
   },
   {
     type: 'brand_story',
-    title: 'Brand Story & Atelier Philosophy',
-    desc: 'Generational atelier narrative with founder quote & signature',
+    title: 'Brand story',
+    desc: 'Who makes it, with an optional quote.',
     icon: BookOpen,
   },
   {
     type: 'promo_banner',
-    title: 'Promotional Brand Banner',
-    desc: 'Full-width visual graphic creative for seasonal edits & collections',
+    title: 'Brand banner',
+    desc: 'A wide graphic for your brand or collection.',
     icon: Layers,
   },
 ];
@@ -235,51 +235,50 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
       <div className="p-5 rounded-xl bg-[#F7F8F8] border border-[#D5D9D9] space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-[#D5D9D9]">
           <Sliders className="h-4 w-4 text-[#007185]" />
-          <h4 className="text-xs font-bold text-[#0F1111] uppercase tracking-wider">
-            A+ Content Header Banner Configuration
+          <h4 className="text-xs font-bold text-[#0F1111]">
+            Section heading
           </h4>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Header Title Choice */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#0F1111]">Header Title Banner</label>
+            <label className="block text-xs font-bold text-[#0F1111]">Heading</label>
             <select
-              value={aplusData.headerTitle || 'FROM THE MAKER'}
+              value={aplusData.headerTitle || 'FROM THE BRAND'}
               onChange={(e) => handleUpdateHeader('headerTitle', e.target.value)}
               className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#D5D9D9] bg-white font-bold text-[#0F1111]"
             >
               <option value="FROM THE BRAND">FROM THE BRAND</option>
               <option value="FROM THE MAKER">FROM THE MAKER</option>
-              <option value="FROM THE ARTISAN ATELIER">FROM THE ARTISAN ATELIER</option>
               <option value="FROM THE MANUFACTURER">FROM THE MANUFACTURER</option>
             </select>
           </div>
 
           {/* Header Theme / Gradient */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#0F1111]">Color Theme / Background</label>
+            <label className="block text-xs font-bold text-[#0F1111]">Background</label>
             <select
-              value={aplusData.headerStyle || 'maroon_luxury'}
+              value={aplusData.headerStyle || 'clean_minimal'}
               onChange={(e) => handleUpdateHeader('headerStyle', e.target.value as APlusHeaderStyle)}
               className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#D5D9D9] bg-white font-bold text-[#0F1111]"
             >
-              <option value="maroon_luxury">Royal Maroon Luxury Gradient</option>
-              <option value="gold_heritage">Regal Gold &amp; Amber Gradient</option>
-              <option value="midnight_navy">Deep Sapphire Midnight Gradient</option>
-              <option value="emerald_artisanal">Emerald Handloom Gradient</option>
-              <option value="clean_minimal">Clean Minimal Light Border</option>
+              <option value="clean_minimal">Plain, light</option>
+              <option value="midnight_navy">Dark blue</option>
+              <option value="maroon_luxury">Maroon</option>
+              <option value="gold_heritage">Gold</option>
+              <option value="emerald_artisanal">Green</option>
             </select>
           </div>
 
           {/* Subtitle */}
           <div className="space-y-1">
-            <label className="block text-xs font-bold text-[#0F1111]">Header Subtitle (Optional)</label>
+            <label className="block text-xs font-bold text-[#0F1111]">Line under the heading (optional)</label>
             <input
               type="text"
               value={aplusData.headerSubtitle || ''}
               onChange={(e) => handleUpdateHeader('headerSubtitle', e.target.value)}
-              placeholder="e.g. Master Handloom Craftsmanship & Lineage"
+              placeholder="For example: Made in Jaipur since 1998"
               className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#D5D9D9] bg-white text-[#0F1111]"
             />
           </div>
@@ -290,17 +289,17 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#565959] uppercase tracking-wider">
-              Configured A+ Content Modules ({aplusData.modules?.length || 0})
+            <span className="text-xs font-bold text-[#565959]">
+              {aplusData.modules?.length || 0} {(aplusData.modules?.length || 0) === 1 ? 'section' : 'sections'}
             </span>
             {hasIncompleteModules && (
               <button
                 type="button"
                 onClick={handleRemoveEmptyModules}
-                className="px-2.5 py-0.5 rounded text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                className="px-2.5 py-0.5 rounded text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
                 title="Remove modules that have no photos or content"
               >
-                Clear Empty Modules
+                Remove empty sections
               </button>
             )}
           </div>
@@ -310,17 +309,15 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
             className="px-3.5 py-1.5 rounded-lg bg-[#007185] hover:bg-[#004B57] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Add A+ Module</span>
+            <span>Add a section</span>
           </button>
         </div>
 
         {(!aplusData.modules || aplusData.modules.length === 0) ? (
           <div className="py-10 border-2 border-dashed border-[#D5D9D9] rounded-xl text-center space-y-2 bg-[#F7F8F8]">
             <Layout className="h-8 w-8 text-[#565959]/40 mx-auto" />
-            <p className="text-xs font-bold text-[#0F1111]">No A+ Content modules added yet (Optional)</p>
-            <p className="text-[11px] text-[#565959]">
-              Add hero banners, craft spotlights, and lifestyle galleries to transform your product page into an Amazon-style flagship showcase.
-            </p>
+            <p className="text-sm font-semibold text-[#0F1111]">No sections yet</p>
+            <p className="text-sm text-[#565959]">Optional. Add a banner, a photo with text, or feature cards using your own photos.</p>
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 type="button"
@@ -328,15 +325,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                 className="px-4 py-2 bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5"
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span>Add Module</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onChange(createDefaultAPlusContent({ title: brandName || 'Artisan Atelier', brand: brandName || 'Vyntra' }))}
-                className="px-4 py-2 bg-white hover:bg-stone-50 text-[#565959] text-xs font-bold rounded-lg border border-[#D5D9D9] shadow-xs flex items-center gap-1.5"
-              >
-                <BookOpen className="h-3.5 w-3.5 text-[#800020]" />
-                <span>Load Artisan Template</span>
+                <span>Add a section</span>
               </button>
             </div>
           </div>
@@ -368,16 +357,16 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                       }`}>
                         {idx + 1}
                       </span>
-                      <span className="text-xs font-bold text-[#0F1111] uppercase tracking-wider">
+                      <span className="text-xs font-bold text-[#0F1111]">
                         {mod.type.replace(/_/g, ' ')}
                       </span>
                       {isHighlighted && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#007185] text-white font-extrabold uppercase animate-pulse">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#007185] text-white font-extrabold animate-pulse">
                           Newly Added
                         </span>
                       )}
                       {isIncomplete && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">
                           Incomplete (Add photo or will be auto-omitted)
                         </span>
                       )}
@@ -417,7 +406,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   {/* Title */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-[#565959]">Module Heading</label>
+                    <label className="block text-xs font-bold text-[#565959]">Module Heading</label>
                     <input
                       type="text"
                       value={mod.title || ''}
@@ -430,11 +419,11 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                   {/* Image URL */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <label className="block text-[11px] font-bold text-[#565959]">Primary Image URL</label>
+                      <label className="block text-xs font-bold text-[#565959]">Primary Image URL</label>
                       <button
                         type="button"
                         onClick={() => openPickerForModule(idx, 'imageUrl')}
-                        className="text-[10px] text-[#007185] hover:underline font-bold flex items-center gap-1"
+                        className="text-xs text-[#007185] hover:underline font-bold flex items-center gap-1"
                       >
                         <FolderOpen className="w-3 h-3" />
                         <span>Media Library</span>
@@ -445,7 +434,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                       value={mod.imageUrl || ''}
                       onChange={(e) => handleUpdateModule(idx, { imageUrl: e.target.value })}
                       placeholder="https://images.unsplash.com/..."
-                      className="w-full px-2.5 py-1.5 border border-[#D5D9D9] rounded-lg font-mono text-[11px] bg-white"
+                      className="w-full px-2.5 py-1.5 border border-[#D5D9D9] rounded-lg tabular-nums text-xs bg-white"
                     />
                   </div>
 
@@ -453,7 +442,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                   {(mod.type === 'hero_banner' || mod.type === 'image_text_split') && (
                     <>
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-bold text-[#565959]">Subtitle</label>
+                        <label className="block text-xs font-bold text-[#565959]">Subtitle</label>
                         <input
                           type="text"
                           value={mod.subtitle || ''}
@@ -463,7 +452,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="block text-[11px] font-bold text-[#565959]">Badge Tag</label>
+                        <label className="block text-xs font-bold text-[#565959]">Badge Tag</label>
                         <input
                           type="text"
                           value={mod.badgeText || ''}
@@ -478,7 +467,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                   {/* Image Position Toggle for Split Layout */}
                   {mod.type === 'image_text_split' && (
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-bold text-[#565959]">Image Alignment</label>
+                      <label className="block text-xs font-bold text-[#565959]">Image Alignment</label>
                       <select
                         value={mod.imagePosition || 'left'}
                         onChange={(e) => handleUpdateModule(idx, { imagePosition: e.target.value as 'left' | 'right' })}
@@ -496,7 +485,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                     mod.type === 'feature_cards_3' ||
                     mod.type === 'feature_cards_4') && (
                     <div className="md:col-span-2 space-y-1">
-                      <label className="block text-[11px] font-bold text-[#565959]">
+                      <label className="block text-xs font-bold text-[#565959]">
                         Description{mod.type === 'feature_cards_3' || mod.type === 'feature_cards_4' ? ' (optional, shown under the heading)' : ''}
                       </label>
                       <textarea
@@ -512,7 +501,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                   {/* Brand Story Quote */}
                   {mod.type === 'brand_story' && (
                     <div className="md:col-span-2 space-y-1">
-                      <label className="block text-[11px] font-bold text-[#565959]">Artisan Philosophy Quote</label>
+                      <label className="block text-xs font-bold text-[#565959]">Quote</label>
                       <textarea
                         rows={2}
                         value={mod.quote || ''}
@@ -532,14 +521,14 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
       {/* 3. Add Module Dialog / Menu */}
       {showAddMenu && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 shadow-2xl border border-[#D5D9D9] space-y-4 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#D5D9D9]">
               <div>
                 <h3 className="font-headline font-bold text-base text-[#0F1111]">
-                  Choose A+ Content Module
+                  Add a section
                 </h3>
                 <p className="text-xs text-[#565959]">
-                  Select an Amazon-style rich storytelling module to insert.
+                  Pick a layout. You fill in the photos and text.
                 </p>
               </div>
               <button
@@ -568,7 +557,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
                       <h4 className="font-bold text-xs text-[#0F1111] group-hover:text-[#007185]">
                         {def.title}
                       </h4>
-                      <p className="text-[11px] text-[#565959] mt-0.5 line-clamp-2">
+                      <p className="text-xs text-[#565959] mt-0.5 line-clamp-2">
                         {def.desc}
                       </p>
                     </div>
@@ -586,7 +575,7 @@ export function APlusBuilder({ aplusData, onChange, brandName = 'Official Brand'
         onClose={() => setIsMediaModalOpen(false)}
         onSelect={handleSelectModuleMedia}
         allowedCategory="APLUS_CONTENT"
-        title="Select A+ Content Media Asset"
+        title="Choose a photo"
       />
     </div>
   );

@@ -23,6 +23,7 @@ import {
 import { ReviewStatus } from '@prisma/client';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface AdminReview {
   id: string;
   productId: string;
@@ -287,7 +288,7 @@ export default function AdminReviewsPage() {
       <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
         {isLoading && (
           <div className="p-12 text-center space-y-3">
-            <div className="w-8 h-8 border-2 border-[#007185] border-t-transparent rounded-full animate-spin mx-auto" />
+            <CometSpinner className="h-12 w-12 mx-auto block" />
             <p className="text-xs text-[#565959]">Loading reviews catalog...</p>
           </div>
         )}

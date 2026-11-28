@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Loader2, MapPin, Phone, Plus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, MapPin, Phone, Plus } from 'lucide-react';
 import { INDIAN_STATES } from '@/lib/vendor/indian-states';
 import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface PickupAddress {
   id: string;
   facilityName: string;
@@ -165,7 +166,7 @@ export default function VendorPickupAddressesPage() {
       {formError && <p className="text-sm text-[#B12704]">{formError}</p>}
       <div className="flex gap-2">
         <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 rounded-full bg-[#FFD814] px-5 py-2 text-sm font-semibold hover:bg-[#F7CA00] disabled:opacity-60">
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save address
+          {saving && <CometSpinner className="h-4 w-4 text-current" decorative />} Save address
         </button>
         {(addresses?.length ?? 0) > 0 && (
           <button type="button" onClick={() => setEditing(null)} className="rounded-full border border-[#D5D9D9] px-5 py-2 text-sm font-semibold hover:bg-[#F7F8F8]">
@@ -200,7 +201,7 @@ export default function VendorPickupAddressesPage() {
 
       {!addresses && !loadError && (
         <p className="flex items-center gap-2 text-sm text-[#565959]">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <CometSpinner className="h-4 w-4 text-current" decorative /> Loading…
         </p>
       )}
 

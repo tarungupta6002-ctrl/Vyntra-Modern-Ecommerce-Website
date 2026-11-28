@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronDown,
   CreditCard,
-  Loader2,
   Mail,
   MapPin,
   MessageSquare,
@@ -20,6 +19,7 @@ import {
   UserCog,
 } from 'lucide-react';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
 /* ------------------------------------------------------------------ */
@@ -380,7 +380,7 @@ export function HelpSupportView({ embeddedInAccount = false }: HelpSupportViewPr
           </div>
         ) : activeLoading || signedIn === null ? (
           <div className="flex items-center gap-2 rounded-xl border border-[#D5D9D9] bg-white p-6 text-sm text-[#565959]">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading request…
+            <CometSpinner className="h-4 w-4 text-current" decorative /> Loading request…
           </div>
         ) : !active ? (
           <div className="rounded-xl border border-[#D5D9D9] bg-white p-6 text-sm text-[#0F1111]">
@@ -442,7 +442,7 @@ export function HelpSupportView({ embeddedInAccount = false }: HelpSupportViewPr
                 disabled={replying}
                 className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#FFD814] px-5 py-2 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00] disabled:opacity-60"
               >
-                {replying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {replying ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <Send className="h-4 w-4" />}
                 Send reply
               </button>
             </form>
@@ -544,7 +544,7 @@ export function HelpSupportView({ embeddedInAccount = false }: HelpSupportViewPr
             </h2>
             {signedIn === null ? (
               <div className="flex items-center gap-2 px-4 py-4 text-sm text-[#565959]">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                <CometSpinner className="h-4 w-4 text-current" decorative /> Loading…
               </div>
             ) : signedIn === false ? (
               <p className="px-4 py-4 text-sm text-[#565959]">
@@ -684,7 +684,7 @@ export function HelpSupportView({ embeddedInAccount = false }: HelpSupportViewPr
                     disabled={submitting}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#FFD814] px-5 py-2.5 text-sm font-semibold text-[#0F1111] hover:bg-[#F7CA00] disabled:opacity-60"
                   >
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                    {submitting ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <MessageSquare className="h-4 w-4" />}
                     Send request
                   </button>
                 </form>

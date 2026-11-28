@@ -1,3 +1,4 @@
+import type { FootwearFit, SizeChart, SizeChartKind } from '@/lib/catalog/size-chart';
 import { APlusData } from '@/types/aplus';
 import { BuyBoxResult, SellerOfferItem } from '@/types/multiseller';
 
@@ -115,6 +116,12 @@ export interface DetailedProduct {
   category: 'ethnic' | 'apparel' | 'footwear' | 'accessories' | 'watches' | 'bags' | 'mobiles' | 'electronics' | string;
   subCategory: string;
   breadcrumb: { label: string; href: string }[];
+  /** Which kind of size chart applies to the category (see lib/catalog/size-chart.ts). */
+  sizeChartKind?: SizeChartKind;
+  /** The seller's size chart, when they entered one. */
+  sizeChart?: SizeChart | null;
+  /** UK size fit of a shoe listing (picks the general conversion when there is no seller chart). */
+  footwearFit?: FootwearFit;
   price: number;
   originalPrice: number;
   discount: string;

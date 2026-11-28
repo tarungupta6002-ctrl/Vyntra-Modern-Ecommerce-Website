@@ -11,12 +11,12 @@ import {
   Sparkles,
   ExternalLink,
   RefreshCw,
-  Loader2,
   CheckCircle2,
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { PageHeader, StatRow, consoleButton } from '@/components/console/console-ui';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 export const dynamic = 'force-dynamic';
 
 interface CompetingOffer {
@@ -104,7 +104,7 @@ export default function AdminBuyBoxPage() {
       {/* Monitored Products List */}
       {loading ? (
         <div className="bg-white border border-[#D5D9D9] rounded-xl p-16 text-center space-y-2">
-          <Loader2 className="w-8 h-8 animate-spin text-[#007185] mx-auto" />
+          <CometSpinner className="h-12 w-12 mx-auto block text-[#007185]" />
           <p className="text-xs text-[#565959]">Evaluating Buy Box rankings...</p>
         </div>
       ) : products.length === 0 ? (

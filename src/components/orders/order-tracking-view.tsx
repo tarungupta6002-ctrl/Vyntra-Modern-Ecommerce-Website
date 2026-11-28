@@ -43,6 +43,7 @@ import { useOrderStore } from '@/store/order-store';
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface OrderTrackingViewProps {
   orderId?: string;
   embeddedInAccount?: boolean;
@@ -329,13 +330,9 @@ export function OrderTrackingView({
     return (
       <div className={embeddedInAccount ? "w-full text-[#0F1111] antialiased" : "w-full bg-[#faf8ff] min-h-screen text-[#0F1111] antialiased py-6 sm:py-8"}>
         <div className={embeddedInAccount ? "w-full" : "max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8"}>
-          <div className="flex flex-col gap-6 animate-pulse">
-            <div className="h-6 bg-[#EAEDED] rounded w-1/4" />
-            <div className="h-48 bg-white rounded-2xl border border-[#D5D9D9] p-6 shadow-sm" />
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-7 h-96 bg-white rounded-2xl border border-[#D5D9D9]" />
-              <div className="lg:col-span-5 h-96 bg-white rounded-2xl border border-[#D5D9D9]" />
-            </div>
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3" aria-live="polite">
+            <CometSpinner className="h-12 w-12" decorative />
+            <p className="text-sm text-[#565959]">Loading your order…</p>
           </div>
         </div>
       </div>

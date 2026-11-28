@@ -33,6 +33,7 @@ import {
   type AttributeTemplate,
 } from '@/lib/catalog/attributes';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 /* ------------------------------------------------------------------ */
 /* Config                                                              */
 /* ------------------------------------------------------------------ */
@@ -995,15 +996,9 @@ export function DepartmentListing({ config }: { config: DepartmentConfig }) {
             {/* Grid */}
             <div className="mt-4">
               {isLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-stone-200 bg-white p-4 animate-pulse space-y-3">
-                      <div className="h-48 rounded-xl bg-stone-200" />
-                      <div className="h-4 w-3/4 rounded bg-stone-200" />
-                      <div className="h-4 w-1/2 rounded bg-stone-200" />
-                      <div className="h-8 w-full rounded-full bg-stone-200" />
-                    </div>
-                  ))}
+                <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-stone-200 bg-white py-20">
+                  <CometSpinner className="h-12 w-12" decorative />
+                  <p className="text-sm text-stone-600">Loading {nounMany}…</p>
                 </div>
               ) : filtered.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

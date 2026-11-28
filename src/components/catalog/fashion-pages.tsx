@@ -19,6 +19,7 @@ import {
 import { DepartmentListing, type DepartmentConfig, type DepartmentType } from '@/components/catalog/department-listing';
 import { DEPARTMENT_WORDS } from '@/lib/search';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 /**
  * Every Fashion listing is the shared DepartmentListing with a different slice of the catalog
  * tree. Type slugs are real category slugs (see the Category table); `match` is only a text
@@ -117,7 +118,7 @@ export const FASHION_PAGES: Record<string, PageDef> = {
   'womens-shoes': {
     departmentSlug: 'womens-shoes',
     title: "Women's shoes",
-    description: 'Casual, formal and sports shoes, sandals, flats, boots and ethnic footwear.',
+    description: 'Casual, formal and sports shoes, sandals, flats, boots, pumps, slippers and ethnic footwear.',
     allLabel: "All women's shoes",
     parent: WOMEN,
     types: [
@@ -128,6 +129,8 @@ export const FASHION_PAGES: Record<string, PageDef> = {
       t('womens-ballet-flats', 'Flats', Footprints),
       t('womens-ethnic-footwear', 'Ethnic footwear', Footprints),
       t('womens-boots', 'Boots', Footprints),
+      t('womens-pumps', 'Pumps and peep-toes', Footprints),
+      t('womens-slippers', 'Slippers and flip-flops', Footprints),
     ],
   },
   'womens-watches': {
@@ -372,15 +375,12 @@ export const FASHION_PAGES: Record<string, PageDef> = {
   'bags-luggage': {
     departmentSlug: 'bags-luggage',
     title: 'Bags and luggage',
-    description: 'Backpacks, handbags, luggage and wallets.',
+    description: 'Backpacks, laptop and school bags, suitcases and travel duffles. Handbags are under Women.',
     allLabel: 'All bags and luggage',
     parent: FASHION,
     types: [
       go('bags-backpacks', 'Bags and backpacks', Backpack),
       go('luggage', 'Luggage', Luggage),
-      // These two have no page of their own, so their tiles filter this page.
-      t('handbags-clutches', 'Handbags', ShoppingBag),
-      t('wallets', 'Wallets', Briefcase),
     ],
   },
 };
@@ -411,7 +411,7 @@ export function FashionListing({ pageKey, basePath }: { pageKey: string; basePat
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-[#F5F6F7]">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#007185]" />
+          <CometSpinner className="h-12 w-12" />
         </div>
       }
     >

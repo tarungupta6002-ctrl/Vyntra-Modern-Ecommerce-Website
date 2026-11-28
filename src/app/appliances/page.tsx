@@ -5,6 +5,7 @@ import { Refrigerator, WashingMachine, Wind, CookingPot, Home } from 'lucide-rea
 import { DepartmentListing, type DepartmentConfig } from '@/components/catalog/department-listing';
 import { DEPARTMENT_WORDS } from '@/lib/search';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 const APPLIANCES: DepartmentConfig = {
   departmentSlug: 'appliances',
   basePath: '/appliances',
@@ -45,7 +46,7 @@ export default function AppliancesPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#F5F6F7]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007185]" />
+          <CometSpinner className="h-12 w-12" />
         </div>
       }
     >

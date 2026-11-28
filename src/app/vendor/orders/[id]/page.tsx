@@ -5,29 +5,13 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Package,
-  Truck,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  ArrowRight,
-  ArrowLeft,
-  MapPin,
-  Phone,
-  RefreshCw,
-  Copy,
-  Check,
-  ShieldAlert,
-  ShieldCheck,
-  Store,
-  Calendar,
-  ExternalLink,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Check, Copy, ExternalLink, Package, Phone, RefreshCw, Truck, X } from 'lucide-react';
+import { VendorPageHeader, VendorStats, vendorButton } from '@/components/vendor/vendor-ui';
+import { humanize } from '@/components/console/console-ui';
 import { formatINR } from '@/lib/utils';
 import { getCourierTrackingUrl } from '@/lib/courier-tracking';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 interface OrderItem {
   id: string;
   productId: string;
@@ -41,7 +25,7 @@ interface OrderItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  status: string;
   image: string;
 }
 
@@ -71,6 +55,16 @@ interface VendorOrderDetails {
   vendorTotalQuantity: number;
   items: OrderItem[];
 }
+
+/** How each item status reads, and its colour. */
+const STATUS: Record<string, { label: string; tone: string }> = {
+  PENDING: { label: 'To pack', tone: 'bg-amber-50 text-amber-800' },
+  PROCESSING: { label: 'Packed', tone: 'bg-sky-50 text-sky-800' },
+  SHIPPED: { label: 'Shipped', tone: 'bg-[#E7F4F5] text-[#005B6B]' },
+  DELIVERED: { label: 'Delivered', tone: 'bg-emerald-50 text-emerald-800' },
+  CANCELLED: { label: 'Cancelled', tone: 'bg-rose-50 text-rose-800' },
+  RETURNED: { label: 'Returned', tone: 'bg-[#F0F2F2] text-[#0F1111]' },
+};
 
 export default function VendorOrderDetailPage({ params }: { params: { id: string } }) {
   const orderParam = params.id;
@@ -138,7 +132,7 @@ export default function VendorOrderDetailPage({ params }: { params: { id: string
       if (res.ok && json.success) {
         await fetchOrderDetail();
       } else {
-        alert(json.error?.message || 'Failed to update status');
+        alert(json.error?.message || 'Could not update the item. Please try again.');
       }
     } catch (err: any) {
       alert(err.message || 'Network error');
@@ -152,11 +146,11 @@ export default function VendorOrderDetailPage({ params }: { params: { id: string
     if (!order || !dispatchModalItem) return;
 
     if (!courierPartnerInput.trim()) {
-      setDispatchError('Please specify the courier partner name.');
+      setDispatchError('Choose the courier.');
       return;
     }
     if (!trackingNumberInput.trim()) {
-      setDispatchError('Please enter a valid tracking / AWB number.');
+      setDispatchError('Enter the tracking number from the courier.');
       return;
     }
 
@@ -191,372 +185,267 @@ export default function VendorOrderDetailPage({ params }: { params: { id: string
     }
   };
 
-  // 1. Loading State
+  // 1. Loading
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-        <div className="w-8 h-8 border-4 border-[#FFD814] border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs text-[#565959] font-medium">Verifying consignment authorization...</span>
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3" role="status">
+        <CometSpinner className="h-12 w-12 text-[#007185]" />
+        <span className="text-sm text-[#565959]">Loading order…</span>
       </div>
     );
   }
 
-  // 2. 403 Forbidden: Cross-Vendor Order Access Blocked
-  if (errorStatus === 403) {
+  // 2. Not this seller's order, or not found
+  if (errorStatus === 403 || errorStatus === 404 || !order) {
     return (
-      <div className="max-w-xl mx-auto my-12 bg-white rounded-2xl border border-rose-200 p-8 text-center space-y-4 shadow-sm">
-        <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
-          <ShieldAlert className="h-7 w-7" />
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
-          403 — Unauthorized Cross-Vendor Access
-        </div>
-        <h2 className="text-xl font-bold text-[#0F1111]">Consignment Access Denied</h2>
-        <p className="text-xs text-[#565959] leading-relaxed">
-          Order <strong>#{orderParam}</strong> belongs to another merchant atelier or does not contain products from your store.
-          Under Vyntra marketplace data privacy and strict vendor isolation rules, customer delivery details and cross-vendor consignments cannot be viewed.
+      <div className="mx-auto my-12 max-w-md space-y-3 rounded-xl border border-[#D5D9D9] bg-white p-8 text-center">
+        <Package className="mx-auto h-8 w-8 text-[#565959]" aria-hidden="true" />
+        <h1 className="text-lg font-semibold text-[#0F1111]">
+          {errorStatus === 403 ? 'This order has no items from your store' : 'Order not found'}
+        </h1>
+        <p className="text-sm text-[#565959]">
+          {errorStatus === 403
+            ? `Order ${orderParam} belongs to another seller, so its details aren't shown here.`
+            : errorMessage || `We couldn't find order ${orderParam}.`}
         </p>
-        <div className="pt-3 flex items-center justify-center gap-3">
-          <Link
-            href="/vendor/orders"
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold shadow-sm"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Return to Your Orders</span>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // 3. 404 Not Found
-  if (errorStatus === 404 || !order) {
-    return (
-      <div className="max-w-xl mx-auto my-12 bg-white rounded-2xl border border-[#D5D9D9] p-8 text-center space-y-4 shadow-sm">
-        <div className="w-14 h-14 rounded-full bg-[#EAEDED] text-[#565959] flex items-center justify-center mx-auto">
-          <Package className="h-7 w-7" />
-        </div>
-        <h2 className="text-xl font-bold text-[#0F1111]">Order Not Found</h2>
-        <p className="text-xs text-[#565959] leading-relaxed">
-          {errorMessage || `We could not locate order #${orderParam} in the marketplace database.`}
-        </p>
-        <div className="pt-3">
-          <Link
-            href="/vendor/orders"
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold shadow-sm"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Return to Your Orders</span>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // 4. Authorized View: Render Consignment Details
-  return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Top Breadcrumb & Actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/vendor/orders"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#007185] hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to All Orders</span>
+        <Link href="/vendor/orders" className={`${vendorButton.secondary} mt-2`}>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to orders
         </Link>
-        <button
-          onClick={fetchOrderDetail}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#D5D9D9] hover:bg-[#F7FAFA] text-xs font-semibold text-[#0F1111] shadow-sm"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Refresh Details</span>
-        </button>
       </div>
+    );
+  }
 
-      {/* Main Order Card */}
-      <div className="bg-white rounded-xl border border-[#D5D9D9] shadow-sm overflow-hidden">
-        {/* Order Header */}
-        <div className="bg-[#131921] text-white p-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 border-b border-white/10">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#CCCCCC]">Order #</span>
-              <span className="font-extrabold text-sm text-[#FFD814] font-mono">
-                {order.orderNumber}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyOrderNumber}
-                className="p-1 hover:bg-white/10 rounded text-white/70 hover:text-white transition-colors"
-                title="Copy Order Number"
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-            <span className="text-white/20 hidden sm:inline">•</span>
-            <div className="flex items-center gap-1 text-xs text-[#CCCCCC]">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>Placed on {order.datePlaced} at {order.placedTime}</span>
-            </div>
-          </div>
+  const isCod = order.paymentMethod === 'COD';
+  const trackingUrl = order.trackingNumber ? getCourierTrackingUrl(order.courierPartner, order.trackingNumber) : null;
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded bg-white/10 text-[#FFD814] border border-white/20">
-              {order.paymentMethod === 'COD' ? 'CASH ON DELIVERY (COD)' : 'PREPAID'}
-            </span>
-            <span className="text-xs font-mono font-extrabold text-white">
-              Your Subtotal: {formatINR(order.vendorSubtotal)}
-            </span>
-          </div>
-        </div>
+  // 3. The order: what to ship, where to, and the next step for each item
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <Link href="/vendor/orders" className="inline-flex items-center gap-1 text-sm text-[#565959] hover:text-[#007185]">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Orders
+      </Link>
 
-        {/* Content Grid */}
-        <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Shipping Address */}
-          <div className="lg:col-span-5 bg-[#F7F8F8] rounded-xl p-5 border border-[#D5D9D9] space-y-4">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#007185]">
-              <MapPin className="h-4 w-4" />
-              <span>Customer Shipping Address</span>
-            </div>
+      <VendorPageHeader
+        title={`Order ${order.orderNumber}`}
+        description={`Placed on ${order.datePlaced} at ${order.placedTime}`}
+        actions={
+          <>
+            <button type="button" onClick={handleCopyOrderNumber} className={vendorButton.secondary}>
+              {copied ? <Check className="h-4 w-4 text-[#067D62]" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+              {copied ? 'Copied' : 'Copy order number'}
+            </button>
+            <button type="button" onClick={fetchOrderDetail} className={vendorButton.secondary}>
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Refresh
+            </button>
+          </>
+        }
+      />
 
+      <VendorStats
+        items={[
+          { label: 'Your items', value: String(order.vendorTotalQuantity) },
+          { label: 'Your share of the order', value: formatINR(order.vendorSubtotal) },
+          { label: 'Payment', value: isCod ? 'Cash on delivery' : 'Paid online', tone: isCod ? ('warn' as const) : ('good' as const) },
+          { label: 'Order status', value: humanize(order.orderStatus) },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Items and their next step */}
+        <section className="space-y-3 lg:col-span-8" aria-labelledby="items-heading">
+          <h2 id="items-heading" className="text-base font-semibold text-[#0F1111]">
+            Items to ship ({order.items.length})
+          </h2>
+
+          {order.items.map((item) => {
+            const isUpdating = updatingItemId === item.id;
+            const status = STATUS[item.status] || { label: humanize(item.status), tone: 'bg-[#F0F2F2] text-[#0F1111]' };
+            return (
+              <article key={item.id} className="rounded-xl border border-[#D5D9D9] bg-white p-4">
+                <div className="flex items-start gap-4">
+                  <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg border border-[#EAEDED] bg-[#F7F8F8]">
+                    {item.image ? (
+                      <Image src={item.image} alt="" fill className="object-cover" />
+                    ) : (
+                      <Package className="absolute inset-0 m-auto h-6 w-6 text-[#8A8F8F]" aria-hidden="true" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <h3 className="text-sm font-semibold leading-snug text-[#0F1111]">
+                        <Link href={`/products/${item.slug}`} target="_blank" className="hover:text-[#007185] hover:underline">
+                          {item.title}
+                        </Link>
+                      </h3>
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.tone}`}>{status.label}</span>
+                    </div>
+                    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#565959]">
+                      {item.size && item.size !== 'Standard' && (
+                        <div><dt className="inline">Size </dt><dd className="inline font-medium text-[#0F1111]">{item.size}</dd></div>
+                      )}
+                      {item.color && (
+                        <div><dt className="inline">Colour </dt><dd className="inline font-medium text-[#0F1111]">{item.color}</dd></div>
+                      )}
+                      <div><dt className="inline">SKU </dt><dd className="inline tabular-nums font-medium text-[#0F1111]">{item.sku}</dd></div>
+                    </dl>
+                    <p className="text-sm text-[#0F1111]">
+                      <span className="tabular-nums">{item.quantity}</span> × {formatINR(item.unitPrice)} ={' '}
+                      <strong className="tabular-nums">{formatINR(item.totalPrice)}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                {(item.status === 'PENDING' || item.status === 'PROCESSING' || (item.status === 'SHIPPED' && order.trackingNumber)) && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#EAEDED] pt-3">
+                    {item.status === 'PENDING' && (
+                      <>
+                        <p className="text-sm text-[#565959]">Pack the item, then mark it packed.</p>
+                        <button
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateStatus(item.id, 'PROCESSING')}
+                          className={vendorButton.primary}
+                        >
+                          {isUpdating ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <Package className="h-4 w-4" aria-hidden="true" />}
+                          Mark packed
+                        </button>
+                      </>
+                    )}
+                    {item.status === 'PROCESSING' && (
+                      <>
+                        <p className="text-sm text-[#565959]">Hand it to the courier and add the tracking number.</p>
+                        <button
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => {
+                            setDispatchModalItem(item);
+                            setDispatchError(null);
+                          }}
+                          className={vendorButton.primary}
+                        >
+                          <Truck className="h-4 w-4" aria-hidden="true" />
+                          Add tracking and ship
+                        </button>
+                      </>
+                    )}
+                    {item.status === 'SHIPPED' && order.trackingNumber && (
+                      <p className="text-sm text-[#565959]">
+                        {order.courierPartner || 'Courier'} tracking{' '}
+                        <span className="tabular-nums font-medium text-[#0F1111]">{order.trackingNumber}</span>
+                        {trackingUrl && (
+                          <>
+                            {' '}
+                            <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-medium text-[#007185] hover:underline">
+                              Track
+                              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                            </a>
+                          </>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </section>
+
+        {/* Where it goes */}
+        <aside className="space-y-3 lg:col-span-4" aria-labelledby="ship-to-heading">
+          <h2 id="ship-to-heading" className="text-base font-semibold text-[#0F1111]">Ship to</h2>
+          <div className="space-y-2 rounded-xl border border-[#D5D9D9] bg-white p-4 text-sm text-[#0F1111]">
             {order.shippingAddress ? (
-              <div className="space-y-1.5 text-xs text-[#444653]">
-                <span className="font-bold text-sm text-[#0F1111] block">
-                  {order.shippingAddress.fullName}
-                </span>
-                <p className="leading-relaxed">
+              <>
+                <p className="font-semibold">{order.shippingAddress.fullName}</p>
+                <p className="leading-relaxed text-[#565959]">
                   {order.shippingAddress.streetAddress}
                   {order.shippingAddress.locality ? `, ${order.shippingAddress.locality}` : ''}
                   <br />
-                  {order.shippingAddress.city}, {order.shippingAddress.state} —{' '}
-                  <strong className="text-[#0F1111]">{order.shippingAddress.postalCode}</strong>
+                  {order.shippingAddress.city}, {order.shippingAddress.state}{' '}
+                  <span className="tabular-nums font-medium text-[#0F1111]">{order.shippingAddress.postalCode}</span>
                 </p>
-                <div className="flex items-center gap-1.5 pt-2 text-[#0F1111] font-semibold">
-                  <Phone className="h-3.5 w-3.5 text-[#565959]" />
-                  <span>{order.shippingAddress.phone}</span>
-                </div>
-              </div>
+                <p className="flex items-center gap-1.5 pt-1">
+                  <Phone className="h-4 w-4 text-[#565959]" aria-hidden="true" />
+                  <a href={`tel:${order.shippingAddress.phone}`} className="tabular-nums hover:text-[#007185]">
+                    {order.shippingAddress.phone}
+                  </a>
+                </p>
+              </>
             ) : (
-              <p className="text-xs text-[#565959] italic">Standard delivery address on file.</p>
+              <p className="text-[#565959]">No delivery address was saved with this order.</p>
             )}
-
-            <div className="pt-3 border-t border-[#D5D9D9] text-xs text-[#565959] flex justify-between">
-              <span>Overall Consignment:</span>
-              <span className="font-bold text-[#0F1111] uppercase">{order.orderStatus}</span>
-            </div>
           </div>
-
-          {/* Vendor's Isolated Products */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center justify-between text-xs pb-1 border-b border-[#EAEDED]">
-              <span className="font-bold uppercase tracking-wider text-[#565959]">
-                Your Store Items ({order.items.length})
-              </span>
-              <span className="text-[#565959]">
-                Total Units: <strong className="text-[#0F1111]">{order.vendorTotalQuantity}</strong>
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {order.items.map((item) => {
-                const isUpdating = updatingItemId === item.id;
-
-                return (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-xl border border-[#D5D9D9] bg-white space-y-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-16 h-20 rounded-lg overflow-hidden bg-[#F7F8F8] shrink-0 relative border border-[#EAEDED]">
-                        <Image src={item.image} alt={item.title} fill className="object-cover" />
-                      </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#007185] bg-[#E7F4F5] px-1.5 py-0.5 rounded">
-                          {item.brand}
-                        </span>
-                        <h4 className="text-xs font-bold text-[#0F1111] leading-snug">{item.title}</h4>
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#565959]">
-                          <span>Size: <strong className="text-[#0F1111]">{item.size}</strong></span>
-                          <span>•</span>
-                          <span>Color: <strong className="text-[#0F1111]">{item.color}</strong></span>
-                          <span>•</span>
-                          <span>SKU: <strong className="font-mono text-[#0F1111]">{item.sku}</strong></span>
-                        </div>
-                        <div className="text-xs font-bold text-[#0F1111] pt-1">
-                          Qty {item.quantity} × {formatINR(item.unitPrice)} ={' '}
-                          <span className="text-[#007185] font-mono">{formatINR(item.totalPrice)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status & Transition Controls */}
-                    <div className="pt-3 border-t border-[#EAEDED] flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-[#565959]">Fulfillment Status:</span>
-                        {item.status === 'PENDING' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            <Clock className="h-3 w-3" />
-                            Pending Prep
-                          </span>
-                        )}
-                        {item.status === 'PROCESSING' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                            <Package className="h-3 w-3" />
-                            Processing / Packed
-                          </span>
-                        )}
-                        {item.status === 'SHIPPED' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <Truck className="h-3 w-3" />
-                            Dispatched to Courier
-                          </span>
-                        )}
-                        {item.status === 'CANCELLED' && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">
-                            <AlertCircle className="h-3 w-3" />
-                            Cancelled
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Transition Buttons */}
-                      <div className="flex items-center gap-2">
-                        {item.status === 'PENDING' && (
-                          <button
-                            type="button"
-                            disabled={isUpdating}
-                            onClick={() => handleUpdateStatus(item.id, 'PROCESSING')}
-                            className="px-3 py-1.5 rounded-lg bg-[#FFD814] hover:bg-[#F7CA00] text-[#0F1111] text-xs font-bold shadow-sm transition-all flex items-center gap-1"
-                          >
-                            {isUpdating ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Package className="h-3 w-3" />}
-                            <span>Mark Packed</span>
-                          </button>
-                        )}
-                        {item.status === 'PROCESSING' && (
-                          <button
-                            type="button"
-                            disabled={isUpdating}
-                            onClick={() => {
-                              setDispatchModalItem(item);
-                              setDispatchError(null);
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-[#0F1111] hover:bg-[#232F3E] text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1"
-                          >
-                            <Truck className="h-3 w-3" />
-                            <span>Dispatch / Enter AWB</span>
-                          </button>
-                        )}
-                        {item.status === 'SHIPPED' && order.trackingNumber && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-mono text-[#0F1111] bg-[#F7F8F8] px-2 py-0.5 rounded border border-[#D5D9D9]">
-                              AWB: {order.trackingNumber} ({order.courierPartner || 'Courier'})
-                            </span>
-                            {getCourierTrackingUrl(order.courierPartner, order.trackingNumber) && (
-                              <a
-                                href={getCourierTrackingUrl(order.courierPartner, order.trackingNumber)!}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#007185] hover:underline"
-                              >
-                                <span>Track</span>
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          {isCod && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              Cash on delivery: the courier collects {formatINR(order.vendorSubtotal)} for your items when they're delivered.
+            </p>
+          )}
+        </aside>
       </div>
 
-      {/* Dispatch Shipment Modal */}
+      {/* Add tracking and ship */}
       {dispatchModalItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-[#D5D9D9] shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-[#EAEDED]">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <Truck className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#0F1111]">Dispatch Shipment</h3>
-                  <p className="text-[11px] text-[#565959]">Enter authentic logistics courier &amp; AWB details</p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="dispatch-title" className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl border border-[#D5D9D9] bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 id="dispatch-title" className="text-lg font-semibold text-[#0F1111]">Add tracking and ship</h3>
+                <p className="mt-1 text-sm text-[#565959]">{dispatchModalItem.title}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setDispatchModalItem(null)}
-                className="text-[#565959] hover:text-[#0F1111] p-1 rounded-md"
-              >
+              <button type="button" onClick={() => setDispatchModalItem(null)} className="rounded-lg p-1 text-[#565959] hover:bg-[#F7F8F8]" aria-label="Close">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <form onSubmit={handleConfirmDispatch} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#0F1111] mb-1">
-                  Courier Partner Name *
-                </label>
+                <label htmlFor="courier" className="mb-1 block text-sm font-semibold text-[#0F1111]">Courier</label>
                 <select
+                  id="courier"
                   value={courierPartnerInput}
                   onChange={(e) => setCourierPartnerInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#D5D9D9] bg-white focus:outline-none focus:ring-2 focus:ring-[#007185]"
+                  className="w-full rounded-lg border border-[#D5D9D9] bg-white px-3 py-2 text-sm focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
                 >
-                  <option value="Delhivery">Delhivery Express</option>
-                  <option value="Blue Dart">Blue Dart Express</option>
-                  <option value="DTDC">DTDC Courier</option>
-                  <option value="Xpressbees">Xpressbees Logistics</option>
-                  <option value="Shadowfax">Shadowfax Technologies</option>
-                  <option value="Ekart">Ekart Logistics</option>
+                  <option value="Delhivery">Delhivery</option>
+                  <option value="Blue Dart">Blue Dart</option>
+                  <option value="DTDC">DTDC</option>
+                  <option value="Xpressbees">Xpressbees</option>
+                  <option value="Shadowfax">Shadowfax</option>
+                  <option value="Ekart">Ekart</option>
                   <option value="India Post">India Post (Speed Post)</option>
-                  <option value="Trackon">Trackon Courier</option>
-                  <option value="Other">Other Courier Partner</option>
+                  <option value="Trackon">Trackon</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0F1111] mb-1">
-                  Air Waybill (AWB) / Tracking Number *
-                </label>
+                <label htmlFor="awb" className="mb-1 block text-sm font-semibold text-[#0F1111]">Tracking (AWB) number</label>
                 <input
+                  id="awb"
                   type="text"
                   required
-                  placeholder="e.g. DEL-981044-IND or 123456789"
+                  autoComplete="off"
                   value={trackingNumberInput}
                   onChange={(e) => setTrackingNumberInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-[#D5D9D9] focus:outline-none focus:ring-2 focus:ring-[#007185] font-mono"
+                  className="w-full rounded-lg border border-[#D5D9D9] px-3 py-2 text-sm tabular-nums focus:border-[#007185] focus:outline-none focus:ring-1 focus:ring-[#007185]"
                 />
-                <span className="text-[10px] text-[#565959] mt-0.5 block">
-                  Customer will see this real tracking AWB number in their order status.
-                </span>
+                <p className="mt-1 text-xs text-[#565959]">From the courier&apos;s receipt. The customer sees it on their order.</p>
               </div>
 
               {dispatchError && (
-                <div className="p-3 bg-rose-50 text-rose-700 text-xs rounded-lg border border-rose-200">
-                  {dispatchError}
-                </div>
+                <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{dispatchError}</p>
               )}
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#EAEDED]">
-                <button
-                  type="button"
-                  onClick={() => setDispatchModalItem(null)}
-                  className="px-4 py-2 rounded-lg border border-[#D5D9D9] hover:bg-[#F7FAFA] text-xs font-bold text-[#0F1111]"
-                >
+              <div className="flex items-center justify-end gap-2 border-t border-[#EAEDED] pt-4">
+                <button type="button" onClick={() => setDispatchModalItem(null)} className={vendorButton.secondary}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isDispatching}
-                  className="px-4 py-2 rounded-lg bg-[#0F1111] hover:bg-[#232F3E] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {isDispatching ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
-                  <span>Confirm Dispatch &amp; Ship</span>
+                <button type="submit" disabled={isDispatching} className={vendorButton.primary}>
+                  {isDispatching ? <CometSpinner className="h-4 w-4 text-current" decorative /> : <Truck className="h-4 w-4" aria-hidden="true" />}
+                  Mark shipped
                 </button>
               </div>
             </form>

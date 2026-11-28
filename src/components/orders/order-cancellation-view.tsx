@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 /**
  * Customer order cancellation.
  *
@@ -196,7 +197,7 @@ export function OrderCancellationView({ orderId = '' }: OrderCancellationViewPro
       <Shell orderNumber={orderId}>
         <Card>
           <div className="flex items-center gap-3 text-sm text-[#565959]" role="status">
-            <RefreshCw className="h-4 w-4 animate-spin" /> Loading your order…
+            <CometSpinner className="h-4 w-4 text-current" decorative /> Loading your order…
           </div>
         </Card>
       </Shell>
@@ -478,7 +479,7 @@ export function OrderCancellationView({ orderId = '' }: OrderCancellationViewPro
               >
                 {submitting ? (
                   <>
-                    <RefreshCw className="h-4 w-4 animate-spin" /> Cancelling…
+                    <CometSpinner className="h-4 w-4 text-current" decorative /> Cancelling…
                   </>
                 ) : (
                   'Yes, cancel order'

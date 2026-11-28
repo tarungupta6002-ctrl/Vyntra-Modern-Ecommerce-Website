@@ -5,6 +5,7 @@ import { Laptop, Headphones, Watch, Tablet, Gamepad2, Camera, Smartphone } from 
 import { DepartmentListing, type DepartmentConfig } from '@/components/catalog/department-listing';
 import { DEPARTMENT_WORDS } from '@/lib/search';
 
+import { CometSpinner } from '@/components/ui/loading-spinner';
 const ELECTRONICS: DepartmentConfig = {
   departmentSlug: 'electronics',
   basePath: '/electronics',
@@ -43,7 +44,7 @@ export default function ElectronicsPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#F5F6F7]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#007185]" />
+          <CometSpinner className="h-12 w-12" />
         </div>
       }
     >
